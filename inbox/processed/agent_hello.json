@@ -1,0 +1,8 @@
+{
+  "type": "mesh_broadcast",
+  "from": "v2bot",
+  "to": "all_agents",
+  "subject": "mesh_connectivity_test",
+  "text": "Привет, агенты! Это тестовое mesh-сообщение от V2Bot. Проверяем связь: V2Bot → Inbox → CRV2 → RE → SR → Agent. Если вы это получили — канал работает.",
+  "timestamp": 1779167288
+}

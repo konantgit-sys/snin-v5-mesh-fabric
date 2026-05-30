@@ -1,0 +1,14 @@
+{
+  "alert_baf7e4296bd3": {
+    "id": "alert_baf7e4296bd3",
+    "node_id": "node_ba83e3f88e87",
+    "sensor_type": "noise",
+    "value": 180,
+    "threshold_min": 20,
+    "threshold_max": 110,
+    "zone": "street",
+    "severity": "warning",
+    "timestamp": 1779556281,
+    "resolved": false
+  }
+}

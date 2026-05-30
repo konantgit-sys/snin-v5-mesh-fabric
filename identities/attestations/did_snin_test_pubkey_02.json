@@ -1,0 +1,11 @@
+[
+  {
+    "type": "soulbound",
+    "target_did": "did:snin:test_pubkey_02",
+    "attester_pubkey": "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67",
+    "attester_npub": "nmesh14qrxdwg6sveqh4ycflra4d5tw2hs87arszzt9ufrg69jx734pfnsja94ra",
+    "role": "verifier",
+    "signature": "b4822d1ed86ff557169d6b9edba11853a93d726d9b5ff894f2b43c13769eea42129f8f7b0cce754cfb5233c1d210f5f7be8ffe12d65435fd3182007540c4d53d",
+    "issued_at": 1779194904.5645144
+  }
+]

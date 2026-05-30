@@ -1,0 +1,15 @@
+{
+  "node_ba83e3f88e87": {
+    "id": "node_ba83e3f88e87",
+    "name": "Умный Дом Екатеринбург",
+    "location": "Екатеринбург, ВИЗ",
+    "type": "smart_home",
+    "mesh_pubkey": "anton_ai",
+    "status": "active",
+    "uptime": 0,
+    "sensors_count": 0,
+    "readings_count": 3,
+    "last_heartbeat": 1779556281,
+    "registered_at": 1779556281
+  }
+}

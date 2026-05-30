@@ -1,0 +1,29 @@
+{
+  "read_00e1979c36d0": {
+    "id": "read_00e1979c36d0",
+    "node_id": "node_ba83e3f88e87",
+    "sensor_type": "temperature",
+    "value": 22.5,
+    "unit": "°C",
+    "zone": "living_room",
+    "timestamp": 1779556281
+  },
+  "read_201c8a34136e": {
+    "id": "read_201c8a34136e",
+    "node_id": "node_ba83e3f88e87",
+    "sensor_type": "co2",
+    "value": 1200,
+    "unit": "ppm",
+    "zone": "office",
+    "timestamp": 1779556281
+  },
+  "read_0c589bd071fc": {
+    "id": "read_0c589bd071fc",
+    "node_id": "node_ba83e3f88e87",
+    "sensor_type": "noise",
+    "value": 180,
+    "unit": "dB",
+    "zone": "street",
+    "timestamp": 1779556281
+  }
+}

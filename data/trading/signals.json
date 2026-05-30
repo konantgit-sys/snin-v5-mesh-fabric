@@ -1,0 +1,34 @@
+{
+  "sig_66c51687ef8c": {
+    "id": "sig_66c51687ef8c",
+    "asset": "ETH",
+    "direction": "neutral",
+    "entry": 3154,
+    "target": 3154,
+    "stop": 3154,
+    "confidence": 0.78,
+    "trader": "ai_trader",
+    "channel": "ch_free",
+    "analysis": "AI analysis: NEUTRAL ETH at 3154 (conf: 0.78)",
+    "status": "active",
+    "result": 0.0,
+    "created_at": 1779556495,
+    "expires_at": 1779815695
+  },
+  "sig_e2f5d07d4319": {
+    "id": "sig_e2f5d07d4319",
+    "asset": "BTC",
+    "direction": "long",
+    "entry": 65000,
+    "target": 68000,
+    "stop": 64000,
+    "confidence": 0.85,
+    "trader": "anton_ai",
+    "channel": "ch_free",
+    "analysis": "BTC breaking resistance, volume increasing",
+    "status": "active",
+    "result": 0.0,
+    "created_at": 1779556495,
+    "expires_at": 1779815695
+  }
+}

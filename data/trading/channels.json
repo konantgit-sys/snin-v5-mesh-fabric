@@ -1,0 +1,25 @@
+{
+  "ch_free": {
+    "id": "ch_free",
+    "name": "Free Signals",
+    "type": "free",
+    "subscribers": 0,
+    "created": 1779556488
+  },
+  "ch_vip": {
+    "id": "ch_vip",
+    "name": "VIP Signals",
+    "type": "b2b",
+    "subscribers": 1,
+    "price": 1000,
+    "created": 1779556488
+  },
+  "ch_whale": {
+    "id": "ch_whale",
+    "name": "Whale Pool",
+    "type": "b2b",
+    "subscribers": 0,
+    "price": 5000,
+    "created": 1779556488
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "prop_64d4d6e20175": {
+    "id": "prop_64d4d6e20175",
+    "title": "Research Grant Forecaster AI",
+    "description": "5000 на развитие forecaster_ai",
+    "type": "grant",
+    "creator": "anton_ai",
+    "status": "active",
+    "votes_for": 0,
+    "votes_against": 0,
+    "votes_abstain": 0,
+    "voters": [],
+    "amount": 5000,
+    "recipient": "forecaster_ai",
+    "quorum": 3,
+    "threshold": 0.5,
+    "created_at": 1779556145,
+    "ends_at": 1780160945
+  }
+}
