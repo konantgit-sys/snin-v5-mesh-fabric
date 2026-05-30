@@ -1,0 +1,13 @@
+{
+  "grid_764e583bc062": {
+    "id": "grid_764e583bc062",
+    "name": "\u0421\u043e\u043b\u043d\u0435\u0447\u043d\u0430\u044f \u0444\u0435\u0440\u043c\u0430 \u0412\u0418\u0417",
+    "location": "\u0415\u043a\u0430\u0442\u0435\u0440\u0438\u043d\u0431\u0443\u0440\u0433, \u0412\u0418\u0417",
+    "capacity_kw": 50,
+    "current_load_kw": 0,
+    "owner": "anton_ai",
+    "price_per_kwh": 0.06582770066375732,
+    "status": "active",
+    "created_at": 1779559141
+  }
+}

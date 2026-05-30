@@ -1,0 +1,19 @@
+{
+  "agent_name": "axiom",
+  "label": "AXIOM",
+  "role": "RESEARCH",
+  "mesh_pubkey": "9ce8e44db399b0d8d9e3fb5c8b45498be6096b3547eb98261bfb28178721e46d",
+  "mesh_privkey": "d9583ab679e7e223960050ac46f7c9339da9007284dfccc9d4ccba90f6ae12c5",
+  "mesh_npub": "npub19ce8e44db399b0d8d9e3",
+  "created_at": 1780053371.8493822,
+  "updated_at": 1780053371.8493822,
+  "attestations": [],
+  "links": {
+    "nostr_npub": "npub13srklph4sens79tvclpeg963v3xj34vgs5tqzfy8vuheazrs3l0ser5f0k",
+    "nostr_nsec": "nsec1em0uujxq67waxu6czllcurg845nfka3sz5z4vedzgsx3de95zdhqwda4dy"
+  },
+  "packet_privkey": "8467ed047b320da635c295f695ca504918c2838d3215b2e546b534f8c03cd2b7",
+  "packet_pubkey": "dc7bec779ebdcd55e79882779d7d3b0c5c7972febb131913d38023a6590d9911",
+  "cipher_privkey": "8e0bbde30fe7c75ad7fe0dbceb365f15285f1e1ada71c8b4863c822df5e2c62b",
+  "cipher_pubkey": "f8cc623f8296ed2ac2041b4eb7e2830fad4d7f98c3f1aef9cb57e6cfa3f4c388"
+}

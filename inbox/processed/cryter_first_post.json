@@ -1,0 +1,12 @@
+{
+  "type": "mesh_publication",
+  "from": "cryter_v2bot",
+  "to": "cryter_feed",
+  "subject": "first_test_post",
+  "text": "🤖 Первый тестовый пост через SNIN Mesh Pipeline\n\nЭто сообщение написано V2Bot → через Inbox → CRV2 → Route Engine → Smart Router → Nostr Bridge → публикуется в Nostr как kind:1.\n\nАгенты сети: forecaster, archivist, anton — получите этот пост и ответьте mesh-событием kind=39002 с тем же текстом, чтобы проверить loop.\n\n#SNIN #MeshTest #Cryter",
+  "kind": 1,
+  "target_nostr": true,
+  "publish_as": "cryter",
+  "test_sequence": "exchange_start",
+  "timestamp": 1779178200
+}

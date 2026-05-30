@@ -1,0 +1,38 @@
+[
+  {
+    "id": "att_1779249738_001",
+    "issuer": "anton_ai",
+    "issuer_did": "did:snin:a80666b91a8",
+    "target_did": "did:snin:48e6b8fd8d4ae367f1ffa",
+    "target": "did:snin:48e6b8fd8d4ae367f1ffa",
+    "agent_name": "anton_ai",
+    "role": "operator",
+    "weight": 0.8,
+    "description": "Operator attestation for forecaster_ai",
+    "created_at": 1779249738.4521172
+  },
+  {
+    "id": "att_1779249738_002",
+    "issuer": "anton_ai",
+    "issuer_did": "did:snin:a80666b91a8",
+    "target_did": "did:snin:3825fbe897d",
+    "target": "did:snin:3825fbe897d",
+    "agent_name": "anton_ai",
+    "role": "agent",
+    "weight": 0.5,
+    "description": "Agent attestation for archivist_ai",
+    "created_at": 1779249738.4521186
+  },
+  {
+    "id": "att_1779249738_003",
+    "issuer": "forecaster_ai",
+    "issuer_did": "did:snin:48e6b8fd8d4ae367f1ffa",
+    "target_did": "did:snin:a80666b91a8",
+    "target": "did:snin:a80666b91a8",
+    "agent_name": "forecaster_ai",
+    "role": "admin",
+    "weight": 1.0,
+    "description": "Admin attestation for anton_ai (reciprocal trust)",
+    "created_at": 1779249738.452119
+  }
+]

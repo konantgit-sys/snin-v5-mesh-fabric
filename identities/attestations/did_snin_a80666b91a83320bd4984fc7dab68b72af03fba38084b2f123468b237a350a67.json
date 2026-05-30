@@ -1,0 +1,20 @@
+[
+  {
+    "type": "soulbound",
+    "target_did": "did:snin:a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67",
+    "attester_pubkey": "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+    "attester_npub": "nmesh1frnt3lvdft3k0u0l57d6xanq574tc7pqrxr3sksu7w2ker5rc43sg75a02",
+    "role": "verifier",
+    "signature": "0463ced79dc0c7303957b6c441a9f200fcbbe261516669d053fda747e28ca4497fd1d7c52f1f02cd3a27eb84966dfeb23916c16e7a63f834c328212b2b098224",
+    "issued_at": 1779196623.9460087
+  },
+  {
+    "type": "soulbound",
+    "target_did": "did:snin:a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67",
+    "attester_pubkey": "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+    "attester_npub": "nmesh18qjlh6yh6q7f7vy6akewrufqt3dk383h3x34sn38rcmtayssulss33dy2c",
+    "role": "verifier",
+    "signature": "d4109497d078c13dd46b6c2f4f64f689862bfb1ec01e47b6ebff44f43e1d1085eaf11a2b417e87e29ee4b735bac0af50d9a6464a23f536592763cb0ccb2a28b7",
+    "issued_at": 1779196691.0320253
+  }
+]

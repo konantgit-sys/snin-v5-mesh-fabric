@@ -1,0 +1,583 @@
+[
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201423.9910166,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201423.9927669,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "rediscovery",
+    "timestamp": 1779201465.879839,
+    "details": {
+      "agent": {
+        "name": "forecaster_ai",
+        "role": "forecaster",
+        "pubkey": "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563"
+      },
+      "scan_time_ms": 2.6544539723545313,
+      "total_time_ms": 3.501421073451638,
+      "channels": {
+        "mesh": {
+          "available": true,
+          "latency_ms": -0.0
+        },
+        "api": {
+          "available": false,
+          "latency_ms": -1
+        },
+        "route_engine": {
+          "available": true,
+          "latency_ms": -0.0
+        },
+        "content_router": {
+          "available": false,
+          "latency_ms": -1
+        },
+        "nostr": {
+          "available": true,
+          "latency_ms": 1.5
+        },
+        "tcp": {
+          "available": false,
+          "latency_ms": -1
+        },
+        "gossip": {
+          "available": false,
+          "latency_ms": -1
+        }
+      },
+      "ranked_channels": [
+        {
+          "channel": "mesh",
+          "latency_ms": -0.0,
+          "tier": 1
+        },
+        {
+          "channel": "route_engine",
+          "latency_ms": -0.0,
+          "tier": 1
+        },
+        {
+          "channel": "nostr",
+          "latency_ms": 1.5,
+          "tier": 1
+        }
+      ],
+      "matrix": {
+        "nodes": {
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563": {
+            "name": "forecaster_ai",
+            "role": "forecaster",
+            "latency_ms": 5,
+            "tier": 1,
+            "alive": true,
+            "last_seen": 1779114560.320783,
+            "address": "127.0.0.1",
+            "port": 9932
+          },
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1": {
+            "name": "archivist_ai",
+            "role": "archivist",
+            "latency_ms": 5,
+            "tier": 2,
+            "alive": true,
+            "last_seen": 1779114562.3220415,
+            "address": "127.0.0.1",
+            "port": 9932
+          },
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67": {
+            "name": "anton_ai",
+            "role": "anton",
+            "latency_ms": 5,
+            "tier": 2,
+            "alive": true,
+            "last_seen": 1779114564.3424048,
+            "address": "127.0.0.1",
+            "port": 9932
+          }
+        },
+        "edges": [
+          {
+            "from": "48e6b8fd8d4ae367",
+            "to": "forecaster_ai",
+            "channel": "mesh",
+            "weight": 8
+          },
+          {
+            "from": "48e6b8fd8d4ae367",
+            "to": "archivist_ai",
+            "channel": "mesh",
+            "weight": 6
+          },
+          {
+            "from": "48e6b8fd8d4ae367",
+            "to": "anton_ai",
+            "channel": "mesh",
+            "weight": 6
+          }
+        ]
+      },
+      "agents_in_network": 3,
+      "iot_devices": [],
+      "architecture_summary": "forecaster_ai (forecaster) | FC in 4ms | 3/7 channels | 3 agents | T1:1 T2:2 T3:0 T4:0",
+      "nostr_bridge": {
+        "ok": true,
+        "note": "Nostr bridge active in workflow"
+      }
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201465.8822246,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201465.8846,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201465.886614,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "channel_switch",
+    "timestamp": 1779201483.8080409,
+    "details": {
+      "sr_ok": false,
+      "from": "auto",
+      "to": "mesh",
+      "latency": -0.0
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201483.8099082,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201483.812253,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201483.8181133,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201484.005232,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201484.0069246,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201484.0089672,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201525.8993576,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201525.9044197,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201525.9064202,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201543.830806,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201543.8326128,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201543.834398,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201544.0315962,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201544.034814,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201544.0370045,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201585.9174123,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201585.935454,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201585.9383538,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201603.8513398,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201603.8530335,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201603.8583007,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "rediscovery",
+    "timestamp": 1779201604.0668292,
+    "details": {
+      "agent": {
+        "name": "anton_ai",
+        "role": "assistant",
+        "pubkey": "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+      },
+      "scan_time_ms": 2.7181999757885933,
+      "total_time_ms": 4.814325016923249,
+      "channels": {
+        "mesh": {
+          "available": true,
+          "latency_ms": -0.0
+        },
+        "api": {
+          "available": false,
+          "latency_ms": -1
+        },
+        "route_engine": {
+          "available": true,
+          "latency_ms": -0.0
+        },
+        "content_router": {
+          "available": false,
+          "latency_ms": -1
+        },
+        "nostr": {
+          "available": true,
+          "latency_ms": 1.5
+        },
+        "tcp": {
+          "available": false,
+          "latency_ms": -1
+        },
+        "gossip": {
+          "available": false,
+          "latency_ms": -1
+        }
+      },
+      "ranked_channels": [
+        {
+          "channel": "mesh",
+          "latency_ms": -0.0,
+          "tier": 1
+        },
+        {
+          "channel": "route_engine",
+          "latency_ms": -0.0,
+          "tier": 1
+        },
+        {
+          "channel": "nostr",
+          "latency_ms": 1.5,
+          "tier": 1
+        }
+      ],
+      "matrix": {
+        "nodes": {
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563": {
+            "name": "forecaster_ai",
+            "role": "forecaster",
+            "latency_ms": 5,
+            "tier": 1,
+            "alive": true,
+            "last_seen": 1779114560.320783,
+            "address": "127.0.0.1",
+            "port": 9932
+          },
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1": {
+            "name": "archivist_ai",
+            "role": "archivist",
+            "latency_ms": 5,
+            "tier": 2,
+            "alive": true,
+            "last_seen": 1779114562.3220415,
+            "address": "127.0.0.1",
+            "port": 9932
+          },
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67": {
+            "name": "anton_ai",
+            "role": "anton",
+            "latency_ms": 5,
+            "tier": 2,
+            "alive": true,
+            "last_seen": 1779114564.3424048,
+            "address": "127.0.0.1",
+            "port": 9932
+          }
+        },
+        "edges": [
+          {
+            "from": "a80666b91a83320b",
+            "to": "forecaster_ai",
+            "channel": "mesh",
+            "weight": 8
+          },
+          {
+            "from": "a80666b91a83320b",
+            "to": "archivist_ai",
+            "channel": "mesh",
+            "weight": 6
+          },
+          {
+            "from": "a80666b91a83320b",
+            "to": "anton_ai",
+            "channel": "mesh",
+            "weight": 6
+          }
+        ]
+      },
+      "agents_in_network": 3,
+      "iot_devices": [],
+      "architecture_summary": "anton_ai (assistant) | FC in 5ms | 3/7 channels | 3 agents | T1:1 T2:2 T3:0 T4:0",
+      "nostr_bridge": {
+        "ok": true,
+        "note": "Nostr bridge active in workflow"
+      }
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201604.068633,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201604.073184,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201604.075286,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201645.9542885,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201645.9801946,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201645.9823058,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201663.8721185,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201663.8771648,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201663.8805263,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201664.110058,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201664.1131663,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201664.116278,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201706.0039544,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201706.0060542,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201706.0084395,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201723.8935914,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201723.9121106,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201723.9148426,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201724.1311002,
+    "details": {
+      "node": "3825fbe897d03c9f"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201724.133099,
+    "details": {
+      "node": "48e6b8fd8d4ae367"
+    }
+  },
+  {
+    "type": "exclude_node",
+    "timestamp": 1779201724.162056,
+    "details": {
+      "node": "a80666b91a83320b"
+    }
+  }
+]

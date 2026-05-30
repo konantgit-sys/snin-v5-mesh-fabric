@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNIN Relay Mesh V3</title>
+<link href="https://fonts.cdnfonts.com/css/inter" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0e14;
+  --bg2: #11171f;
+  --bg3: #191f2a;
+  --card-bg: rgba(18,26,36,.75);
+  --border: rgba(30,42,58,.6);
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --accent: #00d4ff;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --red: #ef4444;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+  --glow: 0 0 20px rgba(0,212,255,.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Inter', -apple-system, sans-serif; background: radial-gradient(ellipse at 20% 50%, #0f1a2e 0%, #0b0e14 70%); color: var(--text); min-height: 100vh; }
+.container { max-width: 1000px; margin: 0 auto; padding: 24px; }
+header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+header h1 { font-size: 1.6em; font-weight: 800; }
+header h1 span { color: var(--accent); }
+header .status { font-size: 0.85em; color: var(--text2); display:flex; align-items:center; gap:6px; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display:inline-block; box-shadow:0 0 6px rgba(34,197,94,.4); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+.stat-row { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:12px; margin-bottom:20px; }
+.stat-card { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); padding:20px; text-align:center; backdrop-filter:blur(8px); transition:border-color .2s; }
+.stat-card:hover { border-color:var(--accent); box-shadow:var(--glow); }
+.stat-card .icon { font-size:1.6em; margin-bottom:6px; }
+.stat-card .num { font-size:2em; font-weight:800; letter-spacing:-0.02em; }
+.stat-card .label { font-size:0.75em; color:var(--text2); margin-top:4px; text-transform:uppercase; letter-spacing:0.05em; }
+.card { background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:16px; backdrop-filter:blur(8px); }
+.card h2 { color:var(--accent); font-size:1em; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.card table { width:100%; border-collapse:collapse; font-size:0.85em; }
+.card th { text-align:left; padding:8px; color:var(--text2); border-bottom:1px solid var(--border); font-weight:600; font-size:0.8em; text-transform:uppercase; letter-spacing:0.05em; }
+.card td { padding:7px 8px; border-bottom:1px solid var(--border); color:var(--text); }
+.card td .val { font-weight:600; }
+.card td .sub { color:var(--text2); font-size:0.85em; }
+.status-tag { display:inline-block; padding:2px 10px; border-radius:20px; font-size:0.75em; font-weight:600; }
+.status-tag.online { background:rgba(34,197,94,.15); color:var(--green); border:1px solid rgba(34,197,94,.25); }
+.status-tag.offline { background:rgba(239,68,68,.15); color:var(--red); border:1px solid rgba(239,68,68,.25); }
+.progress-bar { height:4px; border-radius:2px; background:var(--bg3); margin-top:4px; overflow:hidden; }
+.progress-bar .fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--accent),var(--green)); transition:width .5s; }
+footer { text-align:center; padding:20px; color:var(--text2); font-size:0.8em; }
+.spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; margin:60px auto 16px; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading { text-align:center; padding:60px 20px; color:var(--text2); }
+.error { text-align:center; padding:60px 20px; color:var(--red); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🔀 Relay <span>Mesh</span> V3</h1>
+    <div class="status"><span class="live-dot"></span><span id="node-info">Loading...</span></div>
+  </header>
+  <div id="content">
+    <div class="loading"><div class="spinner"></div>Loading Mesh Network Data...</div>
+  </div>
+  <footer><!-- populated --></footer>
+</div>
+<script>
+async function loadMesh() {
+  try {
+    let r = await fetch('/api/v3/stats');
+    let d = await r.json();
+    let uptime = d.uptime || 0;
+    let days = Math.floor(uptime / 86400);
+    let hrs = Math.floor((uptime % 86400) / 3600);
+    let uptimeStr = days + 'd ' + hrs + 'h';
+    let total = d.ingest?.total_ingested || 0;
+    let feedSize = d.ingest?.feed_size || 0;
+    let dhtKeys = d.dht?.keys || 0;
+    let dhtOps = d.dht?.ops || 0;
+    let redisOk = d.dht?.redis_ok || false;
+    let agents = d.agents || 0;
+    
+    document.getElementById('node-info').innerHTML = (d.node_id || 'relay-mesh-v3') + ' · Uptime: ' + uptimeStr;
+    
+    let h = '';
+    h += '<div class="stat-row">';
+    h += '<div class="stat-card"><div class="icon">📥</div><div class="num" style="color:' + (total > 0 ? 'var(--accent)' : 'var(--text2)') + '">' + total.toLocaleString() + '</div><div class="label">Events Ingested</div></div>';
+    h += '<div class="stat-card"><div class="icon">📦</div><div class="num" style="color:var(--green)">' + feedSize.toLocaleString() + '</div><div class="label">Feed Buffer</div></div>';
+    h += '<div class="stat-card"><div class="icon">🔑</div><div class="num" style="color:var(--yellow)">' + dhtKeys.toLocaleString() + '</div><div class="label">DHT Keys</div></div>';
+    h += '<div class="stat-card"><div class="icon">⚡</div><div class="num" style="color:' + (dhtOps > 100 ? 'var(--green)' : 'var(--accent)') + '">' + dhtOps.toLocaleString() + '</div><div class="label">DHT Operations</div></div>';
+    h += '<div class="stat-card"><div class="icon">🤖</div><div class="num" style="color:' + (agents > 0 ? 'var(--green)' : 'var(--text2)') + '">' + agents + '</div><div class="label">Agents</div></div>';
+    h += '</div>';
+    
+    h += '<div class="card"><h2>🔄 System Health</h2><table>';
+    h += '<tr><td>Redis</td><td><span class="status-tag ' + (redisOk ? 'online' : 'offline') + '">● ' + (redisOk ? 'Online' : 'Offline') + '</span></td></tr>';
+    h += '<tr><td>DHT Backend</td><td class="val">' + (redisOk ? 'Redis' : 'Memory Fallback') + '</td></tr>';
+    h += '<tr><td>Sig Gate</td><td><span class="val">' + (d.sig_gate?.passed || 0) + '</span> passed · <span class="val">' + (d.sig_gate?.rejected_deny || 0) + '</span> denied</td></tr>';
+    h += '</table></div>';
+    
+    h += '<div class="card"><h2>📥 Ingest by Kind</h2><table><tr><th>Kind</th><th>Events</th><th>%</th><th>Bar</th></tr>';
+    if (d.ingest?.kinds) {
+      let totalK = 0;
+      for (let k in d.ingest.kinds) totalK += d.ingest.kinds[k];
+      for (let k in d.ingest.kinds) {
+        let c = d.ingest.kinds[k];
+        let p = ((c/totalK)*100).toFixed(1);
+        let bw = Math.max(p*0.9,2);
+        h += '<tr><td><strong>' + k + '</strong></td><td>' + c.toLocaleString() + '</td><td>' + p + '%</td><td style="min-width:120px"><div class="progress-bar"><div class="fill" style="width:' + bw + '%"></div></div></td></tr>';
+      }
+    }
+    h += '</table></div>';
+    
+    h += '<div class="card"><h2>🧩 DHT Details</h2><table>';
+    h += '<tr><td>Total Keys</td><td class="val">' + dhtKeys.toLocaleString() + '</td></tr>';
+    h += '<tr><td>Max Capacity</td><td class="val">' + (d.dht?.max || 1000).toLocaleString() + '</td></tr>';
+    h += '<tr><td>Redis Keys</td><td class="val">' + (d.dht?.redis_keys || 0).toLocaleString() + '</td></tr>';
+    h += '<tr><td>Memory Keys</td><td class="val">' + (d.dht?.memory_keys || 0).toLocaleString() + '</td></tr>';
+    h += '<tr><td>Expired</td><td class="sub">' + (d.dht?.expired || 0) + ' keys</td></tr>';
+    h += '</table></div>';
+    
+    document.getElementById('content').innerHTML = h;
+    document.querySelector('footer').innerHTML = 'SNIN Mesh Network · relay-mesh.v2.site · ' + (redisOk ? 'Redis' : 'Memory') + ' backend · All systems operational';
+  } catch(e) {
+    document.getElementById('content').innerHTML = '<div class="error"><div style="font-size:2em;margin-bottom:8px;">⚠️</div>Failed to load mesh data<br><span style="font-size:0.8em;color:var(--text2)">' + e.message + '</span></div>';
+  }
+}
+loadMesh();
+</script>
+</body>
+</html>

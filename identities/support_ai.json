@@ -1,0 +1,21 @@
+{
+  "agent_name": "support_ai",
+  "label": "Support AI",
+  "role": "SUPPORT",
+  "mesh_pubkey": "6d8fc3da0f97a000e1e892e9bcce9ecc821ca34de0691b3775d2429506972bc2",
+  "mesh_privkey": "e7a71bfcb925024526fb7ae6d9f119bd2e83bd37ccf8cf635d8789d9025479d1",
+  "mesh_npub": "npub16d8fc3da0f97a000e1e8",
+  "created_at": 1780053371.8536081,
+  "updated_at": 1780053371.8536084,
+  "attestations": [],
+  "links": {
+    "nostr_npub": "npub1hlcn7e4vzhpwg0emaeasgt7t3m58sdkj6qyaw9vrwpyyau7mqq2swxe06t",
+    "nostr_nsec": "nsec1rkc9ctmagrzpc6zycr8640zszd7tn83deuwtsjs3nmj7jn7g6j2sqqqqda566u"
+  },
+  "packet_privkey": "b9e361b55b8f6345ba8de96d59ac0397c215e68d6fae309c317a33faef16b3de",
+  "packet_pubkey": "250130aece9c04e8c52ca1a114660a69ee6da4233d7a98c8b63e18b85f9360be",
+  "cipher_privkey": "8da4181f565700a916d0a486800f27e4cabe3247f6c7ba90b1693d28ca059c2f",
+  "cipher_pubkey": "24a4790f09486a308d811d01922d8b82648d933d7830fdb20afd54d403663439",
+  "pubkey_hex": "bff13f66ac15c2e43f3bee7b042fcb8ee87836d2d009d7158370484ef3db0015",
+  "nsec_hex": "1db05c2f7d40c41c6844c0cfaabc50137cb99e2dcf1cb84a119ee5e94fc8d495"
+}

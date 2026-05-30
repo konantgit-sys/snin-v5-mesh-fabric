@@ -1,0 +1,21 @@
+{
+  "agent_name": "creator",
+  "label": "Creator",
+  "role": "SOVEREIGN",
+  "mesh_pubkey": "03db29bbcb1d25bd5867693d444ce4aeb2d83445441881cbc8f0281bc5e20edc",
+  "mesh_privkey": "79dacaa3a55677a3b9e585f5266c2d71ced7584c678bc7da4e33d55b8b931604",
+  "mesh_npub": "npub103db29bbcb1d25bd5867",
+  "created_at": 1780053371.8543766,
+  "updated_at": 1780053371.8543766,
+  "attestations": [],
+  "links": {
+    "nostr_npub": "npub16m5j2w0hqtdw4lkdze3qa3g00pvtz7hkrm47c0hmatngayn03h8q5cj3nn",
+    "nostr_nsec": "nsec1r8zt0xc7322jedrnt06z4wuexj59r6yqdhe9n00fhs4tkxmtw3psl5kss9"
+  },
+  "packet_privkey": "824741dd4e6176d5af3fb33a9c682110f7a86e5f333932cec3214383dc7fa42f",
+  "packet_pubkey": "4abfb99547cf8282bcc9778542f9a39b7d143107fcbf9aabec185898cda5819e",
+  "cipher_privkey": "ae497c78b67817366f7963c109b5d97e0235b6b9cabb6b24ae9ac7023ba17caf",
+  "cipher_pubkey": "ae618e11ad5f9c650aa240301da4cf225a8d1da47627dab8be70a1e6e10da65b",
+  "pubkey_hex": "d6e92539f702daeafecd16620ec50f7858b17af61eebec3efbeae68e926f8dce",
+  "nsec_hex": "19c4b79b1e8a952cb4735bf42abb9934a851e8806df259bde9bc2abb1b6b7443"
+}

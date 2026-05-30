@@ -1,0 +1,21 @@
+{
+  "agent_name": "strategist_ai",
+  "label": "Strategist AI",
+  "role": "STRATEGIST",
+  "mesh_pubkey": "6dfd653e5f36f90d6d4ba3b08ed3b67b7410944087a586b4e63fe8243b66a715",
+  "mesh_privkey": "dd26f9ea8a85d44907474fbf93cd780372a694ef79ca4cff07a7602119f72c15",
+  "mesh_npub": "npub16dfd653e5f36f90d6d4b",
+  "created_at": 1780053371.850308,
+  "updated_at": 1780053371.8503082,
+  "attestations": [],
+  "links": {
+    "nostr_npub": "npub193jsw5gmjkqydl0ntgtvd3zklducqyn37ny7hj8ztwr4ahh8fylshzzcm9",
+    "nostr_nsec": "nsec1jv9dfypv6624anleq3epv33ruhvp5ef6z4fvs2zha8264asplzaqqqqrw3ryng"
+  },
+  "packet_privkey": "20b3a5750cad6ca558fe27fa19272ffd58fcc028ad05ee549d60b7698434d1ee",
+  "packet_pubkey": "c9e73919164d75db92bd5f27e6061d0cfa4346101ddf2cf5f41b89aa4100b104",
+  "cipher_privkey": "750b490eded8ff8008104f02c959cbe7e86bd624cc78380c981532f6a3fa8141",
+  "cipher_pubkey": "4d963b65dc5ff33aedf99ffe63b68d7c2c0cf48ec00f75caaf91194f84c73cf6",
+  "pubkey_hex": "2c6507511b958046fdf35a16c6c456fb79801271f4c9ebc8e25b875edee7493f",
+  "nsec_hex": "930ad4902cd6955ecff90472164623e5d81a653a1552c82857e9d5aaf601f8ba"
+}

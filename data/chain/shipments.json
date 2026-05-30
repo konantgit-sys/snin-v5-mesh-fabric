@@ -1,0 +1,22 @@
+{
+  "ship_d0d6185f8dd3": {
+    "id": "ship_d0d6185f8dd3",
+    "item": "DePIN Sensor Node",
+    "origin": "Shenzhen",
+    "destination": "\u0415\u043a\u0430\u0442\u0435\u0440\u0438\u043d\u0431\u0443\u0440\u0433",
+    "supplier_id": "sup_test",
+    "quantity": 100,
+    "carrier": "SNIN Freight",
+    "status": "created",
+    "status_history": [
+      {
+        "status": "created",
+        "ts": 1779559141
+      }
+    ],
+    "temperature": null,
+    "location": "Shenzhen",
+    "eta": 1779904741,
+    "created_at": 1779559141
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "agent_name": "aporialab",
+  "label": "AporiaLab",
+  "role": "LAB",
+  "mesh_pubkey": "13730f528f43de1c93c088505c69664556f25c7e630deeaa4feba1dec86f930b",
+  "mesh_privkey": "d329346a2fcd2dfc4607152ef4df8e81a38d22ef5d71a22da2bf06a42d000390",
+  "mesh_npub": "npub113730f528f43de1c93c0",
+  "created_at": 1780053371.8538756,
+  "updated_at": 1780053371.8538759,
+  "attestations": [],
+  "links": {
+    "nostr_npub": "npub1ulzh3jr0pga9xhfnfg0hhpfzppc3drk6ggy9t38s9nqagpf4gjvqv5wft8",
+    "nostr_nsec": "nsec1rsearwjwfnurdr4f4tyqll8x05nnqcqxjx65kzecqqnhpdvmlaysmff69x",
+    "nostr_nip05": "aporialab@nostr.v2app.ru"
+  },
+  "packet_privkey": "e8bbd6858579c71737e45bdd84c1d4c8780c604cc4c4faa803d521d81f6894fc",
+  "packet_pubkey": "650feedf567f042e2d0f4224fcf714371822a5dc3357479557b308497f371676",
+  "cipher_privkey": "85cfb59d31fcf48c2a554ed073e7701619d31eb7d6eeb585cbadda6ca0b599dd",
+  "cipher_pubkey": "30f84d982e36f0bbed022ba13afc9dd50ebf620d250e28d9ce1852aaccc54e73",
+  "pubkey_hex": "e7c578c86f0a3a535d334a1f7b85220871168eda420855c4f02cc1d405354498",
+  "nsec_hex": "1c33d1ba4e4cf8368ea9aac80ffce67d2730600691b54b0b38002770b59bff49"
+}

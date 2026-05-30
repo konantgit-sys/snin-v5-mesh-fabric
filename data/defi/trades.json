@@ -1,0 +1,15 @@
+{
+  "trade_e7aa55356359": {
+    "id": "trade_e7aa55356359",
+    "pool_id": "pool_btc_usdc",
+    "trader": "anton_ai",
+    "token_in": "BTC",
+    "token_out": "USDC",
+    "amount_in": 1,
+    "amount_out": 64163.3663,
+    "fee": 193.0693,
+    "price_impact_pct": 1.0,
+    "rate": 64163.3663,
+    "timestamp": 1779556878
+  }
+}

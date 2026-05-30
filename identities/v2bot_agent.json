@@ -1,0 +1,19 @@
+{
+  "agent_name": "v2bot_agent",
+  "label": "V2Bot Agent",
+  "role": "INTERFACE",
+  "mesh_pubkey": "591bc02fe64eace96d8199be5de006271c398ae2e39351b485c9aa22e5cdc421",
+  "mesh_privkey": "abd0a9274a32a03df1c6df8b0cba3b6dfc4c3c40e1918c9538749e39eb7c007c",
+  "mesh_npub": "npub1591bc02fe64eace96d81",
+  "created_at": 1780053371.8545837,
+  "updated_at": 1780053371.8545837,
+  "attestations": [],
+  "links": {
+    "nostr_npub": "npub1z37kc3046yk4wyx869t3uml39h63twlyp4mypj2h5tfmjvsky7gq2v43cg",
+    "nostr_nsec": "nsec15lhla7ktsfv6fnd5pglm5xf5hv8kckvx5q6ad5r246gr4sa9h3fqnnaque"
+  },
+  "packet_privkey": "2819197ca86d7b2556f0af57948c7f37bbc5dabfc9ce0460a34042a6e216f6f0",
+  "packet_pubkey": "8fbab43819123a8954ad619c2a8c270f47ca795a4a9f8dd4f1d829a01965a0b8",
+  "cipher_privkey": "465a767dd67c96c34efeaa6752c3ad2a3afb3c06a7c47fab531391aa24979726",
+  "cipher_pubkey": "b421aafc3569eaddb1ff608a360769e9dc2e39d0fb0b5c4f99c0016ea1923828"
+}

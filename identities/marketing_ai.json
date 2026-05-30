@@ -1,0 +1,21 @@
+{
+  "agent_name": "marketing_ai",
+  "label": "Marketing AI",
+  "role": "COMMUNICATOR",
+  "mesh_pubkey": "97440c7dffe06bb529475a1276f6b7fbfc84c87173cb7e16e8597f4db34ce976",
+  "mesh_privkey": "c3f4f3b89e9bfc894ce1b3aab51c9a6972bf22d044890ce4943a7d5f26f90fbb",
+  "mesh_npub": "npub197440c7dffe06bb52947",
+  "created_at": 1780053371.8505542,
+  "updated_at": 1780053371.8505545,
+  "attestations": [],
+  "links": {
+    "nostr_npub": "npub1az8ngg6scl6j8fpfyzfphqnzpae4zp8qqjrz7lzy2x79wr78j8hqa6sesr",
+    "nostr_nsec": "nsec1gsaahfzggwk8dg5skd9v7us3y3g9jf08mheuxzsmatyhlw8yl8wsqqqzgkfljq"
+  },
+  "packet_privkey": "66a4ebad6a456cfd6da370cc062191a718e31a577353962441d8dec542117f44",
+  "packet_pubkey": "e719f265fa67540697e63b833bb5780056c7311f346bf45a36906097c9c66337",
+  "cipher_privkey": "5e3e31f3a57f5cccbf14ddecdfd17409554778e8b07f68a9516690dbd8a2a166",
+  "cipher_pubkey": "5023465d3686fa1d5620a5bd8246fcdd80a6e8bf977bde5a5beef04e7abb6e5f",
+  "pubkey_hex": "e88f342350c7f523a42920921b82620f735104e004862f7c4451bc570fc791ee",
+  "nsec_hex": "443bdba44843ac76a290b34acf721124505925e7ddf3c30a1beac97fb8e4f9dd"
+}

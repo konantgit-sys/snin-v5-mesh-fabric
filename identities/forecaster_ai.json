@@ -1,0 +1,19 @@
+{
+  "agent_name": "forecaster_ai",
+  "mesh_pubkey": "d08470d7ef854ac358f857bafc52aca574ed42a3d0337e81a9a722f29b2f8dd9",
+  "mesh_privkey": "8a8601c388d50456bddb323b39e063735e7c3035a8032c1f6ddfc1a7bb0b783d",
+  "mesh_npub": "npub1d08470d7ef854ac358f8",
+  "created_at": 1780043426.0992754,
+  "updated_at": 1780043426.099276,
+  "attestations": [],
+  "links": {
+    "nostr_npub": "npub1atj5stf5t3dcnnll6gc50e52cask8dmch9jh29dn5pzfun8pf56sspx5x2",
+    "nostr_nsec": "nsec1u62pvgpvlx476u5hhwysps4tvq50k6rjpru2kzw4qc8zr5k8ae9sxwuj0e"
+  },
+  "packet_privkey": "d2b97948b43b2bcfbe21935a86f17418c632163b0361cf70602b7803ac74cc38",
+  "packet_pubkey": "744e0260077b8367264b7a5f62dc0f93df39f7976a6bf1c541367cccde489215",
+  "cipher_privkey": "821efa3e43bf8c87ba49ba38a317adf0ebbee3f49cf5f52f92f15790302de202",
+  "cipher_pubkey": "aba86f34f053e2df120ad79607733e6c3362592f518bae66ad1fc572516b352e",
+  "pubkey_hex": "eae5482d345c5b89cfffd23147e68ac76163b778b9657515b3a0449e4ce14d35",
+  "nsec_hex": "e69416202cf9abed7297bb8900c2ab6028fb687208f8ab09d5060e21d2c7ee4b"
+}

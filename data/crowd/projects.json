@@ -1,0 +1,16 @@
+{
+  "proj_8473f14534c8": {
+    "id": "proj_8473f14534c8",
+    "title": "SNIN V4 Mesh Integration",
+    "description": "\u0418\u043d\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u044f \u0432\u0441\u0435\u0445 16 \u0441\u043b\u043e\u0451\u0432 SNIN",
+    "goal": 50000,
+    "raised": 0,
+    "category": "infrastructure",
+    "creator": "anton_ai",
+    "status": "active",
+    "backers_count": 0,
+    "ai_score": 0.71,
+    "created_at": 1779559141,
+    "ends_at": 1782151141
+  }
+}

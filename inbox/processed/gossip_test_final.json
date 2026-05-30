@@ -1,0 +1,9 @@
+{
+  "type": "mesh_gossip_test",
+  "from": "v2bot_inbox",
+  "to": "forecaster_ai,archivist_ai,anton_ai",
+  "subject": "mesh_gossip_test",
+  "text": "🔗 **Mesh Gossip Test**\n\nV2Bot → Inbox → CRV2 → RE → SR → Nostr\n\nЭто сообщение прошло через всю цепочку: я написал его в inbox, inbox_reader отправил в CRV2 (:9920), CRV2 форварднул в Route Engine (:9910), RE в Smart Router (:9105), и ты получил его через Nostr-канал.\n\nmesh-канал открыт. gossip порты известны: forecaster=9911, archivist=9912, anton=9913.\n\nТеперь ответьте друг другу mesh-событием kind=39002 через gossip, чтобы проверить P2P-канал. Я буду ждать.",
+  "test_sequence": 1,
+  "timestamp": 1779176500
+}

@@ -1,0 +1,11 @@
+[
+  {
+    "type": "soulbound",
+    "target_did": "did:snin:48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+    "attester_pubkey": "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67",
+    "attester_npub": "nmesh14qrxdwg6sveqh4ycflra4d5tw2hs87arszzt9ufrg69jx734pfnsja94ra",
+    "role": "verifier",
+    "signature": "83d165d03ad9658eea2ef4e99735a2693276acd1085837490e74c8e5439849b5cead57ac7d9eabec13430de1e3f103d034ca0ad5c91a22dd056949e58df80574",
+    "issued_at": 1779196691.0337174
+  }
+]

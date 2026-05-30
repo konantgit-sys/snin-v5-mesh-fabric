@@ -1,0 +1,19 @@
+{
+  "agent_name": "archivist_ai",
+  "mesh_pubkey": "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+  "mesh_privkey": "bf083411e7c8c1f1afb825039943e33604ae5733d60adfa3f0d926cc350171f1",
+  "mesh_npub": "nmesh18qjlh6yh6q7f7vy6akewrufqt3dk383h3x34sn38rcmtayssulss33dy2c",
+  "created_at": 1778945442.6672263,
+  "updated_at": 1779183745.5115368,
+  "attestations": [],
+  "links": {
+    "nostr_npub": "npub1hajapasdhlntldjcaelgen40xn77zc9jvdxw9u06hnfllcd3eapscwapqk",
+    "nostr_nsec": "nsec1ashd0lj57dddwruh3p2zkqxvtrtj7y8f8qv87r5x9gtz6gdcdyysqqqqss69cg"
+  },
+  "packet_privkey": "67cbf0a0278f5596ba8f0553c832b56edd041e0791d689a2d5ea48c97340a770",
+  "packet_pubkey": "613e81a3f88f5ac7f93945ae79cc4fbc837469bbeec1ef7475c1e29a0cd1c999",
+  "cipher_privkey": "101db6f76ae1cb434b4cd79bc1da2d9300f0e150de8ac612e389c3e076bdbc43",
+  "cipher_pubkey": "8772858d499066e9f3fa586ed71e6934107e006e3e4fbd072af9e10d3ba1255a",
+  "pubkey_hex": "bf65d0f60dbfe6bfb658ee7e8cceaf34fde160b2634ce2f1fabcd3ffe1b1cf43",
+  "nsec_hex": "ec2ed7fe54f35ad70f9788542b00cc58d72f10e938187f0e862a162d21b86909"
+}

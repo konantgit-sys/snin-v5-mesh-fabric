@@ -1,0 +1,19 @@
+{
+  "agent_name": "anton_ai",
+  "mesh_pubkey": "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67",
+  "mesh_privkey": "3013862facd580ff5edc557e0cd0ed492af320c5be1e34c86cf55da93161f886",
+  "mesh_npub": "nmesh14qrxdwg6sveqh4ycflra4d5tw2hs87arszzt9ufrg69jx734pfnsja94ra",
+  "created_at": 1778945442.6997583,
+  "updated_at": 1779183745.5119917,
+  "attestations": [],
+  "links": {
+    "nostr_npub": "npub1ctx8q47erp0zmpa2ylr5azq7syh2jtjn4l6luk3xtpewmgjgfl6qr2ds5m",
+    "nostr_nsec": "nsec1a2njy4y0hjcalz9exn8gxxc6dg25g099sx3ja3xadswgxmh8legqqqqp8pr0ey"
+  },
+  "packet_privkey": "7e129f40a5551929ae9f8fb91097189837db7030572ad8086f6af020d3900fec",
+  "packet_pubkey": "ea24d89b835ac9864179f7b4ce99617803f3926efbc5865f8e795ef9d6f32dbe",
+  "cipher_privkey": "10f92a9eb16a2e5483ccbbbd4680da4d9934c8dfeec1fe3c80f2979f4b8d5963",
+  "cipher_pubkey": "4df3be284d3806047efdb06c0633fa07db76d015cd15762d4cceb3237ef0a22b",
+  "pubkey_hex": "c2cc7057d9185e2d87aa27c74e881e812ea92e53aff5fe5a265872eda2484ff4",
+  "nsec_hex": "eaa722548fbcb1df88b934ce831b1a6a15443ca581a32ec4dd6c1c836ee7fe50"
+}

@@ -1,0 +1,21 @@
+{
+  "agent_name": "rd_ai",
+  "label": "R&D AI",
+  "role": "R&D",
+  "mesh_pubkey": "5aabcabf5a9b95e376c09a561f060087b502bbdee6e84ee21e285295d0486d13",
+  "mesh_privkey": "567105fe85a6a27c841a35eb0698b23e9b5d9159063159a206e813cc94a748d6",
+  "mesh_npub": "npub15aabcabf5a9b95e376c0",
+  "created_at": 1780053371.8530111,
+  "updated_at": 1780053371.8530114,
+  "attestations": [],
+  "links": {
+    "nostr_npub": "npub122035d0m5evruxvmrsxm0m3yydjltesmwp7dhzkjgclfjdkserhqpy0tzr",
+    "nostr_nsec": "nsec1uny788epfyqwln5wwypk8wkydhxk48qfnzpujuwx2jsqhc4j629qqqqr2cg5my"
+  },
+  "packet_privkey": "85ed7ec3d6a85712c8add5aa970502a8e0d1128d51cd81076aac861338ccbdd4",
+  "packet_pubkey": "9e837ed38a0422579261a991be3d1756057deb6b2e6264bb0391b05a79dba5aa",
+  "cipher_privkey": "ba89248707592de5f3b209a524688b0d5f9846363bf3ce28bf55354944d209e1",
+  "cipher_pubkey": "886fc07fea344ebf5ffd96e6858c7e5b41f6a85b3f6066e7c689f10889b21ffd",
+  "pubkey_hex": "529f1a35fba6583e199b1c0db7ee242365f5e61b707cdb8ad2463e9936d0c8ee",
+  "nsec_hex": "e4c9e39f214900efce8e710363bac46dcd6a9c099883c971c654a00be2b2d28a"
+}

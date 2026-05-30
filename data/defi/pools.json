@@ -1,0 +1,38 @@
+{
+  "pool_btc_usdc": {
+    "id": "pool_btc_usdc",
+    "pair": "BTC/USDC",
+    "token_a": "BTC",
+    "token_b": "USDC",
+    "reserve_a": 101,
+    "reserve_b": 6435836.6337,
+    "fee": 0.003,
+    "volume_24h": 64163.3663,
+    "tvl": 13000836.6337,
+    "created_at": 1779556871
+  },
+  "pool_eth_usdc": {
+    "id": "pool_eth_usdc",
+    "pair": "ETH/USDC",
+    "token_a": "ETH",
+    "token_b": "USDC",
+    "reserve_a": 500,
+    "reserve_b": 1600000,
+    "fee": 0.003,
+    "volume_24h": 0,
+    "tvl": 0,
+    "created_at": 1779556871
+  },
+  "pool_sol_usdc": {
+    "id": "pool_sol_usdc",
+    "pair": "SOL/USDC",
+    "token_a": "SOL",
+    "token_b": "USDC",
+    "reserve_a": 10000,
+    "reserve_b": 1400000,
+    "fee": 0.005,
+    "volume_24h": 0,
+    "tvl": 0,
+    "created_at": 1779556871
+  }
+}

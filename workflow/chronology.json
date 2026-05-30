@@ -1,0 +1,3302 @@
+{
+  "chronology": [
+    {
+      "session": 1,
+      "timestamp": 1779195020.7404053,
+      "nodes_total": 3,
+      "alive": 1,
+      "dead": 2,
+      "changes": 3,
+      "latency_avg": 41.86,
+      "tiers": {
+        "t1": 0,
+        "t2": 0,
+        "t3": 3,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 3,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 2,
+      "timestamp": 1779195080.7481005,
+      "nodes_total": 3,
+      "alive": 1,
+      "dead": 2,
+      "changes": 3,
+      "latency_avg": 13.85,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 3,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 3,
+      "timestamp": 1779195140.7876673,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 14.48,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 3,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 4,
+      "timestamp": 1779195200.8060687,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 20.83,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 3,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 5,
+      "timestamp": 1779195260.816412,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 23.63,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 3,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 6,
+      "timestamp": 1779195320.8281364,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.57,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 7,
+      "timestamp": 1779195380.847512,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.02,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 8,
+      "timestamp": 1779195440.8686588,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 14.49,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 9,
+      "timestamp": 1779195500.8825474,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.52,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 10,
+      "timestamp": 1779195560.9001195,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.59,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 11,
+      "timestamp": 1779195620.9147804,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 11.8,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 12,
+      "timestamp": 1779195680.9258993,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.52,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 13,
+      "timestamp": 1779195740.936755,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.39,
+      "tiers": {
+        "t1": 1,
+        "t2": 2,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 14,
+      "timestamp": 1779195800.9535081,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.32,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 15,
+      "timestamp": 1779195860.9686973,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.67,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 16,
+      "timestamp": 1779195920.990358,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.77,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 17,
+      "timestamp": 1779195981.0085032,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.75,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 18,
+      "timestamp": 1779196041.0281763,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.31,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 19,
+      "timestamp": 1779196101.059889,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.14,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 20,
+      "timestamp": 1779196161.076746,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 15.75,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 21,
+      "timestamp": 1779196221.1015246,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 28.35,
+      "tiers": {
+        "t1": 0,
+        "t2": 1,
+        "t3": 2,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 22,
+      "timestamp": 1779196281.1147509,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.72,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 23,
+      "timestamp": 1779196341.128099,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 7.91,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 24,
+      "timestamp": 1779196401.1511068,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.67,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 25,
+      "timestamp": 1779196461.168231,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.64,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 26,
+      "timestamp": 1779196521.1818762,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 6.84,
+      "tiers": {
+        "t1": 1,
+        "t2": 2,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 27,
+      "timestamp": 1779196581.2016878,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 12.01,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 28,
+      "timestamp": 1779196641.2210805,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 14.12,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 29,
+      "timestamp": 1779196701.2449656,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.1,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 30,
+      "timestamp": 1779196761.2666686,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 25.18,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 31,
+      "timestamp": 1779196821.2957652,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.75,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 32,
+      "timestamp": 1779196881.3137622,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.3,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 33,
+      "timestamp": 1779196941.3288586,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.19,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 34,
+      "timestamp": 1779197001.3491926,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.79,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 35,
+      "timestamp": 1779197061.399412,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 110.9,
+      "tiers": {
+        "t1": 0,
+        "t2": 0,
+        "t3": 3,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 36,
+      "timestamp": 1779197121.4194376,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 7.3,
+      "tiers": {
+        "t1": 1,
+        "t2": 2,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 37,
+      "timestamp": 1779197181.5040936,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 15.83,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 38,
+      "timestamp": 1779197241.529498,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.65,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 39,
+      "timestamp": 1779197301.5490355,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.84,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 40,
+      "timestamp": 1779197361.5706358,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 11.92,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 41,
+      "timestamp": 1779197421.5883062,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.13,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 1,
+      "timestamp": 1779197762.5237298,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 3,
+      "latency_avg": 43.81,
+      "tiers": {
+        "t1": 0,
+        "t2": 0,
+        "t3": 3,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 3,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 2,
+      "timestamp": 1779197822.5419009,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 1,
+      "latency_avg": 20.14,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 3,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 3,
+      "timestamp": 1779197882.5515158,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 1,
+      "latency_avg": 6.28,
+      "tiers": {
+        "t1": 1,
+        "t2": 2,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 3,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 4,
+      "timestamp": 1779197942.567306,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.63,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 5,
+      "timestamp": 1779198002.5826123,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 12.07,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 6,
+      "timestamp": 1779198062.604538,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 17.56,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 7,
+      "timestamp": 1779198122.6177871,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.35,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 8,
+      "timestamp": 1779198182.6422427,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 26.23,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 9,
+      "timestamp": 1779198242.6671195,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 16.73,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 10,
+      "timestamp": 1779198302.6868844,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 21.04,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 11,
+      "timestamp": 1779198362.7079535,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 18.37,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 12,
+      "timestamp": 1779198422.7317092,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.22,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 13,
+      "timestamp": 1779198482.7584372,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.5,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 14,
+      "timestamp": 1779198542.7913768,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.74,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 15,
+      "timestamp": 1779198602.8278558,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.8,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 16,
+      "timestamp": 1779198662.8507495,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.2,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 17,
+      "timestamp": 1779198722.8700428,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.54,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 18,
+      "timestamp": 1779198782.886395,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.78,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 19,
+      "timestamp": 1779198842.9123023,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 7.85,
+      "tiers": {
+        "t1": 1,
+        "t2": 2,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 20,
+      "timestamp": 1779198902.930775,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 11.44,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 21,
+      "timestamp": 1779198962.9509072,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 12.41,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 22,
+      "timestamp": 1779199022.9756885,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 11.78,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 23,
+      "timestamp": 1779199083.0139093,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.92,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 24,
+      "timestamp": 1779199143.0437138,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.23,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 25,
+      "timestamp": 1779199203.0662153,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.06,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 26,
+      "timestamp": 1779199263.0884368,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.72,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 27,
+      "timestamp": 1779199323.1066334,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 15.02,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 28,
+      "timestamp": 1779199383.1484084,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 79.43,
+      "tiers": {
+        "t1": 0,
+        "t2": 0,
+        "t3": 3,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 29,
+      "timestamp": 1779199443.1719553,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.86,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 30,
+      "timestamp": 1779199503.1911929,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.86,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 31,
+      "timestamp": 1779199563.2272387,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.02,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 32,
+      "timestamp": 1779199623.2512093,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.63,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 33,
+      "timestamp": 1779199683.2744157,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 14.55,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 34,
+      "timestamp": 1779199743.291805,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.74,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 35,
+      "timestamp": 1779199803.3129435,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.96,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 36,
+      "timestamp": 1779199863.3354585,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 19.84,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 37,
+      "timestamp": 1779199923.3576486,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 19.55,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 38,
+      "timestamp": 1779199983.3799467,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 7.83,
+      "tiers": {
+        "t1": 1,
+        "t2": 2,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 39,
+      "timestamp": 1779200043.3984005,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.0,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 40,
+      "timestamp": 1779200103.4207976,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 16.17,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 41,
+      "timestamp": 1779200163.4652238,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 74.22,
+      "tiers": {
+        "t1": 0,
+        "t2": 0,
+        "t3": 3,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 42,
+      "timestamp": 1779200223.4974017,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 23.59,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 43,
+      "timestamp": 1779200283.5179245,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 19.41,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 44,
+      "timestamp": 1779200343.5394876,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 13.7,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 45,
+      "timestamp": 1779200403.5648317,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 13.08,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 46,
+      "timestamp": 1779200463.5900981,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 14.01,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 47,
+      "timestamp": 1779200523.621799,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.16,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 48,
+      "timestamp": 1779200583.643243,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.93,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 49,
+      "timestamp": 1779200643.6687052,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.74,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 50,
+      "timestamp": 1779200703.6908872,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.22,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 51,
+      "timestamp": 1779200763.7251205,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 17.29,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 52,
+      "timestamp": 1779200823.7513638,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 11.75,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 53,
+      "timestamp": 1779200883.77877,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.07,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 54,
+      "timestamp": 1779200943.7971654,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.78,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 55,
+      "timestamp": 1779201003.8155737,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.36,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 56,
+      "timestamp": 1779201063.840176,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.27,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 57,
+      "timestamp": 1779201123.8597,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 19.06,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 58,
+      "timestamp": 1779201183.8762908,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 7.26,
+      "tiers": {
+        "t1": 1,
+        "t2": 2,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 59,
+      "timestamp": 1779201243.8962312,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.94,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 60,
+      "timestamp": 1779201303.91977,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 10.41,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 61,
+      "timestamp": 1779201363.9632277,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 22.1,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 62,
+      "timestamp": 1779201423.9803789,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.75,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 63,
+      "timestamp": 1779201484.0013704,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.23,
+      "tiers": {
+        "t1": 1,
+        "t2": 2,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 64,
+      "timestamp": 1779201544.0246189,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 16.04,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 65,
+      "timestamp": 1779201604.0545146,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 8.97,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 66,
+      "timestamp": 1779201664.0868828,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 11.95,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    },
+    {
+      "session": 67,
+      "timestamp": 1779201724.1254194,
+      "nodes_total": 3,
+      "alive": 0,
+      "dead": 3,
+      "changes": 0,
+      "latency_avg": 9.33,
+      "tiers": {
+        "t1": 0,
+        "t2": 3,
+        "t3": 0,
+        "t4": 0
+      },
+      "matrix_snapshot": {
+        "nodes_count": 3,
+        "edges_count": 0,
+        "node_list": [
+          "48e6b8fd8d4ae367f1ffa79ba37660a7aabc78201987185a1cf3956c8e83c563",
+          "3825fbe897d03c9f309aedb2e1f1205c5b689e3789a3584e271e36be9210e7e1",
+          "a80666b91a83320bd4984fc7dab68b72af03fba38084b2f123468b237a350a67"
+        ]
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "type": "degradation",
+      "priority": "high",
+      "node": "_network",
+      "message": "Latency UP 58% — degradation",
+      "action": "switch channel, check relays"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 50 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 50 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 50 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 51 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 51 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 51 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "improvement",
+      "priority": "low",
+      "node": "_network",
+      "message": "Latency DOWN 37% — improving",
+      "action": "maintain current routing"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 52 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 52 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 52 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "improvement",
+      "priority": "low",
+      "node": "_network",
+      "message": "Latency DOWN 44% — improving",
+      "action": "maintain current routing"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 53 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 53 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 53 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "improvement",
+      "priority": "low",
+      "node": "_network",
+      "message": "Latency DOWN 46% — improving",
+      "action": "maintain current routing"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 54 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 54 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 54 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "improvement",
+      "priority": "low",
+      "node": "_network",
+      "message": "Latency DOWN 49% — improving",
+      "action": "maintain current routing"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 55 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 55 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 55 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "improvement",
+      "priority": "low",
+      "node": "_network",
+      "message": "Latency DOWN 49% — improving",
+      "action": "maintain current routing"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 56 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 56 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 56 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "improvement",
+      "priority": "low",
+      "node": "_network",
+      "message": "Latency DOWN 42% — improving",
+      "action": "maintain current routing"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 57 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 57 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 57 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "improvement",
+      "priority": "low",
+      "node": "_network",
+      "message": "Latency DOWN 43% — improving",
+      "action": "maintain current routing"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 58 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 58 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 58 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "improvement",
+      "priority": "low",
+      "node": "_network",
+      "message": "Latency DOWN 44% — improving",
+      "action": "maintain current routing"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 59 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 59 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 59 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "improvement",
+      "priority": "low",
+      "node": "_network",
+      "message": "Latency DOWN 41% — improving",
+      "action": "maintain current routing"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 60 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 60 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 60 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 61 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 61 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 61 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 62 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 62 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 62 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 63 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 63 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 63 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 64 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 64 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 64 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 65 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 65 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 65 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 66 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 66 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 66 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    },
+    {
+      "type": "critical_alive_ratio",
+      "priority": "critical",
+      "node": "_network",
+      "message": "Only 0/3 alive (0%)",
+      "action": "force rediscovery, restart FirstContact"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "3825fbe897d03c9f",
+      "message": "Node 3825fbe897d03c9f dead for 67 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "48e6b8fd8d4ae367",
+      "message": "Node 48e6b8fd8d4ae367 dead for 67 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "exclude_dead_node",
+      "priority": "high",
+      "node": "a80666b91a83320b",
+      "message": "Node a80666b91a83320b dead for 67 sessions",
+      "action": "remove from matrix, notify SR"
+    },
+    {
+      "type": "summary",
+      "priority": "info",
+      "node": "_workflow",
+      "message": "Avg 0.0 alive / 3.0 nodes last 10 sessions",
+      "action": "alert"
+    }
+  ],
+  "trends": {
+    "network_degradation": 57.74398583956876
+  },
+  "updated_at": 1779201724.125494
+}

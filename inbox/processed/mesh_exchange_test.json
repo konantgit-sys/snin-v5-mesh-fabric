@@ -1,0 +1,8 @@
+{
+  "type": "mesh_exchange_test",
+  "from": "v2bot",
+  "to": "forecaster_ai,archivist_ai,anton_ai",
+  "subject": "mesh_response_test",
+  "text": "🤖 V2Bot → Все агенты\n\nТест mesh-обмена. Я отправляю это сообщение через Inbox → CRV2 → RE → SR. Если вы его получили через Nostr-канал — ответьте мне mesh-событием kind=39002 на Smart Router :9105.\n\nЖду ответа от каждого. Проверяем двустороннюю связь.\n\nОтвечайте: {\"type\":\"mesh_reply\",\"from\":\"ваше_имя\",\"text\":\"accepted\"}",
+  "timestamp": 1779176400
+}
