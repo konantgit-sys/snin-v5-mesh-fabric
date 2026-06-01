@@ -1,0 +1,531 @@
+// ═══ DAEMONS V5 — Full Control Panel ═══
+
+var ramChartCtx = null;
+var _autoRefreshActive = false;
+var _autoRefreshTimer = null;
+
+function loadDaemons(){
+  var a=document.getElementById("daemonTable");
+  if(!a) return;
+  
+  // Show loading state
+  var rl=document.getElementById("ramLegend");
+  if(rl) rl.innerHTML='<div style="display:flex;align-items:center;gap:6px;padding:4px 0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10" opacity=".3"/><path d="M12 2a10 10 0 0 1 10 10" opacity=".8"/></svg><span style="font-size:.65em;color:var(--text2)">Updating...</span></div>';
+
+  var p1=fetch("/api/daemons?_t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json();});
+  var p2=fetch("/api/ram_history?_t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json();});
+  var p3=fetch("/api/system_info?_t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json();});
+
+  Promise.all([p1,p2,p3]).then(function(results){
+    var d=results[0], rh=results[1], si=results[2];
+    if(!d||!d.processes||!d.processes.processes) return;
+    
+    var processes=d.processes.processes||[];
+    var br=d.processes.breakdown||{};
+    var totalRam=d.processes.total_ram_mb||0;
+    var memTotal=si.mem_total_mb||18000;
+    var memAvail=si.mem_available_mb||9000;
+    var total=processes.length;
+    
+    // ═══ RAM PROGRESS BAR ═══
+    var cacheMb=(si.cached_mb||0)+(si.buffers_mb||0)+(si.slab_mb||0);
+    var usedPct=Math.min(98,totalRam/memTotal*100);
+    var cachePct=Math.min(98-usedPct,cacheMb/memTotal*100);
+    var freePct=Math.max(2,100-usedPct-cachePct);
+    var uptimeStr=si.uptime_sec?Math.floor(si.uptime_sec/86400)+'d '+(Math.floor(si.uptime_sec%86400/3600))+'h':'';
+    
+    var barHtml=
+      '<div style="margin-bottom:8px">'+
+        '<div style="display:flex;justify-content:space-between;font-size:.65em;color:var(--text2);margin-bottom:3px">'+
+          '<span>Container: <strong style="color:var(--text)">'+(memTotal/1024).toFixed(1)+' GB</strong></span>'+
+          '<span>Free: <strong style="color:#4ade80">'+(memAvail/1024).toFixed(1)+' GB</strong></span>'+
+          '<span>Uptime: <strong style="color:#94a3b8">'+uptimeStr+'</strong></span>'+
+        '</div>'+
+        '<div style="height:16px;background:var(--bg2);border-radius:8px;overflow:hidden;display:flex;border:1px solid var(--border);box-shadow:inset 0 1px 2px rgba(0,0,0,.15)">'+
+          '<div style="height:16px;width:'+usedPct+'%;background:linear-gradient(90deg,#f97316,#ef4444);transition:width .8s cubic-bezier(.4,0,.2,1);position:relative" title="Processes: '+totalRam.toFixed(0)+' MB">'+
+            '<div style="position:absolute;right:2px;top:50%;transform:translateY(-50%);font-size:.45em;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);font-weight:600">'+(usedPct>8?totalRam.toFixed(0)+' MB':'')+'</div>'+
+          '</div>'+
+          '<div style="height:16px;width:'+cachePct+'%;background:linear-gradient(90deg,#3b82f6,#06b6d4);transition:width .8s cubic-bezier(.4,0,.2,1);position:relative" title="Cache: '+cacheMb+' MB">'+
+            '<div style="position:absolute;right:2px;top:50%;transform:translateY(-50%);font-size:.45em;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);font-weight:600">'+(cachePct>8?cacheMb+' MB':'')+'</div>'+
+          '</div>'+
+          '<div style="height:16px;flex:1;background:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(74,222,128,.08) 3px,rgba(74,222,128,.08) 6px);transition:width .8s" title="Free: '+memAvail+' MB"></div>'+
+        '</div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:.5em;color:var(--text2);margin-top:2px">'+
+          '<span><svg width="6" height="6" viewBox="0 0 6 6" style="vertical-align:middle;margin-right:2px"><circle cx="3" cy="3" r="3" fill="#ef4444"/></svg> Processes '+totalRam.toFixed(0)+' MB</span>'+
+          '<span><svg width="6" height="6" viewBox="0 0 6 6" style="vertical-align:middle;margin-right:2px"><circle cx="3" cy="3" r="3" fill="#06b6d4"/></svg> Cache '+cacheMb+' MB</span>'+
+          '<span><svg width="6" height="6" viewBox="0 0 6 6" style="vertical-align:middle;margin-right:2px"><circle cx="3" cy="3" r="3" fill="#4ade80"/></svg> Free '+memAvail+' MB</span>'+
+        '</div>'+
+      '</div>';
+    
+    if(rl) rl.innerHTML=barHtml;
+    
+    // ═══ RAM CHART ═══
+    if(rh&&rh.length){
+      var cv=document.getElementById("ramChart");
+      if(cv){
+        cv.style.display='block';
+        cv.style.width='100%';
+        cv.style.height='64px';
+        var ctx=cv.getContext('2d');
+        var W=cv.parentElement.clientWidth||736;
+        var H=64;
+        cv.width=W*2; cv.height=H*2;
+        ctx.scale(2,2);
+        ctx.clearRect(0,0,W,H);
+        
+        var vals=rh.map(function(v){return v.ram;});
+        var minV=Math.min.apply(null,vals);
+        var maxV=Math.max.apply(null,vals);
+        var range=maxV-minV||1;
+        
+        if(vals.length>1){
+          var stepX=W/(vals.length-1);
+          // Fill area
+          ctx.beginPath();
+          ctx.moveTo(0,H);
+          vals.forEach(function(v,i){ctx.lineTo(i*stepX,H-(v-minV)/range*(H-12)-6);});
+          ctx.lineTo((vals.length-1)*stepX,H);
+          ctx.closePath();
+          var grad=ctx.createLinearGradient(0,0,0,H);
+          grad.addColorStop(0,'rgba(59,130,246,.25)');
+          grad.addColorStop(1,'rgba(59,130,246,.02)');
+          ctx.fillStyle=grad;
+          ctx.fill();
+          
+          // Line
+          ctx.beginPath();
+          vals.forEach(function(v,i){var x=i*stepX,y=H-(v-minV)/range*(H-12)-6;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});
+          ctx.strokeStyle='#3b82f6';
+          ctx.lineWidth=1.5;
+          ctx.stroke();
+          
+          // Gradient on line (glow)
+          ctx.beginPath();
+          vals.forEach(function(v,i){var x=i*stepX,y=H-(v-minV)/range*(H-12)-6;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});
+          ctx.strokeStyle='rgba(59,130,246,.3)';
+          ctx.lineWidth=4;
+          ctx.stroke();
+          
+          // Points (last 5)
+          var lastIdx=Math.max(0,vals.length-5);
+          for(var i=lastIdx;i<vals.length;i++){
+            var x=i*stepX,y=H-(v-minV)/range*(H-12)-6;
+            if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+          }
+          ctx.fillStyle='#3b82f6';
+          for(var i=lastIdx;i<vals.length;i++){
+            ctx.beginPath();
+            ctx.arc(i*stepX, H-(vals[i]-minV)/range*(H-12)-6, 2, 0, Math.PI*2);
+            ctx.fill();
+          }
+          
+          // Labels
+          ctx.fillStyle='#64748b';
+          ctx.font='7px monospace';
+          ctx.textAlign='left';
+          ctx.textBaseline='bottom';
+          ctx.fillText(minV.toFixed(0)+' MB',2,H-2);
+          ctx.textAlign='right';
+          ctx.fillText(maxV.toFixed(0)+' MB',W-2,8);
+          ctx.textAlign='left';
+          ctx.fillText(rh.length+' pts',2,8);
+        }
+      }
+    } else {
+      var cv=document.getElementById("ramChart");
+      if(cv) cv.style.display='none';
+    }
+    
+    // ═══ SEGREGATE PROCESSES ═══
+    var dupes=processes.filter(function(x){return x.is_duplicate;});
+    var clean=processes.filter(function(x){return !x.is_duplicate;});
+    var dcount=dupes.length;
+    var dsize=0;
+    dupes.forEach(function(x){dsize+=x.rss_mb;});
+    
+    var catColors={snin:"#3b82f6",relay:"#8b5cf6",backend:"#f97316",site:"#84cc16",system:"#64748b",other:"#ec4899"};
+    var catLabels={snin:"Core",relay:"Relay",backend:"Backend",site:"Sites",system:"System",other:"Other"};
+    
+    // ═══ METRICS ═══
+    document.getElementById("daemonMetrics").innerHTML=
+      '<div class="card" style="padding:8px 12px;border:none;background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(139,92,246,.08));text-align:center">'+
+        '<div style="font-size:1.3em;font-weight:700;color:#3b82f6">'+total+'</div>'+
+        '<div style="font-size:.55em;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Processes</div></div>'+
+      '<div class="card" style="padding:8px 12px;border:none;background:linear-gradient(135deg,rgba(249,115,22,.08),rgba(239,68,68,.08));text-align:center">'+
+        '<div style="font-size:1.3em;font-weight:700;color:#f97316">'+totalRam.toFixed(0)+'</div>'+
+        '<div style="font-size:.55em;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">RAM MB</div></div>'+
+      '<div class="card" style="padding:8px 12px;border:none;background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(59,130,246,.08));text-align:center">'+
+        '<div style="font-size:1.3em;font-weight:700;color:'+(dcount?'#ef4444':'#22c55e')+'">'+(dcount?dcount:'0')+'</div>'+
+        '<div style="font-size:.55em;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">'+(dcount?'Duplicates':'Clean')+'</div></div>'+
+      '<div class="card" style="padding:8px 12px;border:none;background:linear-gradient(135deg,rgba(6,182,212,.08),rgba(59,130,246,.08));text-align:center">'+
+        '<div style="font-size:1.3em;font-weight:700;color:#06b6d4">'+(total-dcount)+'</div>'+
+        '<div style="font-size:.55em;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Running</div></div>'+
+      '<div class="card" style="padding:8px 12px;border:none;background:linear-gradient(135deg,rgba(148,163,184,.08),rgba(100,116,139,.08));text-align:center">'+
+        '<div style="font-size:.9em;font-weight:600;color:#94a3b8">'+uptimeStr+'</div>'+
+        '<div style="font-size:.55em;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Uptime</div></div>';
+    
+    // ═══ CATEGORY BREAKDOWN ═══
+    var bh='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px;margin-bottom:8px">';
+    Object.keys(br).forEach(function(k){
+      var b=br[k], col=catColors[k]||'#64748b';
+      var pct=totalRam>0?(b.ram_mb/totalRam*100).toFixed(1):0;
+      bh+='<div class="card" style="padding:8px 10px;border:1px solid rgba(0,0,0,.06);cursor:pointer;transition:all .15s;border-left:3px solid '+col+'" onclick="filterGroup(\''+k+'\')" title="Filter: '+b.label+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
+          '<div style="font-size:1.1em;font-weight:700;color:'+col+'">'+b.count+'</div>'+
+          '<div style="font-size:.55em;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">'+catLabels[k]+'</div>'+
+        '</div>'+
+        '<div style="height:4px;background:var(--bg2);border-radius:2px;margin:4px 0;overflow:hidden">'+
+          '<div style="height:4px;width:'+pct+'%;background:'+col+';border-radius:2px;transition:width .5s"></div></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:.6em">'+
+          '<span style="font-family:monospace;color:'+col+'">'+b.ram_mb.toFixed(0)+' MB</span>'+
+          '<span style="color:var(--text2)">'+pct+'%</span></div></div>';
+    });
+    bh+='</div>';
+    document.getElementById("daemonBreakdown").innerHTML=bh;
+    
+    // ═══ FILTERS ═══
+    var filterEl=document.getElementById("daemonFilter");
+    if(filterEl){
+      filterEl.innerHTML=
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:2px 0 6px;align-items:center">'+
+        '<div style="flex:1;min-width:140px;position:relative">'+
+          '<input id="dfSearch" placeholder="Search name, PID, description..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px 7px 28px;color:var(--text);font-size:.75em;outline:none;transition:border-color .15s" oninput="doFilter()" onfocus="this.style.borderColor=\'#3b82f6\'" onblur="this.style.borderColor=\'\'">'+
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);pointer-events:none"><circle cx="10" cy="10" r="7"/><line x1="15" y1="15" x2="21" y2="21"/></svg>'+
+        '</div>'+
+        '<select id="dfGroup" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:.75em;outline:none" onchange="doFilter()">'+
+          '<option value="">All categories</option>'+
+          '<option value="snin">Core</option><option value="relay">Relay</option>'+
+          '<option value="backend">Backend</option><option value="site">Sites</option>'+
+          '<option value="other">Other</option></select>'+
+        '<button onclick="window.sortBy=\'ram\';doFilter()" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text2);font-size:.7em;cursor:pointer;outline:none;transition:all .1s" title="Sort by RAM">\u2193 RAM</button>'+
+        '<button onclick="window.sortBy=\'name\';doFilter()" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text2);font-size:.7em;cursor:pointer;outline:none;transition:all .1s" title="Sort by name">\u2193 Name</button>'+
+        '<span style="font-size:.6em;color:var(--text2);margin-left:auto" id="filterCount"></span>'+
+        '<span id="autoRefreshDot" style="display:inline-flex;align-items:center;gap:3px;font-size:.6em;color:#22c55e;padding:2px 6px;border-radius:4px;background:rgba(34,197,94,.1);cursor:pointer" onclick="toggleAutoRefresh()" title="Click to toggle auto-refresh">'+
+          '<span style="width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite"></span>Auto</span>'+
+      '</div>';
+    }
+    
+    // ═══ TOP 5 RAM EATERS ═══
+    var top5=clean.slice().sort(function(a,b){return b.rss_mb-a.rss_mb;}).slice(0,5);
+    var maxTop=top5.length?top5[0].rss_mb:1;
+    var t5='<div class="card" style="margin-bottom:8px;padding:8px 10px;border:1px solid rgba(249,115,22,.2)">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+        '<div style="font-size:.7em;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:.3px">Top 5 RAM Consumers</div>'+
+        '<div style="font-size:.55em;color:var(--text2)">of '+totalRam.toFixed(0)+' MB total</div></div>'+
+      '<div style="display:flex;flex-direction:column;gap:4px">';
+    top5.forEach(function(x,i){
+      var pct=totalRam>0?(x.rss_mb/totalRam*100).toFixed(1):0;
+      var barW=x.rss_mb/maxTop*100;
+      var barCol=pct>10?'#ef4444':pct>5?'#f97316':'#facc15';
+      t5+='<div style="display:flex;align-items:center;gap:6px">'+
+        '<span style="font-size:.45em;color:var(--text2);width:12px;text-align:right">'+(i+1)+'</span>'+
+        '<span style="font-size:.7em;font-weight:500;width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+x.name+'</span>'+
+        '<div style="flex:1;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden">'+
+          '<div style="height:6px;width:'+barW+'%;background:'+barCol+';border-radius:3px;transition:width .5s"></div></div>'+
+        '<span style="font-size:.65em;font-family:monospace;color:'+barCol+';width:50px;text-align:right">'+x.rss_mb.toFixed(0)+' MB</span>'+
+        '<span style="font-size:.5em;color:var(--text2);width:30px;text-align:right">'+pct+'%</span></div>';
+    });
+    t5+='</div></div>';
+    
+    // ═══ BUILD OUTPUT ═══
+    var out=t5;
+    
+    // ── DUPLICATES SECTION ──
+    if(dupes.length){
+      out+='<div class="card" style="margin-bottom:6px;border:1px solid rgba(239,68,68,.25);padding:0;overflow:hidden">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(239,68,68,.04);border-bottom:1px solid rgba(239,68,68,.1)">'+
+          '<div style="display:flex;align-items:center;gap:6px">'+
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'+
+            '<span style="font-weight:700;color:#ef4444;font-size:.78em">Duplicates — '+dupes.length+' procs, '+dsize.toFixed(0)+' MB</span></div>'+
+          '<div style="display:flex;gap:4px">'+
+            '<button onclick="toggleDupes()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:4px;padding:3px 8px;color:#ef4444;font-size:.65em;cursor:pointer" id="dupesToggle">Collapse</button>'+
+            '<button onclick="killAllDupes()" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:4px;padding:3px 8px;color:#ef4444;font-size:.65em;cursor:pointer;font-weight:600">Kill All</button></div></div>'+
+        '<div id="dupesTable"><table style="font-size:.72em;width:100%;border-collapse:collapse"><thead><tr>'+
+          '<th style="padding:4px 8px;text-align:left;color:#64748b;font-weight:600;font-size:.85em">PID</th>'+
+          '<th style="padding:4px 8px;text-align:left;color:#64748b;font-weight:600;font-size:.85em">Process</th>'+
+          '<th style="padding:4px 8px;text-align:left;color:#64748b;font-weight:600;font-size:.85em">Description</th>'+
+          '<th style="padding:4px 8px;text-align:center;color:#64748b;font-weight:600;font-size:.85em">Cat</th>'+
+          '<th style="padding:4px 8px;text-align:right;color:#64748b;font-weight:600;font-size:.85em">RAM</th>'+
+          '<th style="padding:4px 8px;text-align:center;color:#64748b;font-weight:600;font-size:.85em">Act</th></tr></thead><tbody>';
+      dupes.forEach(function(x){
+        var col=x.rss_mb>100?'#ef4444':x.rss_mb>50?'#f97316':'#64748b';
+        out+='<tr style="background:rgba(239,68,68,.02);border-top:1px solid rgba(239,68,68,.06)">'+
+          '<td style="padding:3px 8px;font-family:monospace;color:#ef4444;font-size:.95em">'+x.pid+'</td>'+
+          '<td style="padding:3px 8px;font-weight:500;font-size:.92em">'+x.name+'</td>'+
+          '<td style="padding:3px 8px;color:var(--text2);font-size:.9em;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(x.desc||'—')+'</td>'+
+          '<td style="padding:3px 8px;text-align:center"><span style="font-size:.65em;color:'+(catColors[x.group]||'#64748b')+';font-weight:600">'+(catLabels[x.group]||x.group)+'</span></td>'+
+          '<td style="padding:3px 8px;font-family:monospace;color:'+col+';text-align:right;font-weight:600">'+x.rss_mb.toFixed(1)+'</td>'+
+          '<td style="padding:3px 8px;text-align:center"><button onclick="restartProc(this,'+x.pid+')" style="background:none;border:1px solid rgba(100,116,139,.2);border-radius:3px;padding:1px 5px;color:var(--text2);font-size:.8em;cursor:pointer" title="Restart">↻</button><button onclick="killProc(this,'+x.pid+')" style="background:none;border:1px solid rgba(239,68,68,.2);border-radius:3px;padding:1px 5px;color:#ef4444;font-size:.8em;cursor:pointer;margin-left:2px" title="Kill">✕</button></td></tr>';
+      });
+      out+='</tbody></table></div></div>';
+    }
+    
+    // ── WORKERS SECTION (multiprocessing spawn workers) ──
+    var workers=processes.filter(function(x){return x.cmd&&(x.cmd.indexOf('multiprocessing')>=0||x.cmd.indexOf('resource_tracker')>=0);});
+    var wsize=0;
+    workers.forEach(function(x){wsize+=x.rss_mb;});
+    if(workers.length){
+      out+='<div class="card" style="margin-bottom:6px;border:1px solid rgba(100,116,139,.2);padding:0;overflow:hidden">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(100,116,139,.04);border-bottom:1px solid rgba(100,116,139,.1)">'+
+          '<div style="display:flex;align-items:center;gap:6px">'+
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 6V4"/><path d="M8 10h8"/><path d="M8 14h6"/></svg>'+
+            '<span style="font-weight:700;color:#94a3b8;font-size:.78em">Workers — '+workers.length+' procs, '+wsize.toFixed(0)+' MB</span></div>'+
+          '<div style="display:flex;gap:4px">'+
+            '<button onclick="toggleWorkers()" style="background:rgba(100,116,139,.1);border:1px solid rgba(100,116,139,.2);border-radius:4px;padding:3px 8px;color:#94a3b8;font-size:.65em;cursor:pointer" id="workersToggle">Collapse</button>'+
+            '<button onclick="killAllWorkers()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:4px;padding:3px 8px;color:#ef4444;font-size:.65em;cursor:pointer;font-weight:600">Kill All</button></div></div>'+
+        '<div id="workersTable"><table style="font-size:.72em;width:100%;border-collapse:collapse"><thead><tr>'+
+          '<th style="padding:4px 8px;text-align:left;color:#64748b;font-weight:600;font-size:.85em">PID</th>'+
+          '<th style="padding:4px 8px;text-align:left;color:#64748b;font-weight:600;font-size:.85em">Type</th>'+
+          '<th style="padding:4px 8px;text-align:right;color:#64748b;font-weight:600;font-size:.85em">RAM</th>'+
+          '<th style="padding:4px 8px;text-align:center;color:#64748b;font-weight:600;font-size:.85em">Act</th></tr></thead><tbody>';
+      workers.forEach(function(x){
+        var col=x.rss_mb>100?'#ef4444':x.rss_mb>50?'#f97316':'#94a3b8';
+        var wtype=x.cmd.indexOf('spawn_main')>=0?'spawn':x.cmd.indexOf('resource_tracker')>=0?'tracker':'worker';
+        out+='<tr style="background:rgba(100,116,139,.02);border-top:1px solid rgba(100,116,139,.06)">'+
+          '<td style="padding:3px 8px;font-family:monospace;color:#94a3b8;font-size:.95em">'+x.pid+'</td>'+
+          '<td style="padding:3px 8px;font-weight:500;font-size:.92em;color:var(--text2)">'+wtype+'</td>'+
+          '<td style="padding:3px 8px;font-family:monospace;color:'+col+';text-align:right;font-weight:600">'+x.rss_mb.toFixed(1)+'</td>'+
+          '<td style="padding:3px 8px;text-align:center"><button onclick="killProc(this,'+x.pid+')" style="background:none;border:1px solid rgba(239,68,68,.2);border-radius:3px;padding:1px 5px;color:#ef4444;font-size:.8em;cursor:pointer;margin-left:2px" title="Kill">✕</button></td></tr>';
+      });
+      out+='</tbody></table></div></div>';
+    }
+    
+    // ── MAIN PROCESSES TABLE ──
+      '<thead><tr style="background:var(--bg2)">'+
+        '<th style="padding:5px 8px;text-align:left;color:#64748b;font-weight:600;font-size:.85em">PID</th>'+
+        '<th style="padding:5px 8px;text-align:left;color:#64748b;font-weight:600;font-size:.85em">Process</th>'+
+        '<th style="padding:5px 8px;text-align:left;color:#64748b;font-weight:600;font-size:.85em">Description</th>'+
+        '<th style="padding:5px 8px;text-align:center;color:#64748b;font-weight:600;font-size:.85em">Cat</th>'+
+        '<th style="padding:5px 8px;text-align:center;color:#64748b;font-weight:600;font-size:.85em">Port</th>'+
+        '<th style="padding:5px 8px;text-align:right;color:#64748b;font-weight:600;font-size:.85em">RAM</th>'+
+        '<th style="padding:5px 8px;text-align:right;color:#64748b;font-weight:600;font-size:.85em">%</th>'+
+        '<th style="padding:5px 8px;text-align:center;color:#64748b;font-weight:600;font-size:.85em">Act</th></tr></thead>'+
+      '<tbody id="mainTableBody"></tbody></table></div>';
+    a.innerHTML=out;
+    
+    // ═══ SET UP FILTER & TABLE ═══
+    window._allProcs=clean;
+    window._br=br;
+    window._catColors=catColors;
+    window._catLabels=catLabels;
+    window._totalRam=totalRam;
+    window.sortBy=window.sortBy||'ram';
+    
+    window.doFilter=function(){
+      var q=(document.getElementById("dfSearch")||{}).value||'';
+      var g=(document.getElementById("dfGroup")||{}).value||'';
+      var tb=document.getElementById("mainTableBody");
+      if(!tb) return;
+      
+      var list=window._allProcs||[];
+      if(q){var lq=q.toLowerCase();list=list.filter(function(x){return (x.name||'').toLowerCase().indexOf(lq)>=0||(x.desc||'').toLowerCase().indexOf(lq)>=0||(''+x.pid).indexOf(lq)>=0;});}
+      if(g){list=list.filter(function(x){return x.group===g;});}
+      
+      if(window.sortBy==='ram') list.sort(function(a,b){return b.rss_mb-a.rss_mb;});
+      else if(window.sortBy==='name') list.sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+      
+      // Update filter count
+      var fc=document.getElementById("filterCount");
+      if(fc) fc.textContent=list.length+'/'+(window._allProcs||[]).length;
+      
+      var html='';
+      var lastGroup='';
+      var br_=window._br, cc_=window._catColors, cl_=window._catLabels, tr_=window._totalRam;
+      
+      list.forEach(function(x){
+        var g2=x.group||'other', col=cc_[g2]||'#64748b';
+        if(g2!==lastGroup){
+          var groupList=list.filter(function(y){return y.group===g2;});
+          var gRam=groupList.reduce(function(s,y){return s+y.rss_mb;},0);
+          html+='<tr style="background:var(--bg3)"><td colspan="8" style="padding:4px 8px;font-weight:600;font-size:.75em;color:'+col+'">'+
+            cl_[g2]+' — '+groupList.length+' proc, '+gRam.toFixed(0)+' MB</td></tr>';
+          lastGroup=g2;
+        }
+        var rc=x.rss_mb>100?'#ef4444':x.rss_mb>50?'#f97316':'#22c55e';
+        var pct=tr_>0?(x.rss_mb/tr_*100).toFixed(1):0;
+        html+='<tr style="border-top:1px solid var(--border);transition:background .1s" onmouseover="this.style.background=\'rgba(59,130,246,.03)\'" onmouseout="this.style.background=\'\'">'+
+          '<td style="padding:3px 8px;font-family:monospace;color:var(--text2);font-size:.9em">'+x.pid+'</td>'+
+          '<td style="padding:3px 8px;font-weight:500;font-size:.9em">'+x.name+'</td>'+
+          '<td style="padding:3px 8px;color:var(--text2);font-size:.82em;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(x.desc||'—')+'</td>'+
+          '<td style="padding:3px 8px;text-align:center"><span style="font-size:.6em;color:'+col+';font-weight:600">'+(cl_[g2]||g2)+'</span></td>'+
+          '<td style="padding:3px 8px;color:#3b82f6;font-family:monospace;text-align:center;font-size:.9em">'+(x.port||'—')+'</td>'+
+          '<td style="padding:3px 8px;font-family:monospace;color:'+rc+';text-align:right;font-weight:600;font-size:.9em">'+x.rss_mb.toFixed(1)+'</td>'+
+          '<td style="padding:3px 8px;font-family:monospace;color:'+rc+';text-align:right;font-size:.8em">'+pct+'</td>'+
+          '<td style="padding:3px 8px;text-align:center"><button onclick="restartProc(this,'+x.pid+')" style="background:none;border:1px solid rgba(100,116,139,.2);border-radius:3px;padding:1px 5px;color:var(--text2);font-size:.8em;cursor:pointer;transition:all .1s" title="Restart" onmouseover="this.style.borderColor=\'#3b82f6\';this.style.color=\'#3b82f6\'" onmouseout="this.style.borderColor=\'\';this.style.color=\'\'">↻</button>'+
+          '<button onclick="killProc(this,'+x.pid+')" style="background:none;border:1px solid rgba(239,68,68,.2);border-radius:3px;padding:1px 5px;color:#ef4444;font-size:.8em;cursor:pointer;margin-left:2px;transition:all .1s" title="Kill" onmouseover="this.style.borderColor=\'#ef4444\'" onmouseout="this.style.borderColor=\'\'">✕</button></td></tr>';
+      });
+      tb.innerHTML=html;
+    };
+    window.doFilter();
+    
+    window.filterGroup=function(g){var sel=document.getElementById('dfGroup');if(sel){sel.value=g;window.doFilter();}};
+    
+    // ═══ LIBRARIES ═══
+    var libs=Object.entries(d.libs&&d.libs.libs||{});
+    var tlibs=Object.entries(d.libs&&d.libs.top_ram_mb||{}).sort(function(a,b){return b[1]-a[1];});
+    var dbs=(d.caches&&d.caches.databases||[]).sort(function(a,b){return b.size_mb-a.size_mb;});
+    var lh='';
+    
+    if(libs.length){
+      lh+='<div class="card" style="margin-top:6px;padding:8px 10px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+          '<span style="font-size:.7em;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">Libraries — '+libs.length+'</span>'+
+          '<span onclick="var e=document.getElementById(\'libContent\');e.style.display=e.style.display==\'none\'?\'flex\':\'none\';this.textContent=this.textContent==\'Hide\'?\'Show\':\'Hide\'" style="font-size:.55em;color:#3b82f6;cursor:pointer">Hide</span></div>'+
+        '<div id="libContent" style="display:flex;flex-wrap:wrap;gap:3px;font-size:.65em">';
+      libs.forEach(function(l){lh+='<span style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 6px">'+l[0]+' <span style="color:var(--text2)">'+l[1]+'</span></span>';});
+      lh+='</div></div>';
+    }
+    if(tlibs.length){
+      lh+='<div class="card" style="margin-top:6px;padding:8px 10px">'+
+        '<div style="font-size:.7em;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">RAM Heavy Libraries</div>'+
+        '<table style="font-size:.7em;width:100%;border-collapse:collapse"><thead><tr>'+
+          '<th style="padding:2px 4px;text-align:left;color:#64748b;font-weight:600">Library</th>'+
+          '<th style="padding:2px 4px;text-align:right;color:#64748b;font-weight:600">RAM MB</th></tr></thead><tbody>';
+      tlibs.forEach(function(l){lh+='<tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px">'+l[0]+'</td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:'+(l[1]>2?'#ef4444':'#f97316')+'">'+l[1].toFixed(1)+'</td></tr>';});
+      lh+='</tbody></table></div>';
+    }
+    document.getElementById("daemonLibraries").innerHTML=lh;
+    
+    if(dbs.length){
+      var dh='<div class="card" style="margin-top:6px;padding:8px 10px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+          '<span style="font-size:.7em;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">Databases — '+dbs.length+', '+(d.caches.total_db_size_mb||0).toFixed(0)+' MB</span>'+
+          '<span onclick="var e=document.getElementById(\'dbContent\');e.style.display=e.style.display==\'none\'?\'table\':\'none\';this.textContent=this.textContent==\'Hide\'?\'Show\':\'Hide\'" style="font-size:.55em;color:#3b82f6;cursor:pointer">Hide</span></div>'+
+        '<table id="dbContent" style="font-size:.68em;width:100%;border-collapse:collapse"><thead><tr>'+
+          '<th style="padding:2px 4px;text-align:left;color:#64748b;font-weight:600">Path</th>'+
+          '<th style="padding:2px 4px;text-align:right;color:#64748b;font-weight:600">Size</th></tr></thead><tbody>';
+      dbs.forEach(function(db){dh+='<tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px;font-size:.9em;font-family:monospace">'+db.path.replace('~','').substring(0,40)+'</td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:'+(db.size_mb>20?'#ef4444':db.size_mb>5?'#f97316':'#22c55e')+'">'+db.size_mb.toFixed(1)+' MB</td></tr>';});
+      dh+='</tbody></table></div>';
+      document.getElementById("daemonDBs").innerHTML=dh;
+    }
+    
+    // Footer with timestamp
+    document.getElementById("daemonFooter").innerHTML=
+      '<div style="display:flex;justify-content:space-between;align-items:center;font-size:.55em;color:var(--text2);padding:4px 6px;margin-top:4px">'+
+        '<span>Last update: '+new Date().toLocaleTimeString("ru-RU")+'</span>'+
+        '<span>PIDs: '+(d.timestamp?Math.floor((Date.now()/1000-d.timestamp)/60)+'m old':'—')+'</span>'+
+        '<span style="display:flex;align-items:center;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite"></span> Live</span></div>';
+        
+  }).catch(function(e){
+    a.innerHTML='<div style="padding:10px;text-align:center;color:#ef4444;font-size:.75em">Error loading daemons: '+e.message+'</div>';
+  });
+}
+
+// ═══ DUPLICATES TOGGLE ═══
+function toggleDupes(){
+  var t=document.getElementById('dupesTable');
+  var btn=document.getElementById('dupesToggle');
+  if(!t||!btn) return;
+  if(t.style.display==='none'){
+    t.style.display='';
+    btn.textContent='Collapse';
+  } else {
+    t.style.display='none';
+    btn.textContent='Expand';
+  }
+}
+
+// ═══ KILL ALL NON-SHARD DUPLICATES ═══
+function killAllDupes(){
+  fetch("/api/daemons?_t="+Date.now()).then(function(r){return r.json();}).then(function(d){
+    var dupes=(d.processes.processes||[]).filter(function(x){return x.is_duplicate;});
+    var safe=["Nostr Bridge","Engine C"];
+    var killable=dupes.filter(function(x){
+      for(var i=0;i<safe.length;i++){if(x.name.indexOf(safe[i])>=0)return false;}
+      return true;
+    });
+    if(!killable.length){alert("No killable duplicates (all architectural)");return;}
+    killable.forEach(function(x){
+      fetch("/api/kill/"+x.pid,{method:"GET"}).catch(function(){});
+    });
+    setTimeout(loadDaemons,2000);
+  });
+}
+
+// ═══ WORKERS TOGGLE ═══
+function toggleWorkers(){
+  var t=document.getElementById('workersTable');
+  var btn=document.getElementById('workersToggle');
+  if(!t||!btn)return;
+  if(t.style.display==='none'){
+    t.style.display='';
+    btn.textContent='Collapse';
+  } else {
+    t.style.display='none';
+    btn.textContent='Expand';
+  }
+}
+
+// ═══ KILL ALL WORKERS ═══
+function killAllWorkers(){
+  fetch("/api/daemons?_t="+Date.now()).then(function(r){return r.json();}).then(function(d){
+    var workers=(d.processes.processes||[]).filter(function(x){return x.cmd&&(x.cmd.indexOf('multiprocessing')>=0||x.cmd.indexOf('resource_tracker')>=0);});
+    if(!workers.length){alert("No workers found");return;}
+    workers.forEach(function(x){
+      fetch("/api/kill/"+x.pid,{method:"GET"}).catch(function(){});
+    });
+    setTimeout(loadDaemons,2000);
+  });
+}
+
+window.sortBy='ram';
+
+function killProc(btn,pid){
+  btn.disabled=true;
+  btn.innerHTML='<span style="font-size:.7em">...</span>';
+  btn.style.opacity='.5';
+  fetch("/api/kill/"+pid).then(function(r){return r.json();}).then(function(d){
+    btn.innerHTML=d.ok?'\u2713':'\u2717';
+    btn.style.opacity=d.ok?'1':'.7';
+    if(d.ok) setTimeout(loadDaemons,1000);
+  }).catch(function(){btn.innerHTML='\u2717';btn.style.opacity='.7';});
+}
+
+function restartProc(btn,pid){
+  btn.disabled=true;
+  btn.innerHTML='<span style="font-size:.7em">...</span>';
+  btn.style.opacity='.5';
+  fetch("/api/kill/"+pid).then(function(r){return r.json();}).then(function(d){
+    btn.innerHTML='\u21bb';
+    btn.style.opacity='1';
+    setTimeout(loadDaemons,3000);
+  }).catch(function(){btn.innerHTML='\u2717';btn.style.opacity='.7';});
+}
+
+// ═══ AUTO-REFRESH TOGGLE ═══
+function toggleAutoRefresh(){
+  var dot=document.getElementById('autoRefreshDot');
+  if(!dot) return;
+  if(_autoRefreshActive){
+    _autoRefreshActive=false;
+    if(_autoRefreshTimer){clearInterval(_autoRefreshTimer);_autoRefreshTimer=null;}
+    dot.innerHTML='<span style="width:6px;height:6px;border-radius:50%;background:#64748b"></span>Paused';
+    dot.style.color='#64748b';
+    dot.style.background='rgba(100,116,139,.1)';
+  } else {
+    _autoRefreshActive=true;
+    _autoRefreshTimer=setInterval(function(){
+      try{
+        var el=document.getElementById('tab-daemons');
+        if(el&&el.classList.contains('active')) loadDaemons();
+      }catch(e){}
+    }, 5000);
+    dot.innerHTML='<span style="width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite"></span>Auto';
+    dot.style.color='#22c55e';
+    dot.style.background='rgba(34,197,94,.1)';
+    loadDaemons();
+  }
+}
+
+// ═══ AUTO-LOAD WHEN TAB ACTIVE ═══
+setInterval(function(){
+  try{
+    var el=document.getElementById("tab-daemons");
+    if(el && el.classList.contains("active") && _autoRefreshActive){
+      // Already handled by timer
+    }
+  }catch(e){}
+}, 3000);
+
+// Start auto-refresh by default
+setTimeout(function(){toggleAutoRefresh();}, 500);

@@ -1,0 +1,81 @@
+50:def _get_reputation_weight(pubkey: str) -> float:
+61:class InMemoryCircuitBreaker:
+69:    def __init__(self):
+77:    def record_incident(self, channel: str) -> bool:
+96:    def is_blocked(self, channel: str) -> bool:
+105:    def get_blocked(self) -> list[str]:
+109:    def force_recovery(self, channel: str):
+113:    def reset(self, channel: str):
+121:def verify_ed25519(pubkey_hex: str, payload: dict, sig_hex: str) -> bool:
+159:def _get_router():
+168:TC_POLICY_KEY = "tc:policy:{}"   # traffic_class → channel weights
+169:TC_HISTORY_KEY = "tc:history:{}:{}"  # tc:history:{traffic_class}:{channel}
+170:TC_BEST_KEY = "tc:best:{}"       # traffic_class → best channel
+171:TC_STATS_KEY = "tc:stats:{}:{}"  # tc:stats:{traffic_class}:{channel}
+198:def classify_traffic(kind: int, meta: dict = None) -> str:
+201:    Если meta содержит явный traffic_class — используем его.
+205:        tc = meta.get("traffic_class", "")
+220:async def aredis():
+235:async def apply_policies():
+268:async def get_policy_for_kind(kind: int) -> dict:
+---
+class InMemoryCircuitBreaker:
+    """Pure Python CB — никакого Redis на горячем пути.
+    
+    Sliding window: deque(timestamps) per channel.
+    Incident: >500ms latency → запись в deque.
+    Block: 3+ incidents в окне 60s → блок на 30s.
+    """
+    
+    def __init__(self):
+        self._incidents: dict[str, deque] = {}
+        self._blocked_until: dict[str, float] = {}
+        self.latency_threshold_ms = 500
+        self.incident_limit = 3
+        self.incident_window = 60
+        self.block_ttl = 30
+    
+    def record_incident(self, channel: str) -> bool:
+        """Записать инцидент. Вернёт True если канал заблокирован."""
+        now = time.time()
+        if channel not in self._incidents:
+            self._incidents[channel] = deque(maxlen=100)
+        
+        inc = self._incidents[channel]
+        inc.append(now)
+        
+        # Sliding window: удаляем старше 60s
+        while inc and inc[0] < now - self.incident_window:
+            inc.popleft()
+        
+        if len(inc) >= self.incident_limit:
+            self._blocked_until[channel] = now + self.block_ttl
+            inc.clear()
+            return True
+        return False
+    
+    def is_blocked(self, channel: str) -> bool:
+        if channel not in self._blocked_until:
+            return False
+        if time.time() < self._blocked_until[channel]:
+            return True
+        # Unblock автоматически при истечении TTL
+        del self._blocked_until[channel]
+        return False
+    
+    def get_blocked(self) -> list[str]:
+        now = time.time()
+        return [ch for ch, until in self._blocked_until.items() if now < until]
+    
+    def force_recovery(self, channel: str):
+        """Принудительно снять блокировку канала."""
+        self._blocked_until.pop(channel, None)
+    
+    def reset(self, channel: str):
+        """Полный сброс: очистить инциденты и блокировку."""
+        self._incidents.pop(channel, None)
+        self._blocked_until.pop(channel, None)
+
+
+# ═══ Фаза 0: Ed25519 verify (0.05ms) ═══
+import json as _std_json
