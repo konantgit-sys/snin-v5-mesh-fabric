@@ -819,4 +819,24 @@ class ContentRouterV2:
 
 if __name__ == "__main__":
     router = ContentRouterV2(int(sys.argv[1]) if len(sys.argv) > 1 else 9920)
+    # Health endpoint
+    from mesh_health import start_health
+    start_health(router.port, "content_router")
+    
+    # Graceful shutdown
+    import signal
+    loop = asyncio.get_event_loop()
+    _shutting = False
+    async def _shutdown():
+        global _shutting
+        if _shutting: return
+        _shutting = True
+        print("\n[ContentRouter] SIGTERM — shutdown...")
+        loop.stop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        try:
+            loop.add_signal_handler(sig, lambda: asyncio.ensure_future(_shutdown()))
+        except:
+            pass
+    
     asyncio.run(router.run())

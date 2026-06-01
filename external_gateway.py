@@ -23,6 +23,10 @@ from cpu_worker import make_nostr_id_async
 # ─── Настройки ──────────────────────────────────────────────────────────
 TCP_HOST = "0.0.0.0"
 TCP_PORT = 9931
+
+# Health endpoint
+from mesh_health import start_health
+start_health(TCP_PORT, "external_gateway")
 # P0-E: через Smart Router (не напрямую в CR)
 SMART_ROUTER_HOST = "127.0.0.1"
 SMART_ROUTER_PORT = 9932
@@ -466,6 +470,10 @@ async def main():
 if __name__ == "__main__":
     print(f"[Gateway] External Gateway v1 — {len(NOSTR_RELAYS)} Nostr relays + TCP {TCP_PORT}")
     print(f"[Gateway] Forward target: {SMART_ROUTER_HOST}:{SMART_ROUTER_PORT} (Smart Router)")
+    
+    import signal
+    signal.signal(signal.SIGTERM, lambda s, f: (print(f"\n[Gateway] SIGTERM — shutdown. Total forwarded: {stats['forwarded']}"), sys.exit(0)))
+    
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

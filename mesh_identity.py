@@ -123,8 +123,18 @@ def load_or_create_identity(agent_name: str) -> dict:
     path = IDENTITIES_DIR / f"{agent_name}.json"
     
     if path.exists():
-        with open(path) as f:
-            data = json.load(f)
+        # Пустой или битый — удаляем и создаём заново
+        if path.stat().st_size == 0:
+            path.unlink()
+            print(f"⚠️ Пустой файл {agent_name}.json — удалён, будет создан заново")
+            return load_or_create_identity(agent_name)
+        try:
+            with open(path) as f:
+                data = json.load(f)
+        except json.JSONDecodeError:
+            path.unlink()
+            print(f"⚠️ Битый файл {agent_name}.json — удалён, будет создан заново")
+            return load_or_create_identity(agent_name)
         # Ensure packet keys exist (upgrade old identities)
         if not data.get("packet_privkey"):
             from cryptography.hazmat.primitives.asymmetric import ed25519

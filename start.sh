@@ -2,6 +2,21 @@
 cd /home/agent/data/sites/relay-mesh
 ulimit -n 65535
 
+# ═══ LOCK — защита от двойного запуска (supervisor/init.sh/ручной) ═══
+LOCKFILE="/tmp/relay-mesh-start.lock"
+if [ -f "$LOCKFILE" ]; then
+    LOCKPID=$(cat "$LOCKFILE" 2>/dev/null)
+    if [ -n "$LOCKPID" ] && kill -0 "$LOCKPID" 2>/dev/null; then
+        echo "[start.sh] ⏳ Уже запущен (PID $LOCKPID) — пропускаю"
+        exit 0
+    else
+        echo "[start.sh] 🧹 Старый lock найден (PID $LOCKPID мёртв) — удаляю"
+        rm -f "$LOCKFILE"
+    fi
+fi
+echo $$ > "$LOCKFILE"
+# ═══ END LOCK ═══
+
 # Проверка зависимостей — orjson + kademlia
 python3 -c "import orjson" 2>/dev/null || pip3 install orjson --break-system-packages -q
 python3 -c "import kademlia" 2>/dev/null || pip3 install kademlia --break-system-packages -q
@@ -29,6 +44,15 @@ pkill -f "cross_mesh_bridge.py" 2>/dev/null
 pkill -f "nostr_bridge.py" 2>/dev/null
 pkill -f "identity_api_v2.py" 2>/dev/null
 pkill -f "external_gateway.py" 2>/dev/null
+
+# ═══ ЧИСТКА ОРФАНОВ ПОСЛЕ PKILL ═══
+# Дочерние процессы (create_subprocess_shell) остаются при убийстве родителя
+sleep 1
+ORPHANS=$(ps aux | grep "/usr/bin/python3 -c from" | grep -v grep | awk '{print $2}')
+if [ -n "$ORPHANS" ]; then
+    kill $ORPHANS 2>/dev/null
+    echo "[start.sh] 🧹 $(echo "$ORPHANS" | wc -l) orphan процессов убито"
+fi
 
 # ═══ ПРИНУДИТЕЛЬНОЕ ОСВОБОЖДЕНИЕ ПОРТОВ ═══
 for port in 9932 9931 9920 9910 9946 9940 9934 9106 9100 9101 9102 9103 9104; do
@@ -105,8 +129,7 @@ echo "Relay=$!"
 cd /home/agent/data/sites/relay-mesh
 
 # 8. Watchdog — авто-восстановление при падениях
-pkill -f "watchdog.sh" 2>/dev/null
-nohup bash watchdog.sh > logs/watchdog.log 2>&1 &
+# watchdog отключён — supervisor управляет всеми mesh-сервисами через health endpoints
 echo "Watchdog=$!"
 
 # 9. Log rotator — режет логи >1MB раз в час, хранит последние 2 часа
@@ -180,3 +203,4 @@ echo "Rotator=$!"
 echo ""
 echo "=== Relay Mesh V2 — All Services Started ==="
 echo "Ports: RE=9910 CRV2=9920 SR=9932 EG=9931 NB=9941-9945 Relay=8198"
+rm -f "$LOCKFILE"

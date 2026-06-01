@@ -1,8 +1,14 @@
 *.log
+*.rdb
 __pycache__/
 *.pyc
-*.pyo
-*.pid
+.DS_Store
+circuit_breaker_status.json
+health_status.json
+pulse_status.json
+app.log
+backend.log
+dump.rdb
 *.db
-*.sqlite
+
 logs/
