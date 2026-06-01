@@ -134,7 +134,7 @@ class HealthCheckEngine:
             status.error_msg = "timeout"
             status.latency_ms = RESPONSE_TIMEOUT * 1000
             logger.warning(f"✗ {name}:{port} TIMEOUT")
-        except aiohttp.ClientConnRefusedError:
+        except aiohttp.ClientConnectionError:
             status.is_alive = False
             status.consecutive_fails += 1
             status.error_msg = "connection refused"

@@ -42,7 +42,7 @@ from graceful_degradation import GracefulDegradation
 
 # Level 2: CPU-bound crypto в ProcessPool
 sys.path.insert(0, "/home/agent/data/sites/relay-mesh")
-from cpu_worker import verify_ed25519_processpool_async
+from cpu_worker import verify_ed25519_processpool_async, shutdown_pools
 
 # ═══ Фаза 1: Reputation-weighted routing ═══
 try:
@@ -141,6 +141,10 @@ def verify_ed25519(pubkey_hex: str, payload: dict, sig_hex: str) -> bool:
 # ─── Настройки ──────────────────────────────────────────────────────────
 LISTEN_HOST = "0.0.0.0"
 LISTEN_PORT = 9932
+
+# Health endpoint
+from mesh_health import start_health
+start_health(LISTEN_PORT, "smart_router")
 
 # Адреса каналов
 CR_HOST, CR_PORT = "127.0.0.1", 9920
@@ -960,6 +964,7 @@ class SmartRouter:
 
                 # Убедиться, что есть хотя бы один живой шард
                 alive_shards = [i for i, w in enumerate(self._nostr_writers) if w is not None]
+                print(f"[Router] 🟣 nostr: {len(alive_shards)}/5 shards alive")
                 if not alive_shards:
                     # Попытка переподключить все 5 шардов (асинхронно)
                     print(f"[Router] 🔴 All nostr shards dead, initiating full reconnect...")
@@ -969,37 +974,55 @@ class SmartRouter:
                     result["error"] = "all nostr shards dead, reconnecting..."
                     return result
 
-                # Конвертируем payload в строку (агенты шлют bytes и другие типы)
-                try:
-                    payload = message.get("payload", {})
-                    if isinstance(payload, (bytes, bytearray)):
-                        content_str = payload.decode("utf-8", errors="replace")
-                    elif isinstance(payload, str):
-                        content_str = payload
-                    elif isinstance(payload, dict):
-                        pass  # debug removed
-                        try:
-                            content_str = json.dumps(payload, ensure_ascii=False)
-                        except TypeError:
-                            # orjson doesn't support ensure_ascii
-                            content_str = json.dumps(payload)
-                    else:
-                        content_str = str(payload)
-                except Exception as e:
+                # 🔧 Рекурсивная конвертация bytes→str во всей структуре
+                def _bytes_to_str(v):
+                    if isinstance(v, bytes):
+                        return v.decode("utf-8", errors="replace")
+                    elif isinstance(v, dict):
+                        return {k: _bytes_to_str(val) for k, val in v.items()}
+                    elif isinstance(v, list):
+                        return [_bytes_to_str(item) for item in v]
+                    elif isinstance(v, tuple):
+                        return tuple(_bytes_to_str(item) for item in v)
+                    return v
+                
+                # Конвертируем всё message в чистый dict без bytes
+                clean_msg = _bytes_to_str(message)
+                
+                # Извлекаем поля из очищенного сообщения
+                content_str = ""
+                payload = clean_msg.get("payload", {})
+                if isinstance(payload, dict):
+                    content_str_bytes = json.dumps(payload)
+                    content_str = content_str_bytes.decode() if isinstance(content_str_bytes, bytes) else content_str_bytes
+                elif isinstance(payload, str):
+                    content_str = payload
+                else:
                     content_str = str(payload)
-                    print(f"[Router] ⚠️ payload convert error for nostr: {type(e).__name__}: {e}")
-
+                
                 nostr_msg = {
-                    "kind": 1,
-                    "pubkey": message.get("pubkey", "router"),
+                    "kind": 39002,
+                    "pubkey": clean_msg.get("pubkey", "router"),
+                    "payload": {"text": content_str},
                     "content": content_str,
+                    "tags": clean_msg.get("tags", []),
                     "created_at": int(time.time()),
                 }
-                payload_bytes = json.dumps(nostr_msg) + b"\n"  # orjson returns bytes, no .encode/ensure_ascii
+                # Bridge принимает kind:39002 → подписывает → публикует как kind:1 в Nostr
+                try:
+                    payload_bytes = json.dumps(nostr_msg) + b"\n"
+                except Exception as e:
+                    import traceback, sys
+                    tb = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+                    print(f"[Router] 🔴 nostr json.dumps CRASHED: {e}\n{tb}")
+                    import json as _std_json
+                    payload_bytes = _std_json.dumps(nostr_msg, default=str).encode() + b"\n"
 
                 # Пишем во все живые шарды, отмечаем мёртвые по индексам
                 ok_count = 0
                 dead_shards = []
+                alive_count = len([w for w in self._nostr_writers if w is not None])
+                print(f"[Router] 🟣 nostr send: {alive_count}/5 shards alive, payload={len(payload_bytes)}b")
                 for i, w in enumerate(self._nostr_writers):
                     if w is None:
                         # Уже мёртвый шард, пропускаем но пытаемся переподключить
@@ -1026,9 +1049,11 @@ class SmartRouter:
                     result["shards_ok"] = ok_count
                     result["shards_total"] = len(self._nostr_writers)
                     result["shards_dead"] = len(dead_shards)
+                    print(f"[Router] ✅ nostr sent to {ok_count} shards OK")
                 else:
                     self.stats["chan_fail:nostr"] += 1
                     result["error"] = "all nostr shards unreachable"
+                    print(f"[Router] 🔴 nostr send FAILED: {alive_count} alive, {len(dead_shards)} new dead")
 
             elif channel == "content_router" and self._cr_v2_writer:
                 payload = json.dumps(message) + b"\n"
@@ -1182,6 +1207,9 @@ class SmartRouter:
             self.stats[f"timeout:{channel}"] += 1
         except Exception as e:
             result["error"] = str(e)
+            import traceback
+            print(f"[Router] 💥 send_via_channel({channel}) exception: {type(e).__name__}: {e}")
+            traceback.print_exc()
 
         latency_ms = (time.time() - start) * 1000
         result["latency_ms"] = round(latency_ms, 1)
@@ -1964,11 +1992,22 @@ async def main():
 
 if __name__ == "__main__":
     import sys
+    import signal
+    
+    def _cleanup():
+        print(f"[Router] 🧹 Cleaning up process pools...")
+        shutdown_pools()
+        print(f"[Router] ✅ Pools cleaned")
+    
+    # Ловим SIGTERM/SIGINT — чистим пулы перед смертью
+    signal.signal(signal.SIGTERM, lambda *_: (_cleanup(), sys.exit(0)))
+    
     print(f"[Router] Smart Router v2 — multi-channel, policy + self-learning")
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         print(f"[Router] Shutdown")
+        _cleanup()
     except asyncio.CancelledError:
         print(f"[Router] Cancelled")
     except Exception as e:

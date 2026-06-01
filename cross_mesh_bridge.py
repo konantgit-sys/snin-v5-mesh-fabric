@@ -710,6 +710,8 @@ async def main():
 
 
 if __name__ == "__main__":
+    _port = int(sys.argv[1]) if len(sys.argv) > 1 else 9945
+    
     print(f"╔════════════════════════════════════════════╗")
     print(f"║     SNIN Cross-Mesh Bridge v1.0          ║")
     print(f"║     Layer 1.5 — Federation Protocol      ║")
@@ -719,6 +721,14 @@ if __name__ == "__main__":
     print(f"  Protocols: kind:{MESH_DISCOVERY_KIND} (discovery)")
     print(f"             kind:{MESH_TRUST_KIND} (trust)")
     print(f"             kind:{MESH_ROUTE_KIND} (route)")
-    print(f"\n  Starting on :{sys.argv[1] if len(sys.argv) > 1 else 9945}")
+    print(f"\n  Starting on :{_port}")
+    
+    # Health endpoint
+    from mesh_health import start_health
+    start_health(_port, "cross_mesh_bridge")
+    
+    # Graceful shutdown
+    import signal
+    signal.signal(signal.SIGTERM, lambda s, f: (print(f"\n  SIGTERM — shutdown"), sys.exit(0)))
     
     asyncio.run(main())

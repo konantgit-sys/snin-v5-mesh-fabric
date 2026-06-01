@@ -34,6 +34,10 @@ BATCH_WINDOW = 0.1  # сек — накопление batch (10 flushes/sec)
 LISTEN_HOST = "127.0.0.1"
 LISTEN_PORT = 9910
 
+# Health endpoint
+from mesh_health import start_health
+start_health(LISTEN_PORT, "route_engine")
+
 # Phase 3: Unix sockets для внутренней коммуникации
 UNIX_SOCK_DIR = "/tmp/snin"
 UNIX_SOCK_PATH = f"{UNIX_SOCK_DIR}/re.sock"
@@ -285,4 +289,14 @@ async def main():
 
 
 if __name__ == "__main__":
+    import signal
+    loop = asyncio.get_event_loop()
+    async def _shutdown():
+        print("\n[RouteEngine] SIGTERM — shutdown...")
+        loop.stop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        try:
+            loop.add_signal_handler(sig, lambda: asyncio.ensure_future(_shutdown()))
+        except:
+            pass
     asyncio.run(main())

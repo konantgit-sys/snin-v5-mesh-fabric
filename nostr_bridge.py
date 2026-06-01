@@ -62,6 +62,10 @@ SMART_ROUTER_PORT = 9932
 # Gateway port — каждый шард на своём порту
 GATEWAY_PORT = 9941 + SHARD_ID
 
+# Health endpoint
+from mesh_health import start_health
+start_health(GATEWAY_PORT, f"nostr_bridge_{SHARD_ID}")
+
 # Nostr ключи агентов для подписи (берём из agents.json)
 AGENTS_FILE = "/home/agent/data/sites/relay-mesh/agents.json"
 
@@ -1393,6 +1397,19 @@ if __name__ == "__main__":
         print(f"[Bridge] ⚠️ Cannot load agents.json: {e}")
     
     bridge = NostrBridge(pubkey_hex=pubkey, privkey_hex=privkey)
+    
+    # Graceful shutdown — ловим SIGTERM (от supervisor/k8s)
+    _shutting_down = False
+    def _handle_sigterm():
+        global _shutting_down
+        if _shutting_down:
+            return
+        _shutting_down = True
+        print(f"\n[Bridge] SIGTERM received — graceful shutdown...")
+        if hasattr(bridge, 'stop'):
+            asyncio.run(bridge.stop())
+    
+    signal.signal(signal.SIGTERM, lambda s, f: _handle_sigterm())
     
     try:
         asyncio.run(bridge.start())

@@ -6,10 +6,7 @@ ulimit -n 65535
 echo "=== Relay Mesh — Bridge Sharding ==="
 echo ""
 
-# Убиваем старые bridge процессы
-pkill -f "nostr_bridge.py" 2>/dev/null
-sleep 2
-
+# pkill отключён — supervisor управляет всем
 # 1. Route Engine (:9910) — если не запущен
 if ! ss -tlnp 2>/dev/null | grep -q ":9910"; then
     echo "[1/5] Route Engine..."
@@ -43,26 +40,22 @@ else
     echo "  SR=$!"; sleep 4
 fi
 
-# 4. Bridge Shards (5 штук, порты 9941-9945)
+# 4. Bridge Shards — supervisor управляет. Fallback на случай если supervisor не стартанул
 echo "[4/5] Bridge shards..."
+echo "  → Supervisor manages nostr_bridge_0..4 on :9941-9945"
 for i in 0 1 2 3 4; do
     port=$((9941 + i))
-    # Проверяем не занят ли порт
     if ss -tlnp 2>/dev/null | grep -q ":$port "; then
-        echo "  Shard-$i port $port already in use — skipping"
-        continue
+        echo "  ✅ :$port — already running (supervisor)"
+    else
+        echo "  ⚠️ :$port — empty, launching fallback..."
+        nohup python3 -u nostr_bridge.py --shard-id $i --total-shards 5 > logs/nostr_bridge_shard${i}.log 2>&1 &
+        echo "  → Fallback shard-$i PID=$!"
+        sleep 3
     fi
-    nohup python3 -u nostr_bridge.py --shard-id $i --total-shards 5 > logs/nostr_bridge_shard${i}.log 2>&1 &
-    echo "  Shard-$i (:$port) PID=$!"
-    sleep 3  # Даём время подключиться к SR
 done
 
-# 5. Watchdog
-echo "[5/5] Watchdog..."
-pkill -f "watchdog.sh" 2>/dev/null
-sleep 1
-nohup bash watchdog.sh > logs/watchdog.log 2>&1 &
-echo "  Watchdog=$!"
+# 5. Watchdog — отключён. Supervisor управляет всем.
 
 echo ""
 echo "=== All services started ==="
