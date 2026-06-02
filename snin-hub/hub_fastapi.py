@@ -242,6 +242,7 @@ async def root():
         return resp
     return HTMLResponse("<h1>Not Found</h1>", status_code=404)
 
+@app.get("/health")
 @app.get("/api/health")
 async def health():
     return {"status":"ok","layer":"snin-hub-v2","port":PORT}

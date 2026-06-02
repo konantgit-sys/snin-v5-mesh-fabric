@@ -387,44 +387,59 @@ class SNINSupervisor:
             json.dump(data, f, indent=2)
 
     def _collect_ram(self):
-        """Собрать RAM (RSS) для каждого сервиса через ps aux."""
-        import subprocess, re
+        """Собрать RAM (RSS) для каждого сервиса через ss + ps по портам."""
+        ram = {n: 0 for n in self.services}
         try:
+            # Получаем все TCP прослушиваемые порты с PIDs
             result = subprocess.run(
-                ["ps", "aux", "--sort=-%mem"],
+                ["ss", "-tlnp"],
                 capture_output=True, text=True, timeout=5
             )
-            ps_lines = result.stdout.split('\n')
         except Exception:
-            return {n: 0 for n in self.services}
-        
-        ram = {n: 0 for n in self.services}
-        
-        # For each service, find the matching process
-        for name in self.services:
-            # Build keywords to match in ps output
-            keywords = [name]
-            # Also try common variations
-            if name.endswith('_mesh'):
-                keywords.append(name.replace('_mesh', ''))
-            if name.startswith('l'):
-                keywords.append(name.replace('_', ''))
-            
-            for line in ps_lines:
-                if not line.strip() or 'PID' in line:
-                    continue
-                # Check if any keyword matches
-                for kw in keywords:
-                    if kw in line:
-                        parts = line.split()
-                        if len(parts) >= 6:
-                            try:
-                                rss_kb = int(parts[5])  # RSS column in ps aux
-                                if rss_kb > ram.get(name, 0):
-                                    ram[name] = rss_kb // 1024  # kB → MB
-                            except ValueError:
-                                pass
-                        break
+            return ram
+
+        # Парсим ss вывод: получаем {port: pid}
+        port_to_pid = {}
+        for line in result.stdout.split('\n'):
+            # Формат: LISTEN 0 5 0.0.0.0:9720 0.0.0.0:* users:(("python3",pid=8248,fd=4))
+            if 'users:' not in line:
+                continue
+            parts = line.split()
+            if len(parts) < 4:
+                continue
+            addr = parts[3]  # 0.0.0.0:9720
+            if ':' not in addr:
+                continue
+            try:
+                port = int(addr.rsplit(':', 1)[1])
+            except ValueError:
+                continue
+            # Извлекаем PID из users(...)
+            import re
+            m = re.search(r'pid=(\d+)', line)
+            if m:
+                port_to_pid[port] = int(m.group(1))
+
+        # Для каждого сервиса находим PID по порту и читаем RSS
+        for name, svc in self.services.items():
+            port = svc["port"]
+            pid = port_to_pid.get(port)
+            if not pid:
+                # Fallback: проверить health порт (+10000)
+                health_port = port + 10000
+                pid = port_to_pid.get(health_port)
+            if not pid:
+                continue
+            try:
+                rss_result = subprocess.run(
+                    ["ps", "-p", str(pid), "-o", "rss=", "--no-headers"],
+                    capture_output=True, text=True, timeout=3
+                )
+                rss_kb = rss_result.stdout.strip()
+                if rss_kb and rss_kb.isdigit():
+                    ram[name] = int(rss_kb) // 1024
+            except Exception:
+                continue
         return ram
 
     # ─── Summary ───
