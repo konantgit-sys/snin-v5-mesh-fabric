@@ -469,6 +469,7 @@ class SmartRouter:
         self._cb_recovery_count: dict[str, int] = {}  # channel → успешных drain подряд
         self._cb_recovery_threshold = 5                # после скольких снять блокировку
         self._cr_v2_writer = None  # Content Router v2 (:9920)
+        self._last_cr_reconnect = 0.0  # rate-limit reconnect
         # ═══ Фаза 1: DHT Kademlia ═══
         self._dht = None
         # ═══ Фаза 8: Event subscribers (push-канал для агентов) ═══
@@ -993,8 +994,13 @@ class SmartRouter:
                 content_str = ""
                 payload = clean_msg.get("payload", {})
                 if isinstance(payload, dict):
-                    content_str_bytes = json.dumps(payload)
-                    content_str = content_str_bytes.decode() if isinstance(content_str_bytes, bytes) else content_str_bytes
+                    try:
+                        content_str_bytes = json.dumps(payload)
+                        content_str = content_str_bytes.decode() if isinstance(content_str_bytes, bytes) else content_str_bytes
+                    except Exception:
+                        content_str = json.dumps(payload, default=str)
+                        if isinstance(content_str, bytes):
+                            content_str = content_str.decode()
                 elif isinstance(payload, str):
                     content_str = payload
                 else:
@@ -1547,15 +1553,27 @@ class SmartRouter:
 
         # ═══ Content Router мультикаст: все kind дублируются в CR ═══
         if self._cr_v2_writer is None:
-            print(f"[Router] ⚠️ CR v2 writer is None, attempting reconnect...")
-            try:
-                r, w = await asyncio.wait_for(
-                    asyncio.open_connection("127.0.0.1", CR_V2_PORT), timeout=1
-                )
-                self._cr_v2_writer = w
-                print(f"[Router] ✅ CR v2 reconnected (:{CR_V2_PORT})")
-            except Exception as e:
-                print(f"[Router] ❌ CR reconnect failed: {e}")
+            now = time.time()
+            if now - self._last_cr_reconnect < 30:
+                pass  # rate-limit: не дёргать чаще раза в 30 сек
+            else:
+                self._last_cr_reconnect = now
+                print(f"[Router] ⚠️ CR v2 writer is None, reconnecting...")
+                try:
+                    r, w = await asyncio.wait_for(
+                        asyncio.open_connection("127.0.0.1", CR_V2_PORT), timeout=2
+                    )
+                    self._cr_v2_writer = w
+                    print(f"[Router] ✅ CR v2 reconnected (:{CR_V2_PORT})")
+                except Exception as e:
+                    print(f"[Router] ❌ CR reconnect failed: {e}")
+                    # Закрываем reader/writer если открылись, чтобы не текли FDs
+                    try:
+                        if 'r' in dir() and r: r.fp.close()
+                    except: pass
+                    try:
+                        if 'w' in dir() and w: w.close()
+                    except: pass
         if self._cr_v2_writer:
             print(f"[Router] 🔁 CR multicast for kind={msg.get('kind',0)} from={msg.get('from','?')[:12]}")
             try:
@@ -1567,14 +1585,17 @@ class SmartRouter:
                 print(f"[Router] ❌ CR multicast FAIL: {type(ex).__name__}: {ex}")
                 self.stats["cr_v2_multicast_fail"] += 1
                 self._cr_v2_writer = None
-                # Попробуем переподключиться
-                try:
-                    r, w = await asyncio.wait_for(
-                        asyncio.open_connection("127.0.0.1", CR_V2_PORT), timeout=2
-                    )
-                    self._cr_v2_writer = w
-                except Exception:
-                    pass
+                # Попробуем переподключиться (с rate-limit)
+                now = time.time()
+                if now - self._last_cr_reconnect >= 30:
+                    self._last_cr_reconnect = now
+                    try:
+                        r, w = await asyncio.wait_for(
+                            asyncio.open_connection("127.0.0.1", CR_V2_PORT), timeout=2
+                        )
+                        self._cr_v2_writer = w
+                    except Exception:
+                        pass
         
         # Если ничего не сработало — mesh как последняя надежда
         if not best_result["ok"] and "mesh" not in channels_to_try:
