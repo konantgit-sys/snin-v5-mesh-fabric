@@ -16,6 +16,7 @@ SNIN Supervisor v1.0 — управление всеми демонами сет
 import asyncio
 import json
 import os
+import resource
 import signal
 import socket
 import subprocess
@@ -263,7 +264,7 @@ class SNINSupervisor:
             # Точечный рестарт (mesh-компоненты) — асинхронный, без ожидания завершения
             try:
                 process = subprocess.Popen(
-                    ["bash", "-c", cmd],
+                    ["bash", "-c", "ulimit -n 65535 && " + cmd],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL
                 )
@@ -280,6 +281,7 @@ class SNINSupervisor:
             if port_ok:
                 svc["restarts"] += 1
                 svc["fails"] = 0
+                svc["_dead"] = False
                 self.log(f"  ✅ {name} — запущен (PID={process.pid}, рестартов: {svc['restarts']})")
                 return True
             else:
@@ -287,21 +289,30 @@ class SNINSupervisor:
         elif start_script and os.path.isfile(start_script):
             # Монолитный рестарт через start.sh (для не-mesh сервисов)
             try:
-                result = subprocess.run(
+                # Асинхронный запуск — не блокируем проверку остальных сервисов
+                process = subprocess.Popen(
                     ["bash", start_script],
-                    timeout=120, capture_output=True, text=True
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
                 )
-                if result.returncode == 0:
-                    svc["restarts"] += 1
-                    svc["fails"] = 0
-                    self.log(f"  ✅ {name} — перезапущен (рестартов: {svc['restarts']})")
-                    return True
-                else:
-                    self.log(f"  ❌ {name} — start.sh вернул {result.returncode}: {result.stderr[:100]}")
-            except subprocess.TimeoutExpired:
-                self.log(f"  ⏰ {name} — timeout при запуске")
             except Exception as e:
-                self.log(f"  ❌ {name} — ошибка: {str(e)[:60]}")
+                self.log(f"  ❌ {name} — Popen ошибка: {str(e)[:60]}")
+                return False
+            # Даём 5 секунд на открытие порта
+            port_ok = False
+            for _ in range(10):
+                if self.health_check(svc) or self.port_open("127.0.0.1", port):
+                    port_ok = True
+                    break
+                time.sleep(0.5)
+            if port_ok:
+                svc["restarts"] += 1
+                svc["fails"] = 0
+                svc["_dead"] = False
+                self.log(f"  ✅ {name} — запущен (PID={process.pid}, рестартов: {svc['restarts']})")
+                return True
+            else:
+                self.log(f"  ⚠️ {name} — запущен (PID={process.pid}) порт не открыт за 5с")
         else:
             self.log(f"  ⚠️  {name} — нет ни cmd, ни start.sh")
         return False
@@ -313,6 +324,13 @@ class SNINSupervisor:
             if svc.get("alive"):
                 svc["_dead"] = False  # воскрес
             else:
+                # Fallback: порт открыт, а мы считаем мёртвым — сброс
+                if self.port_open("127.0.0.1", svc["port"], timeout=1):
+                    svc["alive"] = True
+                    svc["_dead"] = False
+                    svc["fails"] = 0
+                    self.log(f"♻️ {name} — воскрес (порт открыт, сброс _dead)")
+                    return
                 return
         
         port = svc["port"]
