@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path.home() / "data" / "sites" / "relay-mesh"))
 from nip42_auth import (
     generate_challenge, validate_challenge, create_session, validate_session,
-    is_valid_auth_event, check_rate_limit, get_auth_pubkey,
+    is_valid_auth_event, get_auth_pubkey,
     format_auth_message, format_auth_ok, format_notice, parse_message,
     RATE_LIMIT_ANON, RATE_LIMIT_AUTH, cleanup_sessions
 )
@@ -29,13 +29,8 @@ from nip42_auth import (
 # NIP-65 Discovery
 from nip65_discovery import get_relay_info
 
-# First Contact — Capability Discovery, Network Snapshot, Graceful Degradation
-from first_contact import (
-    register_capabilities, get_agent_capabilities, build_kind39004_event,
-    compute_network_snapshot, process_heartbeat, check_graceful_degradation,
-    build_kind39005_event, circuit_breaker_check, record_channel_error,
-    reset_circuit_breaker, get_degradation_status, get_degradation_status as _dgs
-)
+# Middleware (Phase 4) — unified rate limit + circuit breaker
+from middleware import cb_check, cb_record_error, cb_reset, cb_status, check_rate_limit_simple
 
 # Phase 20 — Payment Handler (kind:30000)
 from payment_handler import (
@@ -244,10 +239,10 @@ def mesh_send():
     data = request.get_json(force=True)
     pubkey = get_auth_pubkey(request.headers)
     
-    # Rate limit
+    # Rate limit (via middleware)
     client_ip = request.remote_addr or "unknown"
     max_rate = RATE_LIMIT_AUTH if pubkey else RATE_LIMIT_ANON
-    if not check_rate_limit(client_ip, max_rate):
+    if not check_rate_limit_simple(client_ip, max_rate):
         return jsonify({"ok": False, "error": "rate_limit"}), 429
     
     msg = {
@@ -361,9 +356,9 @@ def ws_handler(ws):
                 ws.send(format_notice("EVENT: must be object"))
                 continue
             
-            # Rate limit
+            # Rate limit (via middleware)
             max_rate = RATE_LIMIT_AUTH if authenticated else RATE_LIMIT_ANON
-            if not check_rate_limit(f"ws:{pubkey or ws}", max_rate):
+            if not check_rate_limit_simple(f"ws:{pubkey or ws}", max_rate):
                 ws.send(format_notice("rate limit exceeded"))
                 continue
             
@@ -464,22 +459,17 @@ def agent_heartbeat(pubkey):
 
 @app.route("/system/degradation")
 def degradation_status():
-    """Graceful degradation report."""
-    # Run degradation check
-    check_result = check_graceful_degradation(agents)
-    if check_result["moved_to_buffer"]:
-        _save_agents()
-    status = get_degradation_status()
+    """Circuit breaker + degradation report (via middleware Phase 4)."""
+    cb_data = cb_status()
     return jsonify({
-        "degradation_check": check_result,
-        "circuit_breakers": status["circuit_breakers"],
-        "buffer_zone": status["buffer_zone"],
+        "circuit_breakers": cb_data.get("channels", {}),
+        "middleware_uptime": cb_data.get("uptime_sec", 0),
     })
 
 @app.route("/system/circuit-breaker/<channel>/reset", methods=["POST"])
 def reset_cb(channel):
-    """Reset circuit breaker for a channel."""
-    reset_circuit_breaker(channel)
+    """Reset circuit breaker for a channel (via middleware)."""
+    cb_reset(channel)
     return jsonify({"ok": True, "channel": channel, "state": "closed"})
 
 # ═══ Phase 20: S1 — Payment Gateway ═══

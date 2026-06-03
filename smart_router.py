@@ -27,8 +27,6 @@
 """
 
 import asyncio
-# import uvloop (disabled)
-# asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 import orjson as json
 import time
 import os
@@ -37,6 +35,7 @@ import hashlib
 import random
 from collections import defaultdict, deque
 
+from mesh_config import config
 from gossip_stream import GossipStream
 from graceful_degradation import GracefulDegradation
 
@@ -44,385 +43,46 @@ from graceful_degradation import GracefulDegradation
 sys.path.insert(0, "/home/agent/data/sites/relay-mesh")
 from cpu_worker import verify_ed25519_processpool_async, shutdown_pools
 
-# ═══ Фаза 1: Reputation-weighted routing ═══
-try:
-    from reputation import get_reputation_for_pubkey, get_all_reputations
-    REPUTATION_ENABLED = True
-except Exception:
-    REPUTATION_ENABLED = False
+# Router modules (Phase 2 refactoring)
+from router_policy import (
+    InMemoryCircuitBreaker, aredis, apply_policies, get_policy_for_kind,
+    pick_channel_from_policy, get_best_channel, record_route,
+    classify_traffic, get_reputation_weight, gossip_shard_for,
+    TRAFFIC_CLASSES, KIND_TO_TRAFFIC_CLASS, ROUTE_STATS_KEY,
+    ROUTE_HISTORY_KEY, ROUTE_BEST_KEY, TC_STATS_KEY, TC_HISTORY_KEY,
+    TC_BEST_KEY, TC_POLICY_KEY, BP_MAX_CONCURRENT, BP_MAX_QUEUE_TIME,
+)
 
-def _get_reputation_weight(pubkey: str) -> float:
-    """Получить вес репутации для pubkey. 0.0-1.0."""
-    if not REPUTATION_ENABLED:
-        return 0.5
-    try:
-        rep = get_reputation_for_pubkey(pubkey)
-        return rep.get("score", 0.5)
-    except Exception:
-        return 0.5
+# ─── Настройки (из mesh_config.yaml) ──────────────────────────────────
+LISTEN_HOST = config.get("transport.smart_router.host", "0.0.0.0")
+LISTEN_PORT = config.get("transport.smart_router.port", 9932)
 
-# ═══ Фаза 6: In-memory Circuit Breaker ═══
-class InMemoryCircuitBreaker:
-    """Pure Python CB — никакого Redis на горячем пути.
-    
-    Sliding window: deque(timestamps) per channel.
-    Incident: >500ms latency → запись в deque.
-    Block: 3+ incidents в окне 60s → блок на 30s.
-    """
-    
-    def __init__(self):
-        self._incidents: dict[str, deque] = {}
-        self._blocked_until: dict[str, float] = {}
-        self.latency_threshold_ms = 500
-        # mesh канал — медленнее других (Unix socket batch), терпимее
-        self.mesh_latency_threshold_ms = 1000
-        self.incident_limit = 3
-        self.incident_window = 60
-        self.block_ttl = 30
-    
-    def record_incident(self, channel: str) -> bool:
-        """Записать инцидент. Вернёт True если канал заблокирован."""
-        now = time.time()
-        if channel not in self._incidents:
-            self._incidents[channel] = deque(maxlen=100)
-        
-        inc = self._incidents[channel]
-        inc.append(now)
-        
-        # Sliding window: удаляем старше 60s
-        while inc and inc[0] < now - self.incident_window:
-            inc.popleft()
-        
-        if len(inc) >= self.incident_limit:
-            self._blocked_until[channel] = now + self.block_ttl
-            inc.clear()
-            return True
-        return False
-    
-    def is_blocked(self, channel: str) -> bool:
-        if channel not in self._blocked_until:
-            return False
-        if time.time() < self._blocked_until[channel]:
-            return True
-        # Unblock автоматически при истечении TTL
-        del self._blocked_until[channel]
-        return False
-    
-    def get_blocked(self) -> list[str]:
-        now = time.time()
-        return [ch for ch, until in self._blocked_until.items() if now < until]
-    
-    def force_recovery(self, channel: str):
-        """Принудительно снять блокировку канала."""
-        self._blocked_until.pop(channel, None)
-    
-    def reset(self, channel: str):
-        """Полный сброс: очистить инциденты и блокировку."""
-        self._incidents.pop(channel, None)
-        self._blocked_until.pop(channel, None)
-
-
-# ═══ Фаза 0: Ed25519 verify (0.05ms) ═══
-import json as _std_json
-def verify_ed25519(pubkey_hex: str, payload: dict, sig_hex: str) -> bool:
-    """Верифицировать Ed25519 подпись пакета. 0.05ms."""
-    try:
-        from cryptography.hazmat.primitives.asymmetric import ed25519
-        vk_bytes = bytes.fromhex(pubkey_hex)
-        vk = ed25519.Ed25519PublicKey.from_public_bytes(vk_bytes)
-        message = _std_json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
-        sig = bytes.fromhex(sig_hex)
-        vk.verify(sig, message)
-        return True
-    except Exception:
-        return False
-
-
-# ─── Настройки ──────────────────────────────────────────────────────────
-LISTEN_HOST = "0.0.0.0"
-LISTEN_PORT = 9932
-
-# Health endpoint
+# Health endpoint (mesh_health на порту +10000)
 from mesh_health import start_health
 start_health(LISTEN_PORT, "smart_router")
 
 # Адреса каналов
-CR_HOST, CR_PORT = "127.0.0.1", 9920
+CR_HOST = "127.0.0.1"
+CR_PORT = config.get("transport.content_router_v2.port", 9920)
 NOSTR_GW_HOST = "127.0.0.1"
-NOSTR_GW_PORTS = [9941, 9942, 9943, 9944, 9945]  # 5 bridge shards
+NOSTR_GW_PORTS = [config.get("nostr.bridge_base_port", 9941)]
 GOSSIP_PORTS = [9100, 9101, 9102, 9103, 9104]
-CR_V2_PORT = 9920  # Content Router v2
+CR_V2_PORT = CR_PORT
 
-# Phase 3: Unix sockets для внутренней коммуникации
-UNIX_SOCK_DIR = "/tmp/snin"
+# Unix sockets
+UNIX_SOCK_DIR = config.get("global.unix_socket_dir", "/tmp/snin")
 UNIX_CR_SOCK = f"{UNIX_SOCK_DIR}/cr.sock"
 UNIX_NOSTR_SOCK = f"{UNIX_SOCK_DIR}/nostr.sock"
 UNIX_GOSSIP_SOCKS = [f"{UNIX_SOCK_DIR}/gossip_{i}.sock" for i in range(5)]
 UNIX_SR_SOCK = f"{UNIX_SOCK_DIR}/sr.sock"
-ACK_CONNECT_TIMEOUT = 5  # таймаут на коннект (Unix) перед fallback к TCP
-HEALTH_PORT = 9933  # Phase 4: health check endpoint
+ACK_CONNECT_TIMEOUT = 5
+HEALTH_PORT = config.get("transport.smart_router.health_port", 9933)
 
 # Redis (lazy import в aredis())
 REDIS_CLIENT = None
 _GLOBAL_ROUTER = None  # глобальный синглтон SmartRouter (in-memory best_channel)
 
-def _get_router():
-    """Вернуть глобальный синглтон SmartRouter."""
-    return _GLOBAL_ROUTER
 
-# ─── Маршрутная таблица ────────────────────────────────────────────────
-ROUTE_HISTORY_KEY = "route:history:{}:{}"
-ROUTE_BEST_KEY = "route:best:{}"
-ROUTE_STATS_KEY = "route:stats:{}:{}"
-POLICY_KEY = "policy:routes"  # Hash: {kind_range: channel_weights_json}
-TC_POLICY_KEY = "tc:policy:{}"   # traffic_class → channel weights
-TC_HISTORY_KEY = "tc:history:{}:{}"  # tc:history:{traffic_class}:{channel}
-TC_BEST_KEY = "tc:best:{}"       # traffic_class → best channel
-TC_STATS_KEY = "tc:stats:{}:{}"  # tc:stats:{traffic_class}:{channel}
-
-# Traffic Class → default channel mapping
-TRAFFIC_CLASSES = {
-    "agent-to-agent": {"gossip": 0.6, "mesh": 0.4},
-    "iot":            {"content_router": 0.8, "mesh": 0.2},
-    "gossip_data":    {"gossip_data": 1.0, "mesh": 0.5, "gossip": 0.3},
-    "nostr-out":      {"nostr": 0.9, "mesh": 0.1},
-    "content":        {"mesh": 0.5, "content_router": 0.5},
-    "payment":        {"chequebook": 0.5, "mesh": 0.4, "gossip": 0.1},
-    "dao":            {"mesh": 1.0, "chequebook": 0.1},
-}
-
-KIND_TO_TRAFFIC_CLASS = {
-    39000: "agent-to-agent",  # heartbeat
-    39001: "agent-to-agent",  # DHT
-    39003: "iot",             # External Gateway
-    39004: "gossip_data",     # Gossip Data Channel (V8)
-    39005: "agent-to-agent",  # health
-    39006: "agent-to-agent",  # decision
-    39010: "dao",             # DAO proposals
-    30000: "payment",         # payments
-    1:     "nostr-out",       # Nostr notes
-    42:    "nostr-out",       # Nostr channels
-    7:     "nostr-out",       # Nostr reactions
-}
-
-def classify_traffic(kind: int, meta: dict = None) -> str:
-    """Классифицировать тип трафика по kind + meta.
-    
-    Если meta содержит явный traffic_class — используем его.
-    Иначе — определяем по kind.
-    """
-    if meta and isinstance(meta, dict):
-        tc = meta.get("traffic_class", "")
-        if tc in TRAFFIC_CLASSES:
-            return tc
-    return KIND_TO_TRAFFIC_CLASS.get(kind, "content")
-
-# ═══ Фаза 6: In-memory Circuit Breaker (см. класс InMemoryCircuitBreaker) ═══
-# CB больше не использует Redis на горячем пути.
-# Всё в памяти: sliding window deque + dict для блокировок.
-
-# ═══ Фаза 2: Backpressure ═══
-BP_MAX_CONCURRENT = 100                  # макс одновременных подключений
-BP_MAX_QUEUE_TIME = 0.5                  # 500ms — max время обработки
-BP_RETRY_AFTER_SEC = 5                   # retry_after для клиента
-
-
-async def aredis():
-    global REDIS_CLIENT
-    if REDIS_CLIENT is None:
-        try:
-            import redis.asyncio as redis_py
-            REDIS_CLIENT = redis_py.Redis(host='localhost', port=6379, db=0,
-                                          socket_connect_timeout=1, socket_timeout=2,
-                                          decode_responses=True)
-            await REDIS_CLIENT.ping()
-        except Exception:
-            pass
-    return REDIS_CLIENT
-
-
-# ─── Маршрутные политики ───────────────────────────────────────────────
-async def apply_policies():
-    """Записать дефолтные политики в Redis, если их нет."""
-    r = await aredis()
-    if not r:
-        return
-
-    defaults = {
-        "39000": json.dumps({"gossip": 0.9, "mesh": 0.1}),
-        "39001": json.dumps({"gossip": 0.7, "direct": 0.3}),
-        "39002": json.dumps({"mesh": 1.0}),
-        "39003": json.dumps({"mesh": 0.5, "gossip": 0.5}),
-        "39004": json.dumps({"mesh": 0.8, "gossip_data": 1.0, "gossip": 0.3}),
-        "39010_39025": json.dumps({"mesh": 1.0}),
-        "30000": json.dumps({"chequebook": 0.5, "mesh": 0.4, "gossip": 0.1}),
-        "1": json.dumps({"nostr": 1.0}),
-        "default": json.dumps({"mesh": 0.7, "gossip": 0.3}),
-    }
-
-    for kind_range, weights in defaults.items():
-        exists = await r.hget(POLICY_KEY, kind_range)
-        if exists is None:
-            await r.hset(POLICY_KEY, kind_range, weights)
-            print(f"[Policies] ✅ Default policy set: kind {kind_range} → {weights}")
-    
-    # Traffic Class policies
-    for tc, weights in TRAFFIC_CLASSES.items():
-        key = TC_POLICY_KEY.format(tc)
-        exists = await r.get(key)
-        if exists is None:
-            await r.setex(key, 86400, json.dumps(weights))
-            print(f"[Policies] ✅ TC policy: {tc} → {weights}")
-
-
-async def get_policy_for_kind(kind: int) -> dict:
-    """Вернуть словарь каналов с весами для данного kind."""
-    r = await aredis()
-    if r:
-        # Сначала точное совпадение
-        raw = await r.hget(POLICY_KEY, str(kind))
-        if raw:
-            return json.loads(raw)
-        # Диапазон
-        all_policies = await r.hgetall(POLICY_KEY)
-        for key, raw in all_policies.items():
-            if "_" in key:
-                parts = key.split("_")
-                try:
-                    lo, hi = int(parts[0]), int(parts[1])
-                    if lo <= kind <= hi:
-                        return json.loads(raw)
-                except (ValueError, IndexError):
-                    continue
-        # Default
-        raw = await r.hget(POLICY_KEY, "default")
-        if raw:
-            return json.loads(raw)
-    return {"mesh": 1.0}
-
-
-async def pick_channel_from_policy(policy: dict, agent_id: str) -> str:
-    """Выбрать канал из политики по весам (с учётом self-learning)."""
-    r = await aredis()
-    best = None
-    if r:
-        best = await r.get(ROUTE_BEST_KEY.format(agent_id))
-
-    # Если best канал есть в политике — используем его
-    if best and best in policy:
-        return best
-
-    # Иначе — выбираем случайно по весам
-    channels = list(policy.keys())
-    weights = [policy[c] for c in channels]
-    return random.choices(channels, weights=weights, k=1)[0]
-
-
-async def get_best_channel(agent_id: str) -> str:
-    """Лучший канал для агента: in-memory приоритет над Redis."""
-    router = _get_router()  # глобальный синглтон
-    if router and agent_id in router._best_channel:
-        return router._best_channel[agent_id]
-    if router and "default" in router._best_channel:
-        return router._best_channel["default"]
-    r = await aredis()
-    if r:
-        best = await r.get(ROUTE_BEST_KEY.format(agent_id))
-        if best:
-            return best
-    return "mesh"
-
-
-async def record_route(agent_id: str, channel: str, latency_ms: float, success: bool):
-    r = await aredis()
-    if r is None:
-        return
-    key = ROUTE_HISTORY_KEY.format(agent_id, channel)
-    now = time.time()
-    await r.zadd(key, {f"{now}:{latency_ms:.1f}": latency_ms})
-    await r.zremrangebyrank(key, 0, -101)
-    await r.expire(key, 86400)
-
-    scores = await r.zrange(key, 0, -1, withscores=True)
-    avg = sum(s[1] for s in scores) / len(scores) if scores else latency_ms
-
-    stats_key = ROUTE_STATS_KEY.format(agent_id, channel)
-    if success:
-        await r.hincrby(stats_key, "sent", 1)
-    else:
-        await r.hincrby(stats_key, "failed", 1)
-    await r.hset(stats_key, "avg_latency", f"{avg:.1f}")
-    await r.expire(stats_key, 86400)
-
-    current_best = await r.get(ROUTE_BEST_KEY.format(agent_id))
-    if current_best is None:
-        await r.set(ROUTE_BEST_KEY.format(agent_id), channel)
-        await r.expire(ROUTE_BEST_KEY.format(agent_id), 86400)
-    elif success and current_best != channel:
-        # Сравниваем: если новый канал быстрее — переключаем
-        curr_avg = await r.hget(ROUTE_STATS_KEY.format(agent_id, current_best), "avg_latency")
-        if curr_avg:
-            try:
-                if avg < float(curr_avg) * 0.8:  # на 20% быстрее = переключение
-                    await r.set(ROUTE_BEST_KEY.format(agent_id), channel)
-            except ValueError:
-                pass
-
-
-# ═══ Фаза 2: Circuit Breaker ═══
-async def cb_record_incident(channel: str):
-    """Записать инцидент (latency >500ms) для канала."""
-    r = await aredis()
-    if not r:
-        return
-    now = time.time()
-    key = CB_INCIDENT_KEY.format(channel, "all")
-    await r.zadd(key, {f"{now}": now})
-    # Чистим старые (>60 сек)
-    await r.zremrangebyscore(key, 0, now - CB_INCIDENT_WINDOW)
-    await r.expire(key, 300)
-    # Считаем в окне
-    count = await r.zcard(key)
-    if count >= CB_INCIDENT_LIMIT:
-        # Блокируем канал
-        block_key = CB_BLOCKED_KEY.format(channel)
-        await r.setex(block_key, CB_BLOCK_TTL, "1")
-        print(f"[CB] 🛑 Channel '{channel}' BLOCKED for {CB_BLOCK_TTL}s ({count} incidents)")
-        await r.delete(key)  # Сброс счётчика
-        return True
-    return False
-
-
-async def cb_is_blocked(channel: str) -> bool:
-    """Проверить, заблокирован ли канал."""
-    r = await aredis()
-    if not r:
-        return False
-    return (await r.exists(CB_BLOCKED_KEY.format(channel))) > 0
-
-
-async def cb_get_blocked_channels() -> list:
-    """Список заблокированных каналов."""
-    r = await aredis()
-    if not r:
-        return []
-    keys = await r.keys(CB_BLOCKED_KEY.format("*"))
-    return [k.split(":")[-1] for k in keys]
-
-
-# ═══ Фаза 3: Consistent Hashing для gossip ═══
-N_SHARDS = len(GOSSIP_PORTS)
-
-def gossip_shard_for(pubkey: str) -> int:
-    """Выбрать шард по pubkey через consistent hashing."""
-    if not pubkey or pubkey == "?" or len(pubkey) < 8:
-        return random.randint(0, N_SHARDS - 1)
-    # MD5 хеш pubkey → индекс шарда
-    h = hashlib.md5(pubkey.encode()).hexdigest()
-    return int(h[:8], 16) % N_SHARDS
-
-
-# ─── Smart Router ──────────────────────────────────────────────────────
 class SmartRouter:
     def __init__(self):
         self.stats = defaultdict(int)
@@ -758,7 +418,7 @@ class SmartRouter:
     
     async def _reconnect_nostr_shard(self, shard_idx: int):
         """Переподключение к nostr шарду. Замещает элемент на месте, не добавляет дубль."""
-        if shard_idx < 0 or shard_idx >= 5:
+        if shard_idx < 0 or shard_idx >= len(NOSTR_GW_PORTS):
             return
         port = NOSTR_GW_PORTS[shard_idx]
         print(f"[Router] 🔄 Reconnecting nostr shard {shard_idx} (:{port})...")
@@ -965,12 +625,10 @@ class SmartRouter:
 
                 # Убедиться, что есть хотя бы один живой шард
                 alive_shards = [i for i, w in enumerate(self._nostr_writers) if w is not None]
-                print(f"[Router] 🟣 nostr: {len(alive_shards)}/5 shards alive")
+                print(f"[Router] 🟣 nostr: {len(alive_shards)}/{len(NOSTR_GW_PORTS)} shards alive")
                 if not alive_shards:
-                    # Попытка переподключить все 5 шардов (асинхронно)
-                    print(f"[Router] 🔴 All nostr shards dead, initiating full reconnect...")
-                    for idx in range(5):
-                        asyncio.ensure_future(self._reconnect_nostr_shard(idx))
+                    print(f"[Router] 🔴 All nostr shards dead, reconnecting publisher...")
+                    asyncio.ensure_future(self._reconnect_nostr_shard(0))
                     self.stats["chan_fail:nostr"] += 1
                     result["error"] = "all nostr shards dead, reconnecting..."
                     return result
@@ -1028,7 +686,7 @@ class SmartRouter:
                 ok_count = 0
                 dead_shards = []
                 alive_count = len([w for w in self._nostr_writers if w is not None])
-                print(f"[Router] 🟣 nostr send: {alive_count}/5 shards alive, payload={len(payload_bytes)}b")
+                print(f"[Router] 🟣 nostr send: {alive_count}/{len(NOSTR_GW_PORTS)} shards alive, payload={len(payload_bytes)}b")
                 for i, w in enumerate(self._nostr_writers):
                     if w is None:
                         # Уже мёртвый шард, пропускаем но пытаемся переподключить
@@ -1882,158 +1540,3 @@ class SmartRouter:
                 health.serve_forever(),
                 self.self_learning_loop(),
             )
-
-
-# ─── Статус ────────────────────────────────────────────────────────────
-async def print_status(router: SmartRouter):
-    start = time.time()
-    while True:
-        await asyncio.sleep(30)
-        elapsed = int(time.time() - start)
-        r = await aredis()
-
-        ch_summary = {}
-        if r:
-            for ch in ("direct", "mesh", "gossip", "nostr"):
-                keys = await r.keys(f"route:stats:*:{ch}")
-                ts, tf, tl = 0, 0, []
-                for k in keys:
-                    h = await r.hgetall(k)
-                    ts += int(h.get("sent", 0))
-                    tf += int(h.get("failed", 0))
-                    avg = h.get("avg_latency")
-                    if avg and avg != "?":
-                        tl.append(float(avg))
-                al = round(sum(tl) / len(tl), 1) if tl else 0
-                ch_summary[ch] = {"sent": ts, "failed": tf, "avg_ms": al}
-
-        print(f"\n[Router] {'='*55}")
-        print(f"[Router] Uptime: {elapsed}s | Msgs: recv={router.stats['received']} "
-              f"fwd={router.stats['forwarded']} fail={router.stats['failed']}")
-        print(f"[Router] Concurrent: {router._concurrent}/{BP_MAX_CONCURRENT} | "
-              f"BP: rejected={router.stats['backpressure_rejected']} warn={router.stats['backpressure_warning']}")
-        print(f"[Router] CB: reroute={router.stats['cb_reroute']} blocked={router.stats['cb_blocked']} | "
-              f"timeouts: mesh={router.stats['timeout:mesh']} gossip={router.stats['timeout:gossip']} "
-              f"nostr={router.stats['timeout:nostr']}")
-        blocked_channels = router._cb.get_blocked()
-        if blocked_channels:
-            print(f"[Router] 🔴 Blocked channels: {', '.join(blocked_channels)} (30s)")
-        print(f"[Router] Channels: mesh={router.stats['chan_ok:mesh']} "
-              f"gossip={router.stats['chan_ok:gossip']} "
-              f"nostr={router.stats['chan_ok:nostr']} "
-              f"direct={router.stats['chan_ok:direct']}")
-        print(f"[Router] Fallbacks: {router.stats['fallback_to_mesh']} | "
-              f"congestion_reroute: {router.stats['congestion_reroute']} | "
-              f"congestion_slow: {router.stats['congestion_slow']}")
-        print(f"[Router] Channel health (last cycle):")
-        for ch, h in router._channel_health.items():
-            total = h["ok"] + h["fail"]
-            if total:
-                bar = "█" * max(1, int(h["avg_ms"] / 10)) if h["avg_ms"] else "?"
-                print(f"  {ch:8s} ok={h['ok']} fail={h['fail']} avg={h['avg_ms']:.0f}ms {bar}")
-            else:
-                print(f"  {ch:8s} — no data")
-        print(f"[Router] Redis delivery stats:")
-        for ch, s in ch_summary.items():
-            bar = "█" * max(1, int(s["avg_ms"] / 10)) if s["avg_ms"] else "?"
-            print(f"  {ch:8s} → sent={s['sent']} fail={s['failed']} avg={s['avg_ms']}ms {bar}")
-        print(f"[Router] {'='*55}\n")
-
-
-async def health_server():
-    """HTTP health endpoint для L2 Transport — на HEALTH_PORT (9933)"""
-    import asyncio
-    reader_writers = []
-    server = await asyncio.start_server(
-        lambda r, w: reader_writers.append((r, w)),
-        '127.0.0.1', HEALTH_PORT
-    )
-    async with server:
-        print(f"[Router] ✅ Health HTTP endpoint on :{HEALTH_PORT}")
-        async for client_reader, client_writer in server.accept():
-            try:
-                request = await asyncio.wait_for(client_reader.read(1024), timeout=2)
-                if request:
-                    router = _GLOBAL_ROUTER if '_GLOBAL_ROUTER' in dir() else None
-                    alive_channels = 0
-                    total_channels = 0
-                    if router and hasattr(router, '_channel_health'):
-                        for ch, h in router._channel_health.items():
-                            total_channels += 1
-                            if h.get('ok', 0) > h.get('fail', 0):
-                                alive_channels += 1
-                    response = (
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Type: application/json\r\n"
-                        "Connection: close\r\n"
-                        f"Content-Length: 0\r\n\r\n"
-                    ).encode()
-                    client_writer.write(response)
-                    await client_writer.drain()
-            except: pass
-            finally:
-                try: client_writer.close()
-                except: pass
-
-
-async def main():
-    import sys
-    sys.stdout.flush()
-    print(f"[Router] Initializing SmartRouter...")
-    sys.stdout.flush()
-
-    router = SmartRouter()
-    print(f"[Router] ✅ SmartRouter created, channels: nostr={len([w for w in router._nostr_writers if w])}/5")
-    sys.stdout.flush()
-
-    # Запуск GossipStream (V8 data channel) — OPTIONAL, можно пропустить на отладку
-    try:
-        print(f"[Router] Starting GossipStream V8...")
-        sys.stdout.flush()
-        gs = GossipStream(pubkey="sr_gossip_v8")
-        await gs.start_server_async()
-        router._gossip_stream = gs
-        print(f"[Router] ✅ GossipStream V8 on :{gs.listen_port}")
-        sys.stdout.flush()
-    except Exception as e:
-        print(f"[Router] ⚠️ GossipStream V8: {e}")
-        sys.stdout.flush()
-
-    print(f"[Router] Starting main loops...")
-    sys.stdout.flush()
-    try:
-        await asyncio.gather(router.run(), print_status(router), router._dht_scan_loop())
-    except Exception as e:
-        import traceback
-        print(f"[Router] 💀 Main loop crashed: {e}")
-        print(traceback.format_exc())
-        sys.stdout.flush()
-        raise
-
-
-if __name__ == "__main__":
-    import sys
-    import signal
-    
-    def _cleanup():
-        print(f"[Router] 🧹 Cleaning up process pools...")
-        shutdown_pools()
-        print(f"[Router] ✅ Pools cleaned")
-    
-    # Ловим SIGTERM/SIGINT — чистим пулы перед смертью
-    signal.signal(signal.SIGTERM, lambda *_: (_cleanup(), sys.exit(0)))
-    
-    print(f"[Router] Smart Router v2 — multi-channel, policy + self-learning")
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print(f"[Router] Shutdown")
-        _cleanup()
-    except asyncio.CancelledError:
-        print(f"[Router] Cancelled")
-    except Exception as e:
-        import traceback
-        tb = traceback.format_exc()
-        print(f"[Router] 💀 FATAL CRASH: {e}")
-        print(f"[Router] Traceback:\n{tb}")
-        sys.exit(1)

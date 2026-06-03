@@ -46,6 +46,7 @@ def _ensure_cache():
 app = FastAPI(title="SNIN Identity API v2")
 
 @app.get("/health")
+@app.get("/api/health")
 async def health():
     _ensure_cache()
     return {

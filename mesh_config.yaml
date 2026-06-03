@@ -1,0 +1,113 @@
+# SNIN V5 Mesh Fabric — Central Configuration
+version: "3.1"
+
+# ─── GLOBAL ───
+global:
+  log_dir: /home/agent/data/logs
+  health_port_offset: 10000  # service_port + offset = mesh_health port
+  unix_socket_dir: /tmp/snin
+
+# ─── REDIS ───
+redis:
+  host: 127.0.0.1
+  port: 6379
+
+# ─── LAYER 1: TRANSPORT ───
+transport:
+  smart_router:
+    port: 9932
+    host: 0.0.0.0
+    health_port: 9933  # legacy: HTTP health endpoint внутри SR
+  route_engine:
+    port: 9910
+    host: 127.0.0.1
+  content_router_v2:
+    port: 9920
+    unix_socket: cr_v2.sock
+
+# ─── LAYER 1.5: BRIDGE ───
+bridge:
+  cross_mesh:
+    port: 9946
+    host: 0.0.0.0
+
+# ─── LAYER 2+ (8-layer stack from snin-hub) ───
+layer_stack:
+  l1_5_bridge: 8202
+  l2_encryption: 9600
+  l2_transport: 9500
+  l3_mesh_core: 9300
+  l3_zk_layer: 9250
+  l4_payment: 9200
+  l4_privacy: 9700
+  l6_agent_network: 9400
+  l8_app_layer: 9800
+  l9_orchestration: 9900
+
+# ─── MESH FABRIC ───
+mesh_fabric:
+  external_gateway:
+    port: 9931
+    host: 0.0.0.0
+    smart_router_host: 127.0.0.1
+  anti_ddos:
+    port: 9970
+    host: 0.0.0.0
+  dht_node:
+    port: 9934
+    state_file: /home/agent/data/sites/relay-mesh/dht_state.dat
+
+# ─── NOSTR INTEGRATION ───
+nostr:
+  bridge_base_port: 9941
+  bridge_count: 5
+  smart_router_host: 127.0.0.1
+  agents_file: /home/agent/data/sites/relay-mesh/agents.json
+  discovered_relays_file: /home/agent/data/sites/relay-mesh/logs/discovered_relays.json
+  relay_list:
+    - ws://127.0.0.1:8198
+    - wss://relay.primal.net
+    - wss://relay.damus.io
+    - wss://purplepag.es
+    - wss://nostr.bond
+
+# ─── IDENTITY & REPUTATION ───
+identity:
+  identity_api_port: 9940
+  verifier:
+    port: 9915
+    queue_file: /dev/shm/payment_queue.jsonl
+    status_file: /dev/shm/verifier_status.json
+  cheque_book:
+    port: 9916
+    status_file: /dev/shm/chequebook_status.json
+    db_file: /dev/shm/chequebook_db.json
+
+# ─── ORCHESTRATION ───
+orchestration:
+  health_engine:
+    port: 9999
+    interval: 10
+    timeout: 2.0
+    degradation_threshold: 3
+    status_file: /home/agent/data/sites/relay-mesh/health_status.json
+  supervisor: 9900
+  relay_mesh_api: 9907
+  relay_v2: 9905
+
+# ─── GRACEFUL DEGRADATION ───
+degradation:
+  channels:
+    - direct
+    - mesh
+    - nostr
+    - gossip
+  cb_status_file: /home/agent/data/sites/relay-mesh/circuit_breaker_status.json
+  half_open_timeout: 30
+
+# ─── RATE LIMITING ───
+rate_limits:
+  per_ip: 100
+  per_pubkey: 50
+  window_minutes: 1
+  max_event_size_kb: 64
