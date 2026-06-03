@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """
-SNIN Health Check Engine v3.3 L13 — Mesh Resilience + WS + Alerts + History
+SNIN Health Check Engine v3.4 L14 — Mesh Resilience + WS + Alerts + History + Alert Engine
 Config-driven: читает список сервисов из mesh_config.yaml.
 
 L13 фичи:
   - WebSocket stream live-статусов (/api/v1/health/ws)
   - SQLite история проверок (health_history.db)
   - Dashboard API (/api/v1/health/dashboard)
-  - Telegram/Nostr алерты (health_alerts.py)
+  - Telegram/Nostr алерты (alert_engine.py)
   - Purge старой истории раз в час
+
+L14 фичи:
+  - YAML-driven Alert Engine с правилами (alert_config.yaml)
+  - Multi-channel dispatch: Telegram, Nostr, Webhook
+  - Эскалация с таймерами (уровни 0→1→2→3)
+  - /ack сброс эскалации
+  - SQLite alert_log + events
 """
 
 import asyncio
@@ -23,7 +30,7 @@ from typing import Dict, List
 import aiohttp
 from mesh_config import config
 from health_ws import get_broadcaster
-from health_alerts import get_alert_engine
+from alert_engine import get_alert_engine
 
 # ─── SETUP ───
 LOG_DIR = config.get("global.log_dir", "/home/agent/data/logs")
@@ -295,7 +302,7 @@ class HealthCheckEngine:
         return result
 
     async def monitor_loop(self):
-        logger.info("🚀 Health Check Engine v3.3 (L13: WS + Alerts + History) started")
+        logger.info("🚀 Health Check Engine v3.4 (L14: Alert Engine + Escalation) started")
         await asyncio.sleep(3)
         purge_counter = 0
         while True:
@@ -313,7 +320,7 @@ class HealthCheckEngine:
                 self._last_broadcast_state = current_state
 
                 # L13: Alert engine check
-                await self._alert_engine.check(current_state)
+                await self._alert_engine.evaluate(current_state)
 
                 self._save_status()
 
@@ -393,10 +400,11 @@ async def start_http_server():
     async def health_ping(request):
         return web.json_response({
             "status": "ok",
-            "engine": "HealthEngine v3.3 L13",
+            "engine": "HealthEngine v3.4 L14",
             "config_driven": True,
             "monitored_services": len(SERVICES),
             "ws_enabled": True,
+            "alert_engine": True,
             "history_db": HEALTH_DB,
         })
 
@@ -475,7 +483,7 @@ async def start_http_server():
             },
             "engine": {
                 "uptime": summary.get("engine_uptime_seconds", 0),
-                "version": "3.3",
+                "version": "3.4",
             },
             "degradation": summary.get("degradation_modes", {}),
             "layers": {
@@ -524,6 +532,35 @@ async def start_http_server():
             return web.json_response({"ok": False, "error": str(e)}, status=500)
 
     app.router.add_get("/api/v1/health/history", health_history)
+
+    # ═══ L14: Alert Engine API ═══
+    alert_engine = get_alert_engine()
+
+    async def alerts_list(request):
+        limit = int(request.query.get("limit", 20))
+        active_only = request.query.get("active", "").lower() == "true"
+        alerts = alert_engine.get_alerts(limit=limit, active_only=active_only)
+        return web.json_response({"ok": True, "count": len(alerts), "alerts": alerts})
+
+    async def alerts_active(request):
+        alerts = alert_engine.get_active_alerts()
+        return web.json_response({"ok": True, "count": len(alerts), "alerts": alerts})
+
+    async def alerts_ack(request):
+        alert_id = request.match_info.get("alert_id", "")
+        if not alert_id:
+            return web.json_response({"ok": False, "error": "alert_id required"}, status=400)
+        ok = await alert_engine.acknowledge(alert_id)
+        return web.json_response({"ok": ok, "alert_id": alert_id})
+
+    async def alerts_reload(request):
+        alert_engine.reload_rules()
+        return web.json_response({"ok": True, "rules_count": len(alert_engine.rules)})
+
+    app.router.add_get("/api/v1/alerts", alerts_list)
+    app.router.add_get("/api/v1/alerts/active", alerts_active)
+    app.router.add_post("/api/v1/alerts/ack/{alert_id}", alerts_ack)
+    app.router.add_post("/api/v1/alerts/reload", alerts_reload)
 
     engine_port = config.get("orchestration.health_engine.port", 9999)
     runner = web.AppRunner(app)
