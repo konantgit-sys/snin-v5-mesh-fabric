@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SNIN Health Check Engine v3.4 L14 — Mesh Resilience + WS + Alerts + History + Alert Engine
+SNIN Health Check Engine v3.5 L15 — Mesh Resilience + WS + Alerts + History + Alert Engine + Auto-Recovery
 Config-driven: читает список сервисов из mesh_config.yaml.
 
 L13 фичи:
@@ -16,6 +16,14 @@ L14 фичи:
   - Эскалация с таймерами (уровни 0→1→2→3)
   - /ack сброс эскалации
   - SQLite alert_log + events
+
+L15 фичи:
+  - YAML-driven Auto-Recovery (recovery_config.yaml, 5 стратегий)
+  - Анализ причины падения (логи, метрики, история)
+  - 3-4 уровня попыток: restart → clear_cache → reload_layer → escalate
+  - Supervisor bridge (HTTP API + fallback kill+nohup)
+  - Rate limits: cooldown, max daily, slot health threshold
+  - API: /api/v1/recovery/stats, /api/v1/recovery/events, /api/v1/recovery/analysis, /api/v1/recovery/reset/{svc}
 """
 
 import asyncio
@@ -31,6 +39,7 @@ import aiohttp
 from mesh_config import config
 from health_ws import get_broadcaster
 from alert_engine import get_alert_engine
+from auto_recovery import get_auto_recovery
 
 # ─── SETUP ───
 LOG_DIR = config.get("global.log_dir", "/home/agent/data/logs")
@@ -185,6 +194,9 @@ class HealthCheckEngine:
         self._broadcaster.set_state_getter(self._get_full_state_for_ws)
         self._alert_engine = get_alert_engine()
 
+        # L15: Auto-Recovery
+        self._auto_recovery = get_auto_recovery()
+
     def _init_db(self):
         """Создаёт таблицы если не существуют."""
         self._db_conn.execute("""
@@ -302,7 +314,7 @@ class HealthCheckEngine:
         return result
 
     async def monitor_loop(self):
-        logger.info("🚀 Health Check Engine v3.4 (L14: Alert Engine + Escalation) started")
+        logger.info("🚀 Health Check Engine v3.5 (L15: Auto-Recovery + Alert Engine) started")
         await asyncio.sleep(3)
         purge_counter = 0
         while True:
@@ -321,6 +333,13 @@ class HealthCheckEngine:
 
                 # L13: Alert engine check
                 await self._alert_engine.evaluate(current_state)
+
+                # L15: Auto-Recovery — для dead сервисов (3+ consecutive fails)
+                for name, st in current_state.items():
+                    if not st.get("is_alive"):
+                        # Передаём full state для slot health check
+                        st["_all_statuses"] = current_state
+                        await self._auto_recovery.on_service_dead(name, st)
 
                 self._save_status()
 
@@ -400,7 +419,7 @@ async def start_http_server():
     async def health_ping(request):
         return web.json_response({
             "status": "ok",
-            "engine": "HealthEngine v3.4 L14",
+            "engine": "HealthEngine v3.5 L15",
             "config_driven": True,
             "monitored_services": len(SERVICES),
             "ws_enabled": True,
@@ -483,7 +502,7 @@ async def start_http_server():
             },
             "engine": {
                 "uptime": summary.get("engine_uptime_seconds", 0),
-                "version": "3.4",
+                "version": "3.5",
             },
             "degradation": summary.get("degradation_modes", {}),
             "layers": {
@@ -561,6 +580,45 @@ async def start_http_server():
     app.router.add_get("/api/v1/alerts/active", alerts_active)
     app.router.add_post("/api/v1/alerts/ack/{alert_id}", alerts_ack)
     app.router.add_post("/api/v1/alerts/reload", alerts_reload)
+
+    # ═══ L15: Auto-Recovery API ═══
+    recovery = get_auto_recovery()
+
+    async def recovery_stats(request):
+        return web.json_response({
+            "ok": True,
+            "stats": recovery.get_stats(),
+            "strategies": list(recovery.strategies.keys()),
+            "daily_count": recovery._daily_count,
+            "daily_limit": recovery.config.get("max_daily_total", 30),
+        })
+
+    async def recovery_events(request):
+        service = request.query.get("service", "")
+        limit = int(request.query.get("limit", 20))
+        events = recovery.get_recovery_events(service_name=service, limit=limit)
+        return web.json_response({"ok": True, "count": len(events), "events": events})
+
+    async def recovery_analysis(request):
+        analysis = recovery.get_analysis()
+        return web.json_response({"ok": True, "count": len(analysis), "analysis": analysis})
+
+    async def recovery_reset(request):
+        service = request.match_info.get("service", "")
+        if not service:
+            return web.json_response({"ok": False, "error": "service required"}, status=400)
+        recovery.reset_service(service)
+        return web.json_response({"ok": True, "service": service})
+
+    async def recovery_reload(request):
+        recovery.reload_config()
+        return web.json_response({"ok": True, "strategies": len(recovery.strategies)})
+
+    app.router.add_get("/api/v1/recovery/stats", recovery_stats)
+    app.router.add_get("/api/v1/recovery/events", recovery_events)
+    app.router.add_get("/api/v1/recovery/analysis", recovery_analysis)
+    app.router.add_post("/api/v1/recovery/reset/{service}", recovery_reset)
+    app.router.add_post("/api/v1/recovery/reload", recovery_reload)
 
     engine_port = config.get("orchestration.health_engine.port", 9999)
     runner = web.AppRunner(app)

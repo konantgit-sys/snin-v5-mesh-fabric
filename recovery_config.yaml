@@ -1,0 +1,88 @@
+# L15: Auto-Recovery — стратегии восстановления сервисов
+
+max_concurrent: 3           # макс параллельных восстановлений
+global_cooldown: 60         # сек между любыми recovery (rate limit)
+max_daily_total: 30         # макс recovery/день все сервисы
+slot_health_threshold: 3    # если >N сервисов dead одновременно — эскалация, не восстановление
+
+strategies:
+  default:
+    attempts:
+      - action: restart
+        args: {}
+        description: "Рестарт сервиса"
+      - action: restart_clear_cache
+        args: {}
+        description: "Рестарт + очистка кеша"
+      - action: escalate
+        args: { level: 1 }
+        description: "Эскалация оператору"
+    cooldown: 300
+    max_daily: 10
+    health_check_after: 10  # сек ждать после рестарта
+
+  nostr_bridge:
+    attempts:
+      - action: restart
+        args: {}
+        description: "Простой рестарт через supervisor"
+      - action: restart_clear_cache
+        args: { relay_flush: true }
+        description: "Рестарт с очисткой кеша релеев"
+      - action: reload_layer
+        args: {}
+        description: "Перезагрузка всего Nostr Bridge слоя"
+      - action: escalate
+        args: { level: 2 }
+        description: "Эскалация оператору"
+    cooldown: 300
+    max_daily: 10
+    health_check_after: 15
+
+  smart_router:
+    attempts:
+      - action: restart
+        args: {}
+        description: "Простой рестарт"
+      - action: restart_with_dump
+        args: { dump_path: /home/agent/data/sites/relay-mesh/logs/dumps/ }
+        description: "Рестарт с дампом состояния"
+      - action: failover_replica
+        args: {}
+        description: "Переключение на реплику Smart Router"
+      - action: escalate
+        args: { level: 2 }
+        description: "Эскалация оператору"
+    cooldown: 120
+    max_daily: 5
+    health_check_after: 10
+
+  supervisor:
+    attempts:
+      - action: restart
+        args: {}
+        description: "Рестарт supervisor'а"
+      - action: recreate
+        args: {}
+        description: "Пересоздание supervisor из шаблона"
+      - action: escalate
+        args: { level: 3 }
+        description: "Критическая эскалация — supervisor мёртв"
+    cooldown: 600
+    max_daily: 3
+    health_check_after: 20
+
+  nostr_relay:
+    attempts:
+      - action: restart
+        args: {}
+        description: "Рестарт relay"
+      - action: clear_cache
+        args: {}
+        description: "Очистка кеша relay"
+      - action: escalate
+        args: { level: 1 }
+        description: "Эскалация: relay не восстанавливается"
+    cooldown: 180
+    max_daily: 15
+    health_check_after: 15
