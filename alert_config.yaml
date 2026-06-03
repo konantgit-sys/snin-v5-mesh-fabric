@@ -1,0 +1,72 @@
+# L14: Alert Engine — правила алертов
+rules:
+  - name: "service_dead"
+    service: "*"
+    condition: "status == 'dead'"
+    duration: 60  # сек dead до срабатывания
+    channels:
+      - telegram
+    escalation:
+      - after: 300  # 5 мин → добавляем nostr
+        channels: [telegram, nostr_dm]
+      - after: 900  # 15 мин → добавляем webhook
+        channels: [telegram, nostr_dm, webhook]
+    priority: HIGH
+
+  - name: "nostr_bridge_dead"
+    service: "nostr_bridge_*"
+    condition: "status == 'dead'"
+    duration: 30
+    channels:
+      - telegram
+    escalation:
+      - after: 120
+        channels: [telegram, nostr_dm]
+      - after: 600
+        channels: [telegram, nostr_dm, webhook]
+    priority: HIGH
+
+  - name: "smart_router_dead"
+    service: "smart_router"
+    condition: "status == 'dead'"
+    duration: 10
+    channels:
+      - telegram
+      - nostr_dm
+    escalation:
+      - after: 60
+        channels: [telegram, nostr_dm, webhook]
+      - after: 300
+        channels: [telegram, nostr_dm, webhook]
+    priority: CRITICAL
+
+  - name: "critical_mass_dead"
+    service: "*"
+    condition: "metrics.dead_count >= 3"
+    duration: 0
+    channels:
+      - telegram
+      - nostr_dm
+    escalation:
+      - after: 120
+        channels: [telegram, nostr_dm, webhook]
+    priority: CRITICAL
+
+  - name: "layer_down"
+    service: "*"
+    condition: "metrics.layer_alive_pct < 50"
+    duration: 60
+    channels:
+      - telegram
+    escalation:
+      - after: 300
+        channels: [telegram, nostr_dm]
+    priority: HIGH
+
+  - name: "recovery"
+    service: "*"
+    condition: "status == 'alive'"
+    duration: 0  # мгновенно
+    channels:
+      - telegram
+    priority: INFO
