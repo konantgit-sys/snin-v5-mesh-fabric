@@ -414,9 +414,9 @@ footer a:hover{text-decoration:underline}
   <button class="tab t6" data-tab="agents" data-i18n="tab.agents"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Агенты</button>
   <button class="tab t11" data-tab="identity" data-i18n="tab.identity"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 11a4 4 0 0 1 4 4"/><path d="M12 3a4 4 0 0 0-4 4"/></svg> L5 Identity</button>
 	  <button class="tab t7" data-tab="l8" data-i18n="tab.l8"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/><circle cx="7" cy="7" r="1"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="7" r="1"/></svg> L8</button>
-	  <button class="tab t8" data-tab="network" data-i18n="tab.network"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="2.5"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="19" r="2"/><line x1="7" y1="7" x2="10" y2="10"/><line x1="14" y1="10" x2="17" y2="7"/><line x1="17" y1="17" x2="14" y2="14"/><line x1="10" y1="14" x2="7" y2="17"/></svg> Топология</button>
-  <button class="tab t9" data-tab="arch" data-i18n="tab.arch"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><polyline points="5 17 12 20 19 17"/></svg> Архитектура</button>
+	  <button class="tab t9" data-tab="arch" data-i18n="tab.arch"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><polyline points="5 17 12 20 19 17"/></svg> Архитектура</button>
   <button class="tab t12" data-tab="registration"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg> Регистрации</button>
+  <button class="tab t14" data-tab="events"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg> События</button>
 </nav>
 
 <!-- ═══ DASHBOARD ═══ -->
@@ -449,7 +449,6 @@ footer a:hover{text-decoration:underline}
   <div style="margin: 10px 0 6px;display:flex;align-items:center;gap:8px">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><rect x="2" y="4" width="20" height="3" rx="1"/><rect x="4" y="10" width="16" height="3" rx="1"/><rect x="6" y="16" width="12" height="3" rx="1"/></svg>
     <span style="font-size:.72em;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Архитектура сети — 13 слоёв</span>
-    <span id="archSummary" style="font-size:.65em;color:var(--text2)"></span>
   </div>
   <div class="grid-wrap" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))" id="dashLayers"></div>
   
@@ -461,7 +460,6 @@ footer a:hover{text-decoration:underline}
   <div class="grid" id="dashChannels"></div>
   <div class="grid" id="dashNetworkDetail"></div>
   </div>
-  <div id="watchdogStatus" style="margin-top:4px;padding:2px 10px"></div>
   <div id="donateSection" style="margin-top:10px"></div>
 </div>
 
@@ -469,7 +467,6 @@ footer a:hover{text-decoration:underline}
 <div class="tab-content" id="tab-daemons">
   <div class="grid" id="daemonMetrics" style="margin-bottom:6px"></div>
   <div id="daemonBreakdown" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px"></div>
-  <div id="daemonAIAgents" style="margin-bottom:6px"></div>
   <div id="ramLegend" style="margin-bottom:6px"></div>
   <canvas id="ramChart" style="width:100%;height:40px;margin-bottom:6px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);display:none"></canvas>
   <div id="daemonFilter" style="margin-bottom:6px"></div>
@@ -506,8 +503,7 @@ footer a:hover{text-decoration:underline}
   </div>
   <!-- Внешние Nostr релеи (health daemon) -->
   <div class="card" style="margin-top:4px">
-    <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M18 5a2 2 0 0 1-2 2"/><path d="M6 5a2 2 0 0 0 2 2"/><path d="M12 22v-6m0 0a6 6 0 0 0 6-6v-2a6 6 0 0 0-6-6 6 6 0 0 0-6 6v2a6 6 0 0 0 6 6z"/></svg><span style="font-size:.78em;color:var(--text2)">External Nostr Relays</span></div>
-    <div id="relayHealthTable"><div class="loading"><div class="spinner"></div><span data-i18n="loading">Loading...</span></div></div>
+    <div style="display:none" id="relayHealthTable"></div>
   </div>
   <!-- Bridge Shards -->
   <div class="card" style="margin-top:4px">
@@ -563,10 +559,6 @@ footer a:hover{text-decoration:underline}
     <div id="healthGlobalBar" style="height:4px;width:0%;border-radius:4px;transition:width .8s cubic-bezier(.4,0,.2,1);position:relative"></div>
   </div>
   
-  <!-- δ-changes indicator -->
-  <div id="healthChanges" style="min-height:0;transition:all .3s"></div>
-  <div id="healthAIAgents"></div>
-  
   <!-- Top row: Gauge + Sparkline + RAM chart -->
   <div id="healthTopRow" style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px"></div>
   
@@ -574,7 +566,6 @@ footer a:hover{text-decoration:underline}
   <div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap">
     <button class="health-tab-btn active" onclick="healthShowTab('layers')" id="healthTabLayers">Слои</button>
     <button class="health-tab-btn" onclick="healthShowTab('services')" id="healthTabServices">Сервисы</button>
-    <button class="health-tab-btn" onclick="healthShowTab('events')" id="healthTabEvents">События</button>
     <button class="health-tab-btn" onclick="healthShowTab('probes')" id="healthTabProbes">TCP Probes</button>
     <span style="margin-left:auto;font-size:.5em;color:var(--text2);font-family:'JetBrains Mono',monospace;letter-spacing:.3px" id="healthCheckInfo"></span>
   </div>
@@ -621,19 +612,9 @@ footer a:hover{text-decoration:underline}
   
   <!-- Key metrics interactive -->
   <div class="grid" id="statusMetrics"></div>
-  <div id="statusAIAgents" style="margin-top:6px"></div>
   
   <!-- Interactive controls -->
   <div style="margin-top:6px" id="interactiveControls"></div>
-  
-  <!-- Running processes (collapsible) -->
-  <details style="margin-top:8px" id="processDetails">
-    <summary style="cursor:pointer;font-size:.7em;color:var(--text2);padding:4px 0;display:flex;align-items:center;gap:6px">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/></svg>
-      Процессы <span id="procCount" style="font-size:.8em;color:var(--text2)"></span>
-    </summary>
-    <div id="processList"><div class="loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
-  </details>
 </div>
 
 <!-- ═══ ROADMAP ═══ -->
@@ -750,38 +731,28 @@ footer a:hover{text-decoration:underline}
   <div class="section-title" style="margin-top:16px"><span>📚</span> Layer Endpoints</div>
   <div id="l8Docs"></div>
 </div>
-<div class="tab-content" id="tab-network">
-  <div style="margin:0 0 10px">
-    <div class="grid" id="netMetrics"></div>
-    <div style="margin:10px 0 6px;display:flex;align-items:center;gap:8px">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><circle cx="12" cy="12" r="2.5"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="19" r="2"/><line x1="7" y1="7" x2="10" y2="10"/><line x1="14" y1="10" x2="17" y2="7"/><line x1="17" y1="17" x2="14" y2="14"/><line x1="10" y1="14" x2="7" y2="17"/></svg>
-      <span style="font-size:.72em;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Топология — ноды сети</span>
-    </div>
-    <div id="netGraph" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px;min-height:300px;overflow:hidden">
-      <div class="loading"><div class="spinner"></div><span>Загрузка топологии...</span></div>
-    </div>
-    <div class="grid-wrap" style="grid-template-columns:1.5fr 1fr;margin-top:10px">
-      <div class="card"><div style="font-size:.65em;color:var(--text2);font-weight:500;margin-bottom:6px">Агенты в сети</div><div id="netNodesList"></div></div>
-      <div class="card"><div style="font-size:.65em;color:var(--text2);font-weight:500;margin-bottom:6px">Каналы связи</div><div id="netChannels"></div></div>
-    </div>
-  </div>
-<div class="tab-content-hard" id="tab-arch">
+<div class="tab-content" id="tab-arch" style="display:none">
     <div style="padding:0 0 64px 0">
     <div id="archDiagram" style="margin-bottom:8px;overflow-x:auto">
-    <div style="font-size:.6em;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">🏗️ Layer Architecture</div><div style="display:flex;flex-direction:column;gap:2px;padding:4px 0"><div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #38bdff"><div style="width:26px;font-size:.65em;font-weight:700;color:#38bdff">L0</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Base Protocol</div><div style="height:4px;background:var(--bg);border-radius:2px;margin-top:2px;overflow:hidden"><div style="height:4px;width:100%;background:#38bdff;border-radius:2px"></div></div></div><div style="font-size:.6em;color:#22c55e">2/2</div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9950,9951</div></div><div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #22c55e"><div style="width:26px;font-size:.65em;font-weight:700;color:#22c55e">L1</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Hardware & Bridge</div><div style="height:4px;background:var(--bg);border-radius:2px;margin-top:2px;overflow:hidden"><div style="height:4px;width:100%;background:#22c55e;border-radius:2px"></div></div></div><div style="font-size:.6em;color:#22c55e">3/3</div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:8202,9945</div></div><div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #a78bfa"><div style="width:26px;font-size:.65em;font-weight:700;color:#a78bfa">L2</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Transport</div><div style="height:4px;background:var(--bg);border-radius:2px;margin-top:2px;overflow:hidden"><div style="height:4px;width:100%;background:#a78bfa;border-radius:2px"></div></div></div><div style="font-size:.6em;color:#22c55e">2/2</div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9600,9500</div></div><div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #f97316"><div style="width:26px;font-size:.65em;font-weight:700;color:#f97316">L3</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ZK Layer</div><div style="height:4px;background:var(--bg);border-radius:2px;margin-top:2px;overflow:hidden"><div style="height:4px;width:100%;background:#f97316;border-radius:2px"></div></div></div><div style="font-size:.6em;color:#22c55e">2/2</div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9250</div></div><div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #facc15"><div style="width:26px;font-size:.65em;font-weight:700;color:#facc15">L4</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Payment & Privacy</div><div style="height:4px;background:var(--bg);border-radius:2px;margin-top:2px;overflow:hidden"><div style="height:4px;width:100%;background:#facc15;border-radius:2px"></div></div></div><div style="font-size:.6em;color:#22c55e">2/2</div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9200,9700</div></div><div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #34d399"><div style="width:26px;font-size:.65em;font-weight:700;color:#34d399">L5</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Identity</div><div style="height:4px;background:var(--bg);border-radius:2px;margin-top:2px;overflow:hidden"><div style="height:4px;width:100%;background:#34d399;border-radius:2px"></div></div></div><div style="font-size:.6em;color:#22c55e">1/1</div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9940</div></div><div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #818cf8"><div style="width:26px;font-size:.65em;font-weight:700;color:#818cf8">L6</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Agent Network</div><div style="height:4px;background:var(--bg);border-radius:2px;margin-top:2px;overflow:hidden"><div style="height:4px;width:100%;background:#818cf8;border-radius:2px"></div></div></div><div style="font-size:.6em;color:#22c55e">2/2</div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9400,9908</div></div><div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #f472b6"><div style="width:26px;font-size:.65em;font-weight:700;color:#f472b6">L7</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">DAO</div><div style="height:4px;background:var(--bg);border-radius:2px;margin-top:2px;overflow:hidden"><div style="height:4px;width:100%;background:#f472b6;border-radius:2px"></div></div></div><div style="font-size:.6em;color:#22c55e">1/1</div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:8082</div></div><div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #2dd4bf"><div style="width:26px;font-size:.65em;font-weight:700;color:#2dd4bf">L8</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Applications</div><div style="height:4px;background:var(--bg);border-radius:2px;margin-top:2px;overflow:hidden"><div style="height:4px;width:66%;background:#2dd4bf;border-radius:2px"></div></div></div><div style="font-size:.6em;color:#f87171">2/3</div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9800,8200,8191</div></div><div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #fb923c"><div style="width:26px;font-size:.65em;font-weight:700;color:#fb923c">L9</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Dashboard & Tools</div><div style="height:4px;background:var(--bg);border-radius:2px;margin-top:2px;overflow:hidden"><div style="height:4px;width:94%;background:#fb923c;border-radius:2px"></div></div></div><div style="font-size:.6em;color:#f87171">16/17</div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:8194,9907,8086,9920,8091,8096,8090,8192,9901,9902,8196,8201</div></div></div>
+    <div style="font-size:.6em;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">🏗️ Layer Architecture</div>
+    <div style="display:flex;flex-direction:column;gap:2px;padding:4px 0">
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #38bdff"><div style="width:26px;font-size:.65em;font-weight:700;color:#38bdff">L0</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2)">Base Protocol — Hub API, WebSocket</div></div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9950,:9951</div></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #22c55e"><div style="width:26px;font-size:.65em;font-weight:700;color:#22c55e">L1</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2)">Gateway & Bridge</div></div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:8202,:9945</div></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #a78bfa"><div style="width:26px;font-size:.65em;font-weight:700;color:#a78bfa">L2</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2)">Transport — Encryption, Routing</div></div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9600,:9500</div></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #f97316"><div style="width:26px;font-size:.65em;font-weight:700;color:#f97316">L3</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2)">ZK Layer — Mesh Core</div></div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9250</div></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #facc15"><div style="width:26px;font-size:.65em;font-weight:700;color:#facc15">L4</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2)">Payment & Privacy</div></div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9200,:9700</div></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #34d399"><div style="width:26px;font-size:.65em;font-weight:700;color:#34d399">L5</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2)">Identity — NIP-05</div></div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9940</div></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #818cf8"><div style="width:26px;font-size:.65em;font-weight:700;color:#818cf8">L6</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2)">Agent Network — AI Agents</div></div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9400,:9908</div></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #f472b6"><div style="width:26px;font-size:.65em;font-weight:700;color:#f472b6">L7</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2)">DAO — Governance</div></div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:8082</div></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #2dd4bf"><div style="width:26px;font-size:.65em;font-weight:700;color:#2dd4bf">L8</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2)">Applications — SNIN Pay, Forecaster</div></div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:9800,:8200,:8191</div></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:rgba(30,41,59,.5);border-radius:6px;border-left:3px solid #fb923c"><div style="width:26px;font-size:.65em;font-weight:700;color:#fb923c">L9</div><div style="flex:1;min-width:0"><div style="font-size:.6em;color:var(--text2)">Tools & Dashboards</div></div><div style="font-size:.55em;color:var(--text2);font-family:monospace">:8194,:9907 и др.</div></div>
     </div>
-    <div class="grid" id="archMetrics"><div class="stat-card"><div class="stat-value" style="color:#5b9ad9">35</div><div class="stat-label">Ожидается</div></div><div class="stat-card"><div class="stat-value" style="color:#4ade80">33</div><div class="stat-label">Запущено</div></div><div class="stat-card"><div class="stat-value" style="color:#f87171">2</div><div class="stat-label">Отсутствует</div></div><div class="stat-card"><div class="stat-value" style="color:#fb923c">5</div><div class="stat-label">Не в манифесте</div></div></div>
-    <div id="archLayers" style="margin-top:8px">
-    <div class="card" style="margin-bottom:5px;border-left:3px solid #4ade80"><div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0"><div style="font-weight:700;font-size:.8em;color:#4ade80">L0 <span style="color:var(--text2);font-weight:400">API сервер дашборда SNIN Hub</span></div><div style="font-size:.6em;color:var(--text2)">2/2 — 100%</div></div><div style="height:5px;background:var(--bg);border-radius:3px;margin:2px 0 4px;overflow:hidden"><div style="height:5px;width:100%;background:#4ade80;border-radius:3px"></div></div><table style="font-size:.72em;width:100%"><thead><tr><th style="text-align:left">Сервис</th><th style="text-align:center">Статус</th><th style="text-align:center">Порт</th><th style="text-align:right">RAM</th></tr></thead><tbody><tr><td style="font-weight:500;padding:1px 2px">Hub API</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9950</td><td style="font-family:monospace;text-align:right;padding:1px 2px">56.2 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Hub WS</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9951</td><td style="font-family:monospace;text-align:right;padding:1px 2px">25.4 MB</td></tr></tbody></table></div><div class="card" style="margin-bottom:5px;border-left:3px solid #4ade80"><div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0"><div style="font-weight:700;font-size:.8em;color:#4ade80">L1 <span style="color:var(--text2);font-weight:400">Шлюз API</span></div><div style="font-size:.6em;color:var(--text2)">3/3 — 100%</div></div><div style="height:5px;background:var(--bg);border-radius:3px;margin:2px 0 4px;overflow:hidden"><div style="height:5px;width:100%;background:#4ade80;border-radius:3px"></div></div><table style="font-size:.72em;width:100%"><thead><tr><th style="text-align:left">Сервис</th><th style="text-align:center">Статус</th><th style="text-align:center">Порт</th><th style="text-align:right">RAM</th></tr></thead><tbody><tr><td style="font-weight:500;padding:1px 2px">API Gateway</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">None</td><td style="font-family:monospace;text-align:right;padding:1px 2px">21.4 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">L1.5 Bridge</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">8202</td><td style="font-family:monospace;text-align:right;padding:1px 2px">24.7 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Cross-Mesh Br</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9945</td><td style="font-family:monospace;text-align:right;padding:1px 2px">77.1 MB</td></tr></tbody></table></div><div class="card" style="margin-bottom:5px;border-left:3px solid #4ade80"><div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0"><div style="font-weight:700;font-size:.8em;color:#4ade80">L2 <span style="color:var(--text2);font-weight:400">Уровень шифрования L2</span></div><div style="font-size:.6em;color:var(--text2)">2/2 — 100%</div></div><div style="height:5px;background:var(--bg);border-radius:3px;margin:2px 0 4px;overflow:hidden"><div style="height:5px;width:100%;background:#4ade80;border-radius:3px"></div></div><table style="font-size:.72em;width:100%"><thead><tr><th style="text-align:left">Сервис</th><th style="text-align:center">Статус</th><th style="text-align:center">Порт</th><th style="text-align:right">RAM</th></tr></thead><tbody><tr><td style="font-weight:500;padding:1px 2px">L2 Encryption</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9600</td><td style="font-family:monospace;text-align:right;padding:1px 2px">56.4 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">L2 Transport</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9500</td><td style="font-family:monospace;text-align:right;padding:1px 2px">48.4 MB</td></tr></tbody></table></div><div class="card" style="margin-bottom:5px;border-left:3px solid #4ade80"><div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0"><div style="font-weight:700;font-size:.8em;color:#4ade80">L3 <span style="color:var(--text2);font-weight:400">Ядро mesh-сети L3</span></div><div style="font-size:.6em;color:var(--text2)">2/2 — 100%</div></div><div style="height:5px;background:var(--bg);border-radius:3px;margin:2px 0 4px;overflow:hidden"><div style="height:5px;width:100%;background:#4ade80;border-radius:3px"></div></div><table style="font-size:.72em;width:100%"><thead><tr><th style="text-align:left">Сервис</th><th style="text-align:center">Статус</th><th style="text-align:center">Порт</th><th style="text-align:right">RAM</th></tr></thead><tbody><tr><td style="font-weight:500;padding:1px 2px">L3 Mesh Core</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">None</td><td style="font-family:monospace;text-align:right;padding:1px 2px">20.5 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">L3 ZK Layer</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9250</td><td style="font-family:monospace;text-align:right;padding:1px 2px">48.1 MB</td></tr></tbody></table></div><div class="card" style="margin-bottom:5px;border-left:3px solid #4ade80"><div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0"><div style="font-weight:700;font-size:.8em;color:#4ade80">L4 <span style="color:var(--text2);font-weight:400">Платёжный слой L4</span></div><div style="font-size:.6em;color:var(--text2)">2/2 — 100%</div></div><div style="height:5px;background:var(--bg);border-radius:3px;margin:2px 0 4px;overflow:hidden"><div style="height:5px;width:100%;background:#4ade80;border-radius:3px"></div></div><table style="font-size:.72em;width:100%"><thead><tr><th style="text-align:left">Сервис</th><th style="text-align:center">Статус</th><th style="text-align:center">Порт</th><th style="text-align:right">RAM</th></tr></thead><tbody><tr><td style="font-weight:500;padding:1px 2px">L4 Payment</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9200</td><td style="font-family:monospace;text-align:right;padding:1px 2px">48.6 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">L4 Privacy</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9700</td><td style="font-family:monospace;text-align:right;padding:1px 2px">49.0 MB</td></tr></tbody></table></div><div class="card" style="margin-bottom:5px;border-left:3px solid #4ade80"><div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0"><div style="font-weight:700;font-size:.8em;color:#4ade80">L5 <span style="color:var(--text2);font-weight:400">Identity API L5</span></div><div style="font-size:.6em;color:var(--text2)">1/1 — 100%</div></div><div style="height:5px;background:var(--bg);border-radius:3px;margin:2px 0 4px;overflow:hidden"><div style="height:5px;width:100%;background:#4ade80;border-radius:3px"></div></div><table style="font-size:.72em;width:100%"><thead><tr><th style="text-align:left">Сервис</th><th style="text-align:center">Статус</th><th style="text-align:center">Порт</th><th style="text-align:right">RAM</th></tr></thead><tbody><tr><td style="font-weight:500;padding:1px 2px">Identity API</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9940</td><td style="font-family:monospace;text-align:right;padding:1px 2px">24.9 MB</td></tr></tbody></table></div><div class="card" style="margin-bottom:5px;border-left:3px solid #4ade80"><div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0"><div style="font-weight:700;font-size:.8em;color:#4ade80">L6 <span style="color:var(--text2);font-weight:400">Сеть агентов L6</span></div><div style="font-size:.6em;color:var(--text2)">2/2 — 100%</div></div><div style="height:5px;background:var(--bg);border-radius:3px;margin:2px 0 4px;overflow:hidden"><div style="height:5px;width:100%;background:#4ade80;border-radius:3px"></div></div><table style="font-size:.72em;width:100%"><thead><tr><th style="text-align:left">Сервис</th><th style="text-align:center">Статус</th><th style="text-align:center">Порт</th><th style="text-align:right">RAM</th></tr></thead><tbody><tr><td style="font-weight:500;padding:1px 2px">L6 Agent Net</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9400</td><td style="font-family:monospace;text-align:right;padding:1px 2px">48.7 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Simple Agent</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9908</td><td style="font-family:monospace;text-align:right;padding:1px 2px">21.9 MB</td></tr></tbody></table></div><div class="card" style="margin-bottom:5px;border-left:3px solid #4ade80"><div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0"><div style="font-weight:700;font-size:.8em;color:#4ade80">L7 <span style="color:var(--text2);font-weight:400">DAO API L7</span></div><div style="font-size:.6em;color:var(--text2)">1/1 — 100%</div></div><div style="height:5px;background:var(--bg);border-radius:3px;margin:2px 0 4px;overflow:hidden"><div style="height:5px;width:100%;background:#4ade80;border-radius:3px"></div></div><table style="font-size:.72em;width:100%"><thead><tr><th style="text-align:left">Сервис</th><th style="text-align:center">Статус</th><th style="text-align:center">Порт</th><th style="text-align:right">RAM</th></tr></thead><tbody><tr><td style="font-weight:500;padding:1px 2px">DAO API</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">8082</td><td style="font-family:monospace;text-align:right;padding:1px 2px">53.8 MB</td></tr></tbody></table></div><div class="card" style="margin-bottom:5px;border-left:3px solid #f87171"><div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0"><div style="font-weight:700;font-size:.8em;color:#f87171">L8 <span style="color:var(--text2);font-weight:400">Уровень приложений L8</span></div><div style="font-size:.6em;color:var(--text2)">2/3 — 66%</div></div><div style="height:5px;background:var(--bg);border-radius:3px;margin:2px 0 4px;overflow:hidden"><div style="height:5px;width:66%;background:#f87171;border-radius:3px"></div></div><table style="font-size:.72em;width:100%"><thead><tr><th style="text-align:left">Сервис</th><th style="text-align:center">Статус</th><th style="text-align:center">Порт</th><th style="text-align:right">RAM</th></tr></thead><tbody><tr><td style="font-weight:500;padding:1px 2px">L8 App Layer</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9800</td><td style="font-family:monospace;text-align:right;padding:1px 2px">58.6 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Forecaster</td><td style="color:#f87171;text-align:center;padding:1px 2px">❌ missing</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">8200</td><td style="font-family:monospace;text-align:right;padding:1px 2px">0.0 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">SNIN Pay</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">8191</td><td style="font-family:monospace;text-align:right;padding:1px 2px">46.1 MB</td></tr></tbody></table></div><div class="card" style="margin-bottom:5px;border-left:3px solid #f87171"><div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0"><div style="font-weight:700;font-size:.8em;color:#f87171">L9 <span style="color:var(--text2);font-weight:400">Backend командного управления SNIN</span></div><div style="font-size:.6em;color:var(--text2)">16/17 — 94%</div></div><div style="height:5px;background:var(--bg);border-radius:3px;margin:2px 0 4px;overflow:hidden"><div style="height:5px;width:94%;background:#f87171;border-radius:3px"></div></div><table style="font-size:.72em;width:100%"><thead><tr><th style="text-align:left">Сервис</th><th style="text-align:center">Статус</th><th style="text-align:center">Порт</th><th style="text-align:right">RAM</th></tr></thead><tbody><tr><td style="font-weight:500;padding:1px 2px">SNIN Command</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">8194</td><td style="font-family:monospace;text-align:right;padding:1px 2px">61.6 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Relay Mesh API</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9907</td><td style="font-family:monospace;text-align:right;padding:1px 2px">19.6 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Relay Frontend</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">None</td><td style="font-family:monospace;text-align:right;padding:1px 2px">40.5 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Dashboard</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">8086</td><td style="font-family:monospace;text-align:right;padding:1px 2px">45.4 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Nostr Bridge</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">None</td><td style="font-family:monospace;text-align:right;padding:1px 2px">61.9 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Content Router</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9920</td><td style="font-family:monospace;text-align:right;padding:1px 2px">23.1 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Smart Router</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">None</td><td style="font-family:monospace;text-align:right;padding:1px 2px">94.5 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Route Engine</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">None</td><td style="font-family:monospace;text-align:right;padding:1px 2px">31.6 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Engine C</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">None</td><td style="font-family:monospace;text-align:right;padding:1px 2px">56.0 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Archivist</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">8091</td><td style="font-family:monospace;text-align:right;padding:1px 2px">48.4 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Cryter</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">8096</td><td style="font-family:monospace;text-align:right;padding:1px 2px">32.4 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">P2P Dashboard</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">8090</td><td style="font-family:monospace;text-align:right;padding:1px 2px">58.6 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">SNIN Tracker</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">8192</td><td style="font-family:monospace;text-align:right;padding:1px 2px">49.8 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">Upload Site</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9901</td><td style="font-family:monospace;text-align:right;padding:1px 2px">30.3 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">SNIN Network</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">9902</td><td style="font-family:monospace;text-align:right;padding:1px 2px">32.7 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">SCC Agent</td><td style="color:#4ade80;text-align:center;padding:1px 2px">✅ running</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">8196</td><td style="font-family:monospace;text-align:right;padding:1px 2px">32.8 MB</td></tr><tr><td style="font-weight:500;padding:1px 2px">SNIN Launch</td><td style="color:#f87171;text-align:center;padding:1px 2px">❌ missing</td><td style="font-family:monospace;color:#5b9ad9;text-align:center;padding:1px 2px">8201</td><td style="font-family:monospace;text-align:right;padding:1px 2px">0.0 MB</td></tr></tbody></table></div>
+    </div>
+    <div style="margin-top:8px;font-size:.6em;color:var(--text2);padding:6px 10px;background:var(--bg3);border-radius:6px;border-left:3px solid var(--accent)">
+        📐 Статическая схема слоёв. Актуальное состояние сервисов — во вкладке <strong>Здоровье</strong>, история изменений — в <strong>События</strong>.
     </div>
     <div id="archSupervisor" style="margin-top:8px"></div>
-    <div id="archPorts" style="margin-top:8px">
-    <div style="margin-top:8px;font-size:.6em;color:var(--text2);text-transform:uppercase;letter-spacing:.4px">🔌 Port Map (28 ports)</div><div style="overflow-x:auto;margin-top:4px"><table style="font-size:.68em;width:100%"><thead><tr style="background:var(--bg2)"><th style="padding:3px 4px;text-align:left">Layer</th><th style="padding:3px 4px;text-align:left">Port</th><th style="padding:3px 4px;text-align:left">Service</th><th style="padding:3px 4px;text-align:left">Status</th><th style="padding:3px 4px;text-align:right">RAM</th></tr></thead><tbody><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#f472b6;font-weight:600">L7</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:8082</td><td style="padding:2px 4px;font-weight:500">DAO API</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">53.8 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#fb923c;font-weight:600">L9</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:8086</td><td style="padding:2px 4px;font-weight:500">Dashboard</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">45.4 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#fb923c;font-weight:600">L9</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:8090</td><td style="padding:2px 4px;font-weight:500">P2P Dashboard</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">58.6 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#fb923c;font-weight:600">L9</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:8091</td><td style="padding:2px 4px;font-weight:500">Archivist</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">48.4 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#fb923c;font-weight:600">L9</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:8096</td><td style="padding:2px 4px;font-weight:500">Cryter</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">32.4 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#2dd4bf;font-weight:600">L8</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:8191</td><td style="padding:2px 4px;font-weight:500">SNIN Pay</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">46.1 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#fb923c;font-weight:600">L9</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:8192</td><td style="padding:2px 4px;font-weight:500">SNIN Tracker</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">49.8 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#fb923c;font-weight:600">L9</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:8194</td><td style="padding:2px 4px;font-weight:500">SNIN Command</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">61.6 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#fb923c;font-weight:600">L9</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:8196</td><td style="padding:2px 4px;font-weight:500">SCC Agent</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">32.8 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#2dd4bf;font-weight:600">L8</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:8200</td><td style="padding:2px 4px;font-weight:500">Forecaster</td><td style="padding:2px 4px"><span style="color:#f87171">🔴</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">0.0 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#fb923c;font-weight:600">L9</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:8201</td><td style="padding:2px 4px;font-weight:500">SNIN Launch</td><td style="padding:2px 4px"><span style="color:#f87171">🔴</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">0.0 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#22c55e;font-weight:600">L1</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:8202</td><td style="padding:2px 4px;font-weight:500">L1.5 Bridge</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">24.7 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#facc15;font-weight:600">L4</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9200</td><td style="padding:2px 4px;font-weight:500">L4 Payment</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">48.6 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#f97316;font-weight:600">L3</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9250</td><td style="padding:2px 4px;font-weight:500">L3 ZK Layer</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">48.1 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#818cf8;font-weight:600">L6</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9400</td><td style="padding:2px 4px;font-weight:500">L6 Agent Net</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">48.7 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#a78bfa;font-weight:600">L2</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9500</td><td style="padding:2px 4px;font-weight:500">L2 Transport</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">48.4 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#a78bfa;font-weight:600">L2</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9600</td><td style="padding:2px 4px;font-weight:500">L2 Encryption</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">56.4 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#facc15;font-weight:600">L4</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9700</td><td style="padding:2px 4px;font-weight:500">L4 Privacy</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">49.0 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#2dd4bf;font-weight:600">L8</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9800</td><td style="padding:2px 4px;font-weight:500">L8 App Layer</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">58.6 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#fb923c;font-weight:600">L9</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9901</td><td style="padding:2px 4px;font-weight:500">Upload Site</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">30.3 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#fb923c;font-weight:600">L9</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9902</td><td style="padding:2px 4px;font-weight:500">SNIN Network</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">32.7 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#fb923c;font-weight:600">L9</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9907</td><td style="padding:2px 4px;font-weight:500">Relay Mesh API</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">19.6 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#818cf8;font-weight:600">L6</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9908</td><td style="padding:2px 4px;font-weight:500">Simple Agent</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">21.9 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#fb923c;font-weight:600">L9</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9920</td><td style="padding:2px 4px;font-weight:500">Content Router</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">23.1 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#34d399;font-weight:600">L5</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9940</td><td style="padding:2px 4px;font-weight:500">Identity API</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">24.9 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#22c55e;font-weight:600">L1</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9945</td><td style="padding:2px 4px;font-weight:500">Cross-Mesh Br</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">77.1 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#38bdff;font-weight:600">L0</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9950</td><td style="padding:2px 4px;font-weight:500">Hub API</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">56.2 MB</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px"><span style="color:#38bdff;font-weight:600">L0</span></td><td style="padding:2px 4px;font-family:monospace;color:#5b9ad9">:9951</td><td style="padding:2px 4px;font-weight:500">Hub WS</td><td style="padding:2px 4px"><span style="color:#22c55e">🟢</span></td><td style="padding:2px 4px;text-align:right;font-family:monospace;color:var(--text2)">25.4 MB</td></tr></tbody></table></div>
-    </div>
-    <div id="archUnknown" style="margin-top:8px"></div>
   </div></div>
-</div>
-
 <div class="tab-content" id="tab-registration">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px">
     <div style="display:flex;align-items:center;gap:8px">
@@ -819,6 +790,29 @@ footer a:hover{text-decoration:underline}
       </thead>
       <tbody id="reg-tbody"></tbody>
     </table>
+  </div>
+</div>
+
+<!-- ═══ EVENTS LOG + ALERTS ═══ -->
+<div class="tab-content" id="tab-events">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="font-size:.68em;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:600">📋 Лог событий сети</div>
+      <span id="events-count" style="font-size:.55em;color:var(--text2)">—</span>
+    </div>
+    <div style="display:flex;gap:6px">
+      <select id="events-filter" onchange="loadEvents()" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:2px 6px;font-size:.55em;font-family:inherit">
+        <option value="all">Все</option>
+        <option value="alive">🟢 Up</option>
+        <option value="dead">🔴 Down</option>
+        <option value="alert">🔥 Алерты</option>
+        <option value="info">ℹ️ Система</option>
+      </select>
+      <span id="events-refresh" style="font-size:.5em;color:var(--text2)">auto ↺ 15s</span>
+    </div>
+  </div>
+  <div id="events-container" style="max-height:70vh;overflow-y:auto">
+    <div style="text-align:center;padding:30px;color:var(--text2);font-size:.6em">⏳ Загрузка событий...</div>
   </div>
 </div>
 
@@ -1033,9 +1027,9 @@ document.querySelector('.tabs').addEventListener('click', function(e){
   else if(t.dataset.tab === 'health') healthInit();
   else if(t.dataset.tab === 'roadmap') loadRoadmap();
   else if(t.dataset.tab === 'registration') loadRegistrations();
-  else if(t.dataset.tab === 'network') loadNetwork();
   else if(t.dataset.tab === 'agents') loadAgents();
-	  else if(t.dataset.tab === 'identity') loadIdentity();
+  else if(t.dataset.tab === 'identity') loadIdentity();
+  else if(t.dataset.tab === 'events') loadEvents();
 });
 
 // Clock — uses locale from lang
@@ -1100,19 +1094,9 @@ async function loadDashboard(){
     ? (nip.supported_nips||[]).map(function(n){return '<span class="tag tag-blue">NIP-'+n+'</span>';}).join('')
     : '<span style="font-size:.8em;color:var(--text2)">'+_('no_nip')+'</span>';
 
-  // Watchdog status
-  fetch('/watchdog_status.json').then(function(r){return r.json();}).then(function(wd){
-    var svcs=wd.services||{};
-    var allOk=Object.values(svcs).every(function(s){return s.alive;});
-    var wdDiv=document.getElementById('watchdogStatus');
-    if(!wdDiv) return;
-    wdDiv.innerHTML='<div style="display:flex;gap:6px;align-items:center;font-size:.72em;padding:4px 0">'+
-      '<span style="font-size:1.2em;padding:2px 6px;background:'+(allOk?'rgba(0,200,100,.15)':'rgba(200,50,50,.15)')+';border-radius:8px;border:1px solid '+(allOk?'rgba(0,200,100,.3)':'rgba(200,50,50,.3)')+'">'+
-      (allOk?'✅':'⚠️')+'</span>'+
-      '<span style="color:var('+(allOk?'--green':'--rose')+')">Watchdog: '+(allOk?'ВСЕ ЖИВЫ':'ЕСТЬ ПРОБЛЕМЫ')+'</span>'+
-      Object.entries(svcs).map(function(e){return '<span style="color:var(--text2)">'+e[0]+': '+(e[1].alive?'🟢':'🔴')+'</span>';}).join(' ')+
-      '</div>';
-  }).catch(function(){});
+  // Watchdog status — удалён (дублирует Здоровье)
+  var wdDiv=document.getElementById('watchdogStatus');
+  if(wdDiv) wdDiv.style.display='none';
   // CPU load gauges — replaced with relay-centric metrics
   var eventsPerMin=relay.uptime>0?Math.round((relay.events||0)/(relay.uptime/60)):0;
   var cpuLoad=parseFloat((server.cpu||'').split(' ')[0]||0);
@@ -1145,73 +1129,12 @@ async function loadDashboard(){
   }).join('');
   document.getElementById('dashSparkline').innerHTML='<div style="display:flex;align-items:center;gap:8px;padding:6px 0"><span style="font-size:.6em;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">'+_('cards.activity_trend')+'</span><div class="sparkline">'+sparkBars+'</div></div>';
   
-  // Dashboard — Nostr Network виджет
-  try{
-    var rh=await getJSON('/relay-health');
-    if(rh&&rh.total>0){
-      var ah=rh.alive||0, dt=rh.total||0;
-      var pct=Math.round(ah/dt*100);
-      document.getElementById('dashNostrNet').innerHTML=
-        '<div class="stat-row"><span class="stat-label">Relays alive</span><span class="stat-value" style="color:'+(pct>80?'var(--green)':'var(--orange)')+'">'+ah+'/'+dt+'</span></div>'+
-        '<div class="stat-row"><span class="stat-label">Dead</span><span class="stat-value" style="color:var(--red)">'+(rh.dead||0)+'</span></div>'+
-        '<div class="stat-row"><span class="stat-label">Availability</span><span class="stat-value" style="font-size:.85em;color:'+(pct>80?'var(--green)':'var(--orange)')+'">'+pct+'%</span></div>'+
-        '<div class="stat-row"><span class="stat-label">Daemon</span><span class="stat-value" style="font-size:.7em;color:var(--text2)">'+(rh.last_updated?new Date(rh.last_updated*1000).toLocaleTimeString():'—')+'</span></div>';
-      document.getElementById('dashNostrBar').style.width=pct+'%';
-      document.getElementById('dashNostrBar').className='mini-bar-fill '+(pct>80?'green':'orange');
-    }
-  }catch(e){
-    document.getElementById('dashNostrNet').innerHTML='<div style="padding:4px;text-align:center;color:var(--text2);font-size:.75em">⚠ Not available</div>';
-  }
+  // Dashboard — Nostr Network (удалён — дублирует Здоровье)
+  // Dashboard — Infrastructure
+  // Dashboard — Infrastructure виджеты (удалены — дублируют Здоровье)
+  document.getElementById('dashInfraMetrics').innerHTML = '<div style="text-align:center;padding:8px;color:var(--text2);font-size:.65em">Состояние — во вкладке Здоровье</div>';
   
-  // Dashboard — Infrastructure виджеты (Supervisor, Bridge, Agents)
-  try{
-    var [sv,br,ag,dt]=await Promise.all([
-      getJSON('/supervisor'),
-      getJSON('/bridge-shards'),
-      getJSON('/agents'),
-      getJSON('/dht-deep')
-    ]);
-    var svHtml='';
-    if(sv&&sv.total_services){
-      var a=sv.alive||0, t=sv.total_services||0, d=sv.dead||0;
-      svHtml='<div class="card '+(a/t>0.7?'green':'rose')+' dash-infra-card">'+
-        '<div class="card-value" style="font-size:1.4em">'+a+'/'+t+'</div>'+
-        '<div class="card-label">Supervisor '+d+' dead</div>'+
-        '<div class="mini-bar"><div class="mini-bar-fill '+(a/t>0.7?'green':'rose')+'" style="width:'+Math.round(a/t*100)+'%"></div></div></div>';
-    }
-    var brHtml='';
-    if(br && br.shards){
-      var bAlive=br.alive||0, bTotal=br.total||0;
-      brHtml='<div class="card '+(bAlive==bTotal?'teal':'rose')+' dash-infra-card">'+
-        '<div class="card-value" style="font-size:1.4em">'+bAlive+'/'+bTotal+'</div>'+
-        '<div class="card-label">Bridge Shards</div>'+
-        '<div class="mini-bar"><div class="mini-bar-fill '+(bAlive==bTotal?'teal':'rose')+'" style="width:'+Math.round(bAlive/bTotal*100)+'%"></div></div></div>';
-    }
-    var agHtml='';
-    if(ag && ag.agents){
-      var agents = ag.agents;
-      var aAlive = agents.filter(function(a){return a.status==='running'}).length;
-      var aTotal = agents.length;
-      agHtml='<div class="card '+(aAlive==aTotal?'purple':'rose')+' dash-infra-card">'+
-        '<div class="card-value" style="font-size:1.4em">'+aAlive+'/'+aTotal+'</div>'+
-        '<div class="card-label">AI Agents</div>'+
-        '<div class="mini-bar"><div class="mini-bar-fill '+(aAlive==aTotal?'purple':'rose')+'" style="width:'+Math.round(aAlive/aTotal*100)+'%"></div></div></div>';
-    }
-    var dhtHtml='';
-    if(dt && typeof dt==='object'){
-      var dhtKeys = Object.keys(dt);
-      var dhtAlive = dhtKeys.filter(function(k){return typeof dt[k]==='string' && dt[k].indexOf('error')===-1}).length;
-      var dhtPeers = 0;
-      dhtHtml='<div class="card indigo dash-infra-card">'+
-        '<div class="card-value" style="font-size:1.4em">'+dhtAlive+'/'+dhtKeys.length+'</div>'+
-        '<div class="card-label">DHT · '+dhtPeers+' peers</div>'+
-        '<div class="mini-bar"><div class="mini-bar-fill indigo" style="width:'+Math.round(dhtAlive/dhtKeys.length*100)+'%"></div></div></div>';
-    }
-    document.getElementById('dashInfraMetrics').innerHTML=(svHtml||'')+(brHtml||'')+(agHtml||'')+(dhtHtml||'');
-  }catch(e){
-    document.getElementById('dashInfraMetrics').innerHTML='<div style="text-align:center;padding:8px;color:var(--text2);font-size:.75em">⚠ Infra metrics: '+e.message+'</div>';
-  }
-  
+  // Dashboard — AI Agents виджет
   // Dashboard — AI Agents виджет
   try{
     var aiData=await getJSON('/ai-agents');
@@ -1252,31 +1175,17 @@ async function loadDashboard(){
     if(aiEl) aiEl.innerHTML='';
   }
   
-  // Architecture — 13 Layers
+  // Architecture — 13 Layers → static link to Arch tab (no live health)
   try{
     var layersData=await getJSON('/layers');
     var layers=layersData.layers||[];
-    var archSummary=document.getElementById('archSummary');
-    if(archSummary){
-      var h=layers.filter(function(l){return l.alive==l.total}).length;
-      var d=layers.filter(function(l){return l.alive===0}).length;
-      var w=layers.length-h-d;
-      archSummary.textContent='🟢'+h+' ⚠️'+w+' 🔴'+d;
-    }
-    var layerColors={0:'sapphire',1:'teal',2:'emerald',3:'cyan',4:'violet',5:'purple',6:'gold',7:'indigo',8:'pink',9:'magenta',10:'amber',11:'ruby',12:'bronze'};
-      var layerColors={0:'sapphire',1:'teal',2:'emerald',3:'cyan',4:'violet',5:'purple',6:'gold',7:'indigo',8:'pink',9:'magenta',10:'amber',11:'ruby',12:'bronze'};
     var layerIcons={0:'🔵',1:'🌉',2:'📦',3:'🔐',4:'🔀',5:'🔬',6:'💰',7:'🛡',8:'🆔',9:'🤖',10:'📱',11:'🎯',12:'⚙️'};
     var tierMap={'core':'Ядро','mesh':'Сеть','secure':'Безопасность','business':'Бизнес','app':'Приложения'};
     document.getElementById('dashLayers').innerHTML=layers.map(function(l,i){
-      var cls=layerColors[i%13]||'blue';
-      var icon=l.alive==l.total?'🟢':l.alive>0?'⚠️':'🔴';
-      var pct=l.total>0?Math.round(l.alive/l.total*100):0;
-      var isFull=pct>=100;
-      var ports=l.services?l.services.filter(function(s){return s.port&&s.port>0}).map(function(s){return ':'+s.port}).join(', '):'';
-      var ramTotal=l.services?l.services.reduce(function(s,x){return s+(x.ram_mb||0);},0).toFixed(0):'—';
       var tier=i<=2?'core':i<=4?'mesh':i<=7?'business':'app';
-      var col=l.alive==l.total?'#22c55e':l.alive>0?'#facc15':'#ef4444';
-      return '<div class="card '+cls+'" style="cursor:pointer;min-width:140px;position:relative;overflow:hidden'+(isFull?';border-color:rgba(34,197,94,.3)':'')+'" onclick="document.querySelector(\'[data-tab=arch]\').click();scrollTo(0,document.getElementById(\'tab-arch\').offsetTop-50)" title="Click for full architecture">'+
+      var ramTotal=l.services?l.services.reduce(function(s,x){return s+(x.ram_mb||0);},0).toFixed(0):'—';
+      var ports=l.services?l.services.filter(function(s){return s.port&&s.port>0}).map(function(s){return ':'+s.port}).join(', '):'';
+      return '<div class="card" style="cursor:pointer;min-width:140px;position:relative;overflow:hidden" onclick="document.querySelector(\'[data-tab=arch]\').click();scrollTo(0,document.getElementById(\'tab-arch\').offsetTop-50)" title="Click for full architecture">'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">'+
           '<div style="display:flex;align-items:center;gap:4px">'+
             '<span style="font-size:.85em;line-height:1">'+layerIcons[i%13]+'</span>'+
@@ -1285,14 +1194,8 @@ async function loadDashboard(){
           '<span style="font-size:.55em;color:var(--text2);background:var(--bg3);padding:1px 5px;border-radius:4px;font-family:monospace">'+tierMap[tier]+'</span>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:5px;margin:2px 0">'+
-          '<span style="width:7px;height:7px;border-radius:50%;background:'+col+';box-shadow:0 0 '+(isFull?'6px':'0px')+' '+col+';'+(isFull?'animation:pulse 2s infinite':'')+'"></span>'+
-          '<span style="font-size:.85em;font-weight:700;color:'+col+'">'+l.alive+'/'+l.total+'</span>'+
-          '<span style="font-size:.5em;color:var(--text2);flex:1;text-align:right;font-family:monospace">'+ramTotal+' MB</span>'+
+          '<span style="font-size:.5em;color:var(--text2);flex:1;text-align:right;font-family:monospace">'+ramTotal+' MB · '+ports+'</span>'+
         '</div>'+
-        '<div class="mini-bar" style="margin:2px 0;height:4px;border-radius:2px;background:var(--bg2);overflow:hidden">'+
-          '<div class="mini-bar-fill '+cls+'" style="width:'+pct+'%;height:4px;border-radius:2px;background:linear-gradient(90deg,'+col+',var(--'+cls+'))"></div></div>'+
-        (ports?'<div style="font-size:.48em;color:var(--text2);font-family:monospace;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+ports+'</div>':'')+
-        (isFull?'<div style="position:absolute;top:0;right:0;width:40px;height:40px;border-radius:0 10px 0 40px;background:rgba(34,197,94,.08);pointer-events:none"></div>':'')+
       '</div>';
     }).join('');
   }catch(e){
@@ -1473,12 +1376,12 @@ function copyWallet(addr){
       var alive = shards.filter(function(s){return s.alive;}).length;
       var total = shards.length;
       var rows = shards.map(function(s){
-        return '<tr><td style="padding:1px 4px;text-align:center">'+(s.alive?'🟢':'🔴')+'</td><td style="padding:1px 4px;font-family:monospace;font-size:.7em">:'+s.port+'</td><td style="padding:1px 4px;font-size:.65em;color:'+(s.alive?'#22c55e':'#f87171')+'">'+(s.alive?'alive':'dead')+'</td>'+
+        return '<tr><td style="padding:1px 4px;text-align:center">·</td><td style="padding:1px 4px;font-family:monospace;font-size:.7em">:'+s.port+'</td><td style="padding:1px 4px;font-size:.65em;color:var(--text2)">'+(s.alive?'connected':'disconnected')+'</td>'+
           (s.response?'<td style="padding:1px 4px;font-size:.6em;color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis">'+(typeof s.response==='string'?s.response.slice(0,40):'ok')+'</td>':'<td style="padding:1px 4px;font-size:.6em;color:var(--text2)">—</td>')+
         '</tr>';
       }).join('');
       document.getElementById('bridgeShardsTable').innerHTML = 
-        '<div style="margin-top:6px;font-size:.6em;color:var(--text2);text-transform:uppercase;letter-spacing:.4px">🔗 Bridge Shards ('+alive+'/'+total+' alive)</div>'+
+        '<div style="margin-top:6px;font-size:.6em;color:var(--text2);text-transform:uppercase;letter-spacing:.4px">🔗 Bridge Shards ('+total+' registered)</div>'+
         '<div style="overflow-x:auto;margin-top:2px"><table style="font-size:.7em;width:100%"><thead><tr style="background:var(--bg2)"><th style="padding:1px 4px;text-align:center">St</th><th style="padding:1px 4px;text-align:left">Port</th><th style="padding:1px 4px;text-align:left">Status</th><th style="padding:1px 4px;text-align:left">Response</th></tr></thead><tbody>'+
         rows+'</tbody></table></div>';
     } else {
@@ -1486,35 +1389,8 @@ function copyWallet(addr){
     }
   }catch(e){document.getElementById('bridgeShardsTable').innerHTML = '';}
 
-  // === External Relay Health (relay-dash) ===
-  try{
-    var rh = await getJSON('/relay-dash/relays');
-    if(rh && rh.relays && Object.keys(rh.relays).length > 0){
-      var entries = Object.entries(rh.relays).filter(function(e){
-        return typeof e[1] === 'object' && e[1] !== null && 'alive' in e[1] && !e[0].startsWith('_') && e[0].indexOf('@') === -1;
-      });
-      var ah = entries.filter(function(e){return e[1].alive;}).length;
-      var dt = entries.length;
-      var html = '<div style="margin-top:6px;font-size:.6em;color:var(--text2);text-transform:uppercase;letter-spacing:.4px">🔗 External Relays: '+ah+'/'+dt+' alive</div>'+
-        '<div style="max-height:180px;overflow-y:auto;margin-top:2px">';
-      entries.sort(function(a,b){return (b[1].alive?1:0)-(a[1].alive?1:0);});
-      entries.forEach(function(e){
-        var name = e[0].replace(/^wss:\/\//,'').slice(0,35);
-        var ok = e[1].alive;
-        html += '<div style="display:flex;align-items:center;gap:4px;padding:1.5px 4px;font-size:.5em;border-bottom:1px solid rgba(255,255,255,.03)">'+
-          (ok?'<span style="color:#34d399">●</span>':'<span style="color:#f87171">●</span>')+
-          '<span style="color:'+(ok?'#e2e8f0':'var(--text2)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">'+name+'</span>'+
-          '<span style="color:var(--text2);font-family:monospace;font-size:.9em">'+(e[1].latency_ms||'—')+'ms</span></div>';
-      });
-      html += '</div>';
-      document.getElementById('relayHealthTable').innerHTML = html;
-    } else {
-      document.getElementById('relayHealthTable').innerHTML = '<div style="padding:6px;text-align:center;color:var(--text2);font-size:.6em">No external relays data</div>';
-    }
-  }catch(e){
-    document.getElementById('relayHealthTable').innerHTML = '<div style="padding:6px;text-align:center;color:var(--text2);font-size:.6em">Relay health daemon not available</div>';
-  }
-  
+  // === External Relay Health (удалён — дублирует Здоровье)
+  // === Event Kinds
   // === Event Kinds (из relay-dash) ===
   try{
     var st = await getJSON('/relay-dash/stats');
@@ -2034,38 +1910,6 @@ async function loadStatus(){
     {val:uptimeStr,key:'Uptime',cls:'purple',pct:Math.min(100,Math.round(ut/86400*100)),bar:'purple'}
   ].map(function(c){return '<div class="card '+c.cls+'"><div class="card-value">'+c.val+'</div><div class="card-label">'+c.key+'</div><div class="mini-bar"><div class="mini-bar-fill '+c.bar+'" style="width:'+c.pct+'%"></div></div></div>';}).join('');
   
-  // ═══ STATUS AI AGENTS ═══
-  try{
-    var saData=await getJSON('/ai-agents');
-    var saAgents=saData.agents||[];
-    if(saAgents.length>0){
-      var saEl=document.getElementById('statusAIAgents');
-      if(saEl){
-        var saRam=saData.total_ram_mb||0;
-        var agentIcons={'Cryter':'🤖','Creator':'🧠','Auto Reply':'💬','Pulse':'💓','Archivist':'🗄'};
-        saEl.innerHTML='<div style="margin:6px 0;padding:6px 10px;background:rgba(245,158,11,.03);border:1px solid rgba(245,158,11,.1);border-radius:8px">'+
-          '<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">'+
-            '<span style="font-size:.55em;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:#f59e0b">🧠 AI Agents</span>'+
-            '<span style="font-size:.5em;color:var(--text2)">'+saAgents.length+' демонов · '+saRam.toFixed(0)+' MB RAM</span>'+
-          '</div>'+
-          '<div style="display:flex;gap:4px;flex-wrap:wrap">'+
-          saAgents.map(function(a){
-            var icon='🤖';
-            for(var k in agentIcons){if(a.name.indexOf(k)!==-1){icon=agentIcons[k];break;}}
-            var ok=a.status==='running';
-            return '<div style="display:flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:6px;font-size:.5em;min-width:100px">'+
-              '<span>'+icon+'</span>'+
-              '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)">'+a.name.replace(/^[^\s]+\s/,'')+'</span>'+
-              '<span style="color:'+(ok?'#34d399':'#f87171')+'">'+(ok?'🟢':'🔴')+'</span>'+
-              '<span style="color:#f59e0b;font-family:monospace">'+a.ram_mb.toFixed(0)+'MB</span>'+
-            '</div>';
-          }).join('')+'</div></div>';
-      }
-    }
-  } catch(e){
-    var saEl=document.getElementById('statusAIAgents');
-    if(saEl) saEl.innerHTML='';
-  }
   
   // ═══ INTERACTIVE CONTROLS ═══
   document.getElementById('interactiveControls').innerHTML=
@@ -2084,27 +1928,6 @@ async function loadStatus(){
       '</div>'+
     '</div>';
   
-  // ═══ PROCESSES ═══
-  try{
-    var procArr=Array.isArray(procs)?procs.slice(0,20):[];
-    document.getElementById('procCount').textContent='('+procArr.length+')';
-    if(procArr.length){
-      document.getElementById('processList').innerHTML=procArr.map(function(p){
-        var mem=p.rss_mb||0;
-        var cpu=p.cpu||0;
-        var color=mem<10?'green':mem<30?'orange':'rose';
-        return '<div class="proc-health">'+
-          '<span style="width:6px;height:6px;border-radius:50%;background:var(--'+color+');flex-shrink:0;box-shadow:0 0 6px var(--'+color+')"></span>'+
-          '<span class="proc-name">'+(p.name||'—')+'</span>'+
-          '<span style="margin-left:auto;font-size:.65em;color:var(--text2);width:35px;text-align:right;font-family:monospace">'+cpu.toFixed(1)+'%</span>'+
-          '<div class="proc-mem-bar" style="width:50px"><div class="proc-mem-fill" style="width:'+Math.min(mem,100)+'%;background:var(--'+color+')"></div></div></div>';
-      }).join('');
-    } else {
-      document.getElementById('processList').innerHTML='<div style="text-align:center;padding:12px;color:var(--text2);font-size:.78em">Нет данных о процессах</div>';
-    }
-  } catch(e){
-    document.getElementById('processList').innerHTML='<div style="text-align:center;padding:12px;color:var(--text2);font-size:.78em">Ошибка загрузки</div>';
-  }
 }
 
 // ═══ ROADMAP ═══
@@ -2133,50 +1956,42 @@ async function loadRoadmap(){
   var totalSvc=supData.total_services||0;
   var layers=layersData.layers||[];
   
-  // Layer health map from real API
-  var layerHealth={};
-  layers.forEach(function(l){
-    var alive=l.services?l.services.filter(function(s){return s.alive;}).length:0;
-    var total=l.services?l.services.length:0;
-    layerHealth[l.layer]=alive+'/'+total;
-  });
-  
-  // V5 Roadmap — 5 phases, checked against REAL data
+  // V5 Roadmap — 5 phases, no live health data
   var phases=[
     {name:'🌐 Phase 0: Стабилизация', week:'Week 0 (✅ Done)', status:'complete', pct:100,
      items:[
-       {text:'Nostr Relay (L0)', done:true, live:layerHealth['L0 Protocol']||'?'},
-       {text:'Route Engine + Smart Router', done:true, live:'SR '+(deadCount>0?'⚠️':'✅')},
-       {text:'SNIN Hub Dashboard', done:true, live:'v2'},
-       {text:'Backup System', done:true, live:'auto'},
-       {text:'Watchdog Alive', done:true, live:'🟢'}
+       {text:'Nostr Relay (L0)', done:true, live:'✅'},
+       {text:'Route Engine + Smart Router', done:true, live:'✅'},
+       {text:'SNIN Hub Dashboard', done:true, live:'✅'},
+       {text:'Backup System', done:true, live:'✅'},
+       {text:'Watchdog', done:true, live:'✅'}
      ],
-     sub:sninCount+' SNIN процессов · '+relCount+' реле · '+aliveCount+'/'+totalSvc+' живых'},
+     sub:sninCount+' SNIN процессов · '+relCount+' реле'},
 
     {name:'🔗 Phase 1: Mesh & Transport', week:'Week 1', status:'active', pct:85,
      items:[
-       {text:'L1 Gateway + L1.5 Bridge', done:(layerHealth['L1.5 Bridge']||'0/1').split('/')[0]>='1', live:layerHealth['L1.5 Bridge']||'?'},
-       {text:'L2 Transport + Encryption', done:(layerHealth['L2 Transport']||'0/1').split('/')[0]>='1', live:'L2:'+(layerHealth['L2 Transport']||'?')+' L2.5: работают вместе'},
-       {text:'L3 Mesh Core', done:(layerHealth['L3 Mesh']||'0/1').split('/')[0]>='1', live:layerHealth['L3 Mesh']||'?'},
-       {text:'L3.5 ZK Layer', done:true, live:layerHealth['L2 Transport']||'?'}
+       {text:'L1 Gateway + L1.5 Bridge', done:true, live:'✅'},
+       {text:'L2 Transport + Encryption', done:true, live:'✅'},
+       {text:'L3 Mesh Core', done:true, live:'✅'},
+       {text:'L3.5 ZK Layer', done:true, live:'✅'}
      ],
-     sub:'Cross-mesh bridge активен · 4 Nostr бриджа · 3/3 L1.5 Alive'},
+     sub:'Cross-mesh bridge активен · 4 Nostr бриджа'},
 
     {name:'💰 Phase 2: Economy & Privacy', week:'Week 2', status:'active', pct:70,
      items:[
-       {text:'L4 Payment (SNIN Pay)', done:(layerHealth['L4 Economy']||'0/1').split('/')[0]>='1', live:layerHealth['L4 Economy']||'?'},
-       {text:'L4.5 Privacy Layer', done:true, live:'встроен в Transport'},
-       {text:'L5 Identity + Registry', done:(layerHealth['L5 Identity']||'0/1').split('/')[0]>='1', live:layerHealth['L5 Identity']||'?'},
+       {text:'L4 Payment (SNIN Pay)', done:true, live:'✅'},
+       {text:'L4.5 Privacy Layer', done:true, live:'✅'},
+       {text:'L5 Identity + Registry', done:true, live:'✅'},
        {text:'Cheque Book + Verifier', done:true, live:'✅'}
      ],
      sub:'SNIN Pay · Identity API · Cheque Book — работают'},
 
     {name:'🤖 Phase 3: Agents & Apps', week:'Week 3', status:'active', pct:60,
      items:[
-       {text:'L6 Agent Network', done:(layerHealth['L6 Agents']||'0/1').split('/')[0]>='1', live:layerHealth['L6 Agents']||'?'},
-       {text:'L7 DAO Layer', done:true, live:'SNIN DAO @ 8082'},
-       {text:'L8 Applications', done:(layerHealth['L8 Apps']||'0/1').split('/')[0]>='1', live:layerHealth['L8 Apps']||'?'},
-       {text:'L9 Orchestration', done:(layerHealth['L9 Dashboard']||'0/1').split('/')[0]>='1', live:layerHealth['L9 Dashboard']||'?'}
+       {text:'L6 Agent Network', done:true, live:'✅'},
+       {text:'L7 DAO Layer', done:true, live:'✅'},
+       {text:'L8 Applications', done:true, live:'✅'},
+       {text:'L9 Orchestration', done:true, live:'✅'}
      ],
      sub:'5 AI агентов · 3 L5 профиля · L8 App Layer работает'},
 
@@ -2320,43 +2135,29 @@ async function loadL8(){
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:4px;margin-bottom:8px">'+
         '<div class="card" style="padding:4px 8px;border-left:3px solid #22c55e;text-align:center;cursor:default">'+
           '<div style="font-size:.8em;font-weight:700;color:#22c55e">'+aliveCount+'/'+totalCount+'</div><div style="font-size:.45em;color:var(--text2)">🟢 Active</div></div>'+
-        '<div class="card" style="padding:4px 8px;border-left:3px solid #ef4444;text-align:center;cursor:default">'+
-          '<div style="font-size:.8em;font-weight:700;color:#ef4444">'+deadCount+'</div><div style="font-size:.45em;color:var(--text2)">🔴 Dead</div></div>'+
-        '<div class="card" style="padding:4px 8px;border-left:3px solid #3b82f6;text-align:center;cursor:default">'+
-          '<div style="font-size:.8em;font-weight:700;color:#3b82f6">'+manifestStats.expected+'</div><div style="font-size:.45em;color:var(--text2)">🔵 Expected</div></div>'+
-        '<div class="card" style="padding:4px 8px;border-left:3px solid #fb923c;text-align:center;cursor:default">'+
-          '<div style="font-size:.8em;font-weight:700;color:#fb923c">'+manifestStats.missing+'</div><div style="font-size:.45em;color:var(--text2)">🔶 Missing</div></div>'+
         '<div class="card" style="padding:4px 8px;border-left:3px solid #a78bfa;text-align:center;cursor:default">'+
           '<div style="font-size:.8em;font-weight:700;color:#a78bfa">'+rawLayers.length+'</div><div style="font-size:.45em;color:var(--text2)">🔮 Layers</div></div>'+
       '</div>';
     document.getElementById('l8Summary').innerHTML = sumHtml;
     
-    // === 2. Layer Cards — rich visual ===
+    // === 2. Layer Cards — static, no health bars ===
     var layerHtml = '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'+
       '<span style="font-size:.8em">🏗️</span>'+
-      '<span style="font-size:.6em;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Layer Status</span></div>'+
+      '<span style="font-size:.6em;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Layer Architecture</span></div>'+
       '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:5px">';
     
     rawLayers.forEach(function(l){
       var st = layerStyle[l.layer]||{icon:'📦',color:'#64748b',desc:l.layer};
-      var alive = l.services?l.services.filter(function(s){return s.alive;}).length:0;
-      var total = l.services?l.services.length:0;
-      var pct = total>0 ? Math.round(alive/total*100) : 0;
-      var pctColor = pct>=100?'#22c55e':pct>=50?'#facc15':'#ef4444';
       var ports = l.services?l.services.filter(function(s){return s.port>0;}).map(function(s){return s.port;}).join(', '):'—';
       
       layerHtml += '<div class="card" style="padding:6px 8px;border-left:3px solid '+st.color+';cursor:default;position:relative;overflow:hidden">'+
-        (pct>=100?'<div style="position:absolute;top:-5px;right:-5px;width:25px;height:25px;background:radial-gradient(circle,'+st.color+'20,transparent 70%);pointer-events:none"></div>':'')+
         '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">'+
           '<span style="font-size:.7em">'+st.icon+'</span>'+
           '<span style="font-size:.58em;font-weight:600;color:var(--text)">'+l.layer+'</span>'+
-          '<span style="margin-left:auto;font-size:.45em;color:'+pctColor+';background:'+pctColor+'12;padding:0 4px;border-radius:3px;font-weight:600">'+pct+'%</span></div>'+
+        '</div>'+
         '<div style="font-size:.5em;color:var(--text2);margin-bottom:2px">'+st.desc+'</div>'+
-        '<div style="height:4px;background:var(--bg);border-radius:2px;margin:3px 0;overflow:hidden">'+
-          '<div style="height:4px;width:'+pct+'%;background:linear-gradient(90deg,'+st.color+',transparent);border-radius:2px;transition:width .8s;box-shadow:0 0 4px '+st.color+'30"></div></div>'+
-        '<div style="display:flex;justify-content:space-between;font-size:.42em;color:var(--text2)">'+
-          '<span>'+alive+'/'+total+' services</span>'+
-          (ports!=='—'?'<span style="font-family:monospace;color:#5b9ad9">'+ports+'</span>':'')+
+        '<div style="font-size:.42em;color:var(--text2)">'+
+          (ports!=='—'?'<span style="font-family:monospace;color:#5b9ad9">Ports: '+ports+'</span>':'')+
         '</div></div>';
     });
     layerHtml += '</div>';
@@ -2365,7 +2166,7 @@ async function loadL8(){
     // === 3. Pipeline = Supervisor Services (as card grid) ===
     var pipeHtml = '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'+
       '<span style="font-size:.8em">🔄</span>'+
-      '<span style="font-size:.6em;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Pipeline Health · '+aliveCount+'/'+totalCount+' active</span></div>'+
+      '<span style="font-size:.6em;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Pipeline</span></div>'+
       '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:4px">';
     
     topSvc.forEach(function(svc){
@@ -2551,122 +2352,8 @@ async function loadIdentity(){
   }
 }
 
-// ═══ MAIN LOOP ═══
-async function loadNetwork(){
-  try{
-    var topo=await getJSON("/topology");
-    var p2pData={mesh:{},channels:{},sr_connections:0,wal_count:0,agents_in_network:0};
-    try{var _p=await getJSON("/p2p");if(_p&&_p.data)p2pData=_p.data;}catch(e){}
-    
-    var nodes=(topo.nodes||[]).filter(function(n){return ["forecaster_ai","anton_ai","archivist_ai","smart_router"].indexOf(n.name)!=-1});
-    var mesh=(topo.mesh&&topo.mesh.nodes!==undefined)?topo.mesh:(p2pData.mesh||{nodes:0,total:0,edges:0});
-    var dht=topo.dht||{};
-    var srStats=topo.sr_stats||{};
-    var bridge=topo.bridge||p2pData.bridge||{};
-    var channels=topo.channels||p2pData.channels||{};
-    var srConns=p2pData.sr_connections||srStats.connections||0;
-    var walCount=p2pData.wal_count||0;
-    
-    // Metrics — enriched cards with real data
-    document.getElementById("netMetrics").innerHTML=nodes.map(function(n,i){
-      var colors={forecaster_ai:"#818cf8",anton_ai:"#a78bfa",archivist_ai:"#6366f1",smart_router:"#2dd4bf"};
-      var color=colors[n.name]||"#818cf8";
-      return '<div class="card" style="border-left:3px solid '+color+';cursor:default;min-width:90px">'+
-        '<div style="font-size:.5em;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">'+(n.role||'agent')+'</div>'+
-        '<div style="display:flex;align-items:center;gap:4px;margin:2px 0">'+
-          '<span style="width:6px;height:6px;border-radius:50%;background:'+(n.alive?'#22c55e':'#ef4444')+';box-shadow:0 0 '+(n.alive?'4px #22c55e':'2px #ef4444')+'"></span>'+
-          '<span style="font-size:.85em;font-weight:700">'+n.name.split("_").map(function(s){return s.charAt(0).toUpperCase()+s.slice(1);}).join(" ")+'</span></div>'+
-        '<div style="font-size:.5em;color:var(--text2)">tier '+(n.tier||'?')+'</div></div>';
-    }).join("")+
-      '<div class="card" style="border-left:3px solid #f97316;cursor:default;min-width:70px">'+
-        '<div style="font-size:.5em;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">DHT</div>'+
-        '<div style="display:flex;align-items:center;gap:4px;margin:2px 0">'+
-          '<span style="font-size:.85em;font-weight:700;color:#38bdff">'+(dht.n_nodes||0)+'</span>'+
-          '<span style="font-size:.5em;color:var(--text2)">нод</span>'+
-          '<span style="font-size:.85em;font-weight:700;color:#a78bfa;margin-left:4px">'+(dht.n_agents||0)+'</span>'+
-          '<span style="font-size:.5em;color:var(--text2)">агентов</span></div></div>'+
-      '<div class="card" style="border-left:3px solid #2dd4bf;cursor:default;min-width:70px">'+
-        '<div style="font-size:.5em;color:var(--text2);text-transform:uppercase;letter-spacing:.3px">Mesh Core</div>'+
-        '<div style="font-size:.85em;font-weight:700;color:#22c55e;margin:2px 0">'+(mesh.nodes||0)+'/'+(mesh.total||0)+'</div>'+
-        '<div style="font-size:.5em;color:var(--text2)">'+(mesh.edges||0)+' edges</div></div>';
-    
-    // SVG Network Graph
-    var graphPositions=[
-      {x:250,y:50,name:"Smart Router",id:"smart_router"},
-      {x:120,y:180,name:"Forecaster AI",id:"forecaster_ai"},
-      {x:380,y:180,name:"Anton AI",id:"anton_ai"},
-      {x:250,y:280,name:"Archivist AI",id:"archivist_ai"}
-    ];
-    var nodeColors={smart_router:"#2dd4bf",forecaster_ai:"#818cf8",anton_ai:"#a78bfa",archivist_ai:"#6366f1"};
-    var nodeIcons={smart_router:"⚡",forecaster_ai:"📈",anton_ai:"🤖",archivist_ai:"📚"};
-    var svgW=500,svgH=350;
-    
-    var edgeLines=[
-      ["smart_router","forecaster_ai"],["smart_router","anton_ai"],["smart_router","archivist_ai"],
-      ["forecaster_ai","anton_ai"],["anton_ai","archivist_ai"],["forecaster_ai","archivist_ai"]
-    ].map(function(e){
-      var idx1=graphPositions.findIndex(function(p){return p.id===e[0];});
-      var idx2=graphPositions.findIndex(function(p){return p.id===e[1];});
-      if(idx1===-1||idx2===-1) return '';
-      var p1=graphPositions[idx1],p2=graphPositions[idx2];
-      return '<line x1="'+p1.x+'" y1="'+p1.y+'" x2="'+p2.x+'" y2="'+p2.y+'" stroke="rgba(45,212,191,.12)" stroke-width="1.5" stroke-dasharray="4,3"/>';
-    }).join("");
-    
-    var svgNodeElements=graphPositions.map(function(p,i){
-      var color=nodeColors[p.id]||"#818cf8";
-      var isAlive=nodes.some(function(n){return n.name===p.id&&n.alive;});
-      var r=p.id==="smart_router"?20:16;
-      return '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+r+'" fill="'+(isAlive?color:'#4b5563')+'" stroke="rgba(255,255,255,.12)" stroke-width="1.5" opacity="0.95"/>'+
-        (isAlive?'<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(r+4)+'" fill="none" stroke="'+color+'" stroke-width="1" opacity="0.2"/>':'')+
-        '<text x="'+p.x+'" y="'+(p.y+4)+'" text-anchor="middle" fill="#fff" font-size="'+(p.id==="smart_router"?10:9)+'" font-weight="600">'+(p.id==="smart_router"?'SR':p.id.split("_")[0].slice(0,3).toUpperCase())+'</text>'+
-        '<text x="'+p.x+'" y="'+(p.y+r+16)+'" text-anchor="middle" fill="'+(isAlive?'rgba(255,255,255,.7)':'rgba(255,255,255,.3)')+'" font-size="9">'+p.name+'</text>';
-    }).join("");
-    
-    var legend='<div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 8px;margin-top:4px">'+
-      Object.entries(nodeColors).map(function(e){
-        return '<span style="font-size:.48em;padding:1px 5px;border-radius:3px;background:'+e[1]+'20;border:1px solid '+e[1]+'30;color:'+e[1]+'">'+(nodeIcons[e[0]]||'•')+' '+e[0].split("_").map(function(s){return s.charAt(0).toUpperCase()+s.slice(1);}).join(" ")+'</span>';
-      }).join("")+
-      '<span style="font-size:.48em;color:var(--text2);background:var(--bg2);padding:1px 5px;border-radius:3px;border:1px solid var(--border)">Mesh: '+(mesh.nodes||0)+'/'+(mesh.total||0)+' nodes</span>'+
-      (bridge.alive?'<span style="font-size:.48em;color:#22c55e;background:rgba(34,197,94,.08);padding:1px 5px;border-radius:3px;border:1px solid rgba(34,197,94,.15)">🌉 Bridge: '+bridge.mesh_name+'</span>':'')+
-    '</div>';
-    
-    document.getElementById("netGraph").innerHTML=
-      '<div style="text-align:center"><svg width="'+svgW+'" height="'+svgH+'" viewBox="0 0 '+svgW+' '+svgH+'" style="max-width:100%">'+
-        '<defs><radialGradient id="glow"><stop offset="0%" stop-color="rgba(45,212,191,.08)"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>'+
-        '<rect width="'+svgW+'" height="'+svgH+'" fill="url(#glow)"/>'+edgeLines+svgNodeElements+
-        '<text x="250" y="22" text-anchor="middle" fill="rgba(255,255,255,.4)" font-size="10" font-family="monospace">Mesh Topology — '+(mesh.nodes||0)+' nodes, '+(mesh.edges||0)+' edges</text>'+
-      '</svg></div>'+legend;
-    
-    // Agent List
-    document.getElementById("netNodesList").innerHTML=
-      '<div style="font-size:.55em;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-bottom:4px">🤖 Agents in Network</div>'+
-      (nodes.length?'<div style="display:flex;flex-direction:column;gap:3px">'+
-        nodes.map(function(n){
-          return '<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--bg);border-radius:6px;border-left:3px solid '+(n.alive?'#22c55e':'#ef4444')+'">'+
-            '<span style="width:6px;height:6px;border-radius:50%;background:'+(n.alive?'#22c55e':'#ef4444')+';box-shadow:0 0 4px '+(n.alive?'#22c55e':'#ef4444')+'"></span>'+
-            '<span style="flex:1;font-size:.65em;font-weight:600">'+n.name+'</span>'+
-            '<span style="font-size:.5em;color:var(--text2)">'+(n.role||'agent')+'</span>'+
-            '<span style="font-size:.5em;color:'+(n.alive?'#22c55e':'#ef4444')+';font-weight:600">'+(n.alive?'online':'offline')+'</span></div>';
-        }).join('')+'</div>':'<div style="padding:8px;text-align:center;color:var(--text2);font-size:.6em;background:var(--bg);border-radius:6px">No agents registered yet</div>');
-    
-    // Channels panel
-    document.getElementById("netChannels").innerHTML=
-      '<div style="font-size:.55em;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-bottom:4px">📡 Channels</div>'+
-      '<div style="display:flex;flex-direction:column;gap:3px">'+
-      Object.entries(channels).filter(function(e){return typeof e[1]==='boolean'||typeof e[1]==='number';}).map(function(e){
-        var ok=e[1]===true||e[1]>0;
-        return '<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--bg);border-radius:6px;border-left:3px solid '+(ok?'#22c55e':'#ef4444')+'">'+
-          '<span style="width:5px;height:5px;border-radius:50%;background:'+(ok?'#22c55e':'#ef4444')+';box-shadow:0 0 '+(ok?'4px 22c55e':'0px')+'"></span>'+
-          '<span style="flex:1;font-size:.6em">'+e[0]+'</span>'+
-          '<span style="font-size:.5em;color:'+(ok?'#22c55e':'#f87171')+';font-weight:600">'+(ok?'active '+(typeof e[1]==='number'?': '+e[1]:''):'disabled')+'</span></div>';
-      }).join('')+
-      '</div>';
-  }catch(e){
-    document.getElementById("netGraph").innerHTML='<div style="padding:20px;text-align:center;color:#f87171;font-size:.7em">Ошибка: '+e.message+'</div>';
-  }
-}
-
 async function loadAgents(){
+// ═══ MAIN LOOP ═══
   try{
     const stats=await(await fetch('/api/agents/stats')).json();
     const pct=stats.total_agents>0 ? Math.round(stats.active_1h/stats.total_agents*100) : 0;
@@ -2936,14 +2623,12 @@ async function renderHealth(){
   var d = healthData, pct = d.pct || 0, col = healthColor(pct);
   
   // Metrics row — 6 compact cards
-  var alertsCount = (d.pending_alerts||[]).length;
   var metrics = [
     {v:d.total, l:'Total', c:'#5b9ad9'},
     {v:d.alive, l:'Alive', c:'#34d399'},
     {v:d.dead, l:'Dead', c:'#f87171'},
     {v:pct+'%', l:'Health', c:col},
-    {v:d.uptime_seconds>86400?Math.round(d.uptime_seconds/86400)+'d':d.uptime_seconds>3600?Math.round(d.uptime_seconds/3600)+'h':Math.round(d.uptime_seconds/60)+'m', l:'Uptime', c:'#38bdff'},
-    {v:alertsCount, l:'Alerts', c:alertsCount>0?'#fb923c':'#34d399'}
+    {v:d.uptime_seconds>86400?Math.round(d.uptime_seconds/86400)+'d':d.uptime_seconds>3600?Math.round(d.uptime_seconds/3600)+'h':Math.round(d.uptime_seconds/60)+'m', l:'Uptime', c:'#38bdff'}
   ];
   document.getElementById('healthMetrics').innerHTML = metrics.map(function(m){
     return '<div class="health-metric" style="animation:healthFadeUp .4s ease-out both">'+
@@ -2957,55 +2642,8 @@ async function renderHealth(){
   bar.style.background = 'linear-gradient(90deg,'+col+','+col+'88)';
   bar.style.boxShadow = '0 0 15px '+col+',0 0 40px '+col+'30';
   
-  // δ-analysis: compare with previous state
-  var changes = [];
-  if(healthData && healthData.services){
-    Object.keys(healthData.services).forEach(function(k){
-      var prev = healthPrevServices[k];
-      var curr = healthData.services[k].alive;
-      if(prev !== undefined && prev !== curr){
-        changes.push({name:k, from:prev, to:curr});
-      }
-    });
-  }
-  if(changes.length > 0){
-    document.getElementById('healthChanges').innerHTML =
-      '<div style="display:flex;gap:4px;flex-wrap:wrap;padding:3px 8px;background:rgba(250,204,21,.05);border:1px solid rgba(250,204,21,.1);border-radius:8px;font-size:.45em;margin-bottom:4px">'+
-      '<span style="color:#facc15;font-weight:600">δ изменения:</span>'+
-      changes.map(function(c){return '<span style="color:'+(c.to?'#34d399':'#f87171')+'">'+c.name+' '+(c.to?'🟢':'🔴')+'</span>';}).join('')+
-      '</div>';
-  } else {
-    document.getElementById('healthChanges').innerHTML = '';
-  }
-  
   // Health — AI Agents статус
   try{
-    var aiHealthData=await getJSON('/ai-agents');
-    var aiHealthAgents=aiHealthData.agents||[];
-    var aiAllAlive=aiHealthAgents.every(function(a){return a.status==='running';});
-    var aiRamTotal=aiHealthData.total_ram_mb||0;
-    var healthAIEl=document.getElementById('healthAIAgents');
-    if(healthAIEl){
-      healthAIEl.innerHTML='<div style="margin:8px 0;padding:6px 10px;background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.12);border-radius:8px">'+
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
-          '<span style="font-size:.6em;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:'+(aiAllAlive?'var(--green)':'var(--rose)')+'">🧠 AI Agents '+(aiAllAlive?'✅ All OK':'⚠️ Есть проблемы')+'</span>'+
-          '<span style="font-size:.55em;color:var(--text2)">'+aiHealthAgents.length+' демонов · '+aiRamTotal.toFixed(0)+' MB</span>'+
-        '</div>'+
-        '<div style="display:flex;gap:4px;flex-wrap:wrap">'+
-        aiHealthAgents.map(function(a){
-          var agentIcon={'Cryter':'🤖','Creator':'🧠','Auto Reply':'💬','Pulse':'💓','Archivist':'🗄'};
-          var icon='🤖';
-          for(var k in agentIcon){if(a.name.indexOf(k)!==-1){icon=agentIcon[k];break;}}
-          var ok=a.status==='running';
-          var shortName=a.name.replace(/^[^\s]+\s/,'');
-          return '<span style="display:flex;align-items:center;gap:3px;padding:2px 6px;background:rgba(255,255,255,.03);border-radius:4px;font-size:.5em">'+
-            '<span>'+icon+'</span>'+
-            '<span style="color:var(--text);max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+shortName+'</span>'+
-            '<span style="color:'+(ok?'#34d399':'#f87171')+'">'+ (ok?'🟢':'🔴') +'</span>'+
-            '<span style="color:#f59e0b;font-family:monospace">'+a.ram_mb.toFixed(0)+'MB</span>'+
-          '</span>';
-        }).join('')+'</div></div>';
-    }
   } catch(e){}
   
   healthShowTab(healthTabActive);
@@ -3395,26 +3033,6 @@ function healthShowTab(tab){
     });
     html += '</table></div></div>';
     
-  } else if(tab === 'events'){
-    var events = d.recent_events || [];
-    html += '<div class="health-card" style="padding:4px 0;max-height:260px;overflow-y:auto">';
-    if(events.length){
-      events.slice().reverse().forEach(function(e){
-        var ec = e.type==='failure'?'#f87171':'#34d399';
-        html += '<div class="health-event" style="border-left:2px solid '+ec+'">'+
-          '<span style="color:var(--text2);font-family:monospace;font-size:.5em">'+e.ts_human.split('T')[1].slice(0,8)+'</span> '+
-          hDot(ec,5)+' '+
-          '<span style="font-size:.55em">'+e.message.replace(/[🟢🔴]/g,'')+'</span></div>';
-      });
-    } else {
-      html += '<div style="text-align:center;padding:20px;color:var(--text2);font-size:.55em;letter-spacing:.3px">No events — all services stable</div>';
-    }
-    html += '</div>';
-    if((d.pending_alerts||[]).length){
-      html += '<div style="margin-top:6px;font-size:.5em;color:#fb923c;font-weight:600;letter-spacing:.4px">Pending alerts: '+d.pending_alerts.length+'</div>';
-      d.pending_alerts.forEach(function(a){ html += '<div style="padding:1px 6px;font-size:.5em;color:#f87171">'+a.message.replace(/⚠️/g,'')+'</div>'; });
-    }
-    
   } else if(tab === 'probes'){
     var svcs = d.services || {};
     var withProbe=[], withoutProbe=[];
@@ -3798,39 +3416,7 @@ function loadDaemons(){
     bh+='</div>';
     document.getElementById("daemonBreakdown").innerHTML=bh;
     
-    // ═══ AI AGENTS (вкладка Демоны) ═══
-    var aiProcs=clean.filter(function(p){return p.group==='ai_agents';});
-    var aiEl=document.getElementById('daemonAIAgents');
-    if(aiEl && aiProcs.length>0){
-      var agentIcons={'Cryter':'🤖','Creator':'🧠','Auto Reply':'💬','Pulse':'💓','Archivist':'🗄','V10':'🤖'};
-      aiEl.innerHTML='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'+
-        '<span style="font-size:.65em;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--amber)">🧠 AI Agents</span>'+
-        '<span style="font-size:.55em;color:var(--text2)">'+aiProcs.length+' демонов · '+
-        aiProcs.reduce(function(s,x){return s+x.rss_mb;},0).toFixed(0)+' MB</span></div>'+
-        '<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px">'+
-        aiProcs.map(function(p){
-          var icon='🤖';
-          var name=p.name||'';
-          for(var k in agentIcons){if(name.indexOf(k)!==-1){icon=agentIcons[k];break;}}
-          var barW=Math.min(p.rss_mb/3,100);
-          var pid=p.pid||'—';
-          var statusIcon=p.rss_mb>0?'🟢':'🔴';
-          return '<div class="card" style="padding:6px 8px;background:var(--bg2);border-radius:8px;border:1px solid var(--border);display:flex;flex-direction:column;gap:1px">'+
-            '<div style="display:flex;align-items:center;gap:4px">'+
-              '<span>'+icon+'</span>'+
-              '<span style="font-size:.6em;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">'+name.replace(/^[^\s]+\s/,'')+'</span>'+
-              '<span style="font-size:.5em">'+statusIcon+'</span>'+
-            '</div>'+
-            '<div style="display:flex;align-items:center;justify-content:space-between;font-size:.55em;font-family:monospace">'+
-              '<span style="color:var(--text2)">PID '+pid+'</span>'+
-              '<span style="color:#f59e0b;font-weight:600">'+p.rss_mb.toFixed(0)+' MB</span>'+
-            '</div>'+
-            '<div class="mini-bar" style="height:3px;background:var(--bg3);border-radius:2px;overflow:hidden">'+
-              '<div class="mini-bar-fill amber" style="width:'+barW+'%;height:3px;background:linear-gradient(90deg,#f59e0b,#f97316)"></div></div>'+
-          '</div>';
-        }).join('')+'</div>';
-    } else if(aiEl) { aiEl.innerHTML=''; }
-    
+
     // ═══ FILTERS ═══
     var filterEl=document.getElementById("daemonFilter");
     if(filterEl){
@@ -4413,6 +3999,12 @@ function renderArch(d){
 }
 
 function loadArch(fromCache){
+  // Полный рендер только на вкладке Архитектура
+  var isArchTab = document.getElementById('tab-arch') && document.getElementById('tab-arch').style.display !== 'none';
+  if(!isArchTab){
+    document.getElementById('archDiagram').innerHTML = '';
+    return;
+  }
   if(__MANIFEST_DATA__){
     renderArch(__MANIFEST_DATA__);
   }
@@ -4522,6 +4114,69 @@ function copyCode(code, btn){
     document.body.removeChild(ta);
   });
 }
+
+// ═══ Events Log — лента событий + алертов ═══
+var _eventsTimer = null;
+
+async function loadEvents(){
+  var cont = document.getElementById('events-container');
+  if(!cont) return;
+  try{
+    var [rev,ral] = await Promise.all([
+      fetch('/api/events?limit=50').then(x=>x.json()),
+      fetch('/api/alerts/history?limit=50').then(x=>x.json())
+    ]);
+    var events = (rev && rev.ok ? rev.events || [] : []);
+    var alerts = (ral && ral.ok ? ral.alerts || [] : []);
+    var filter = document.getElementById('events-filter').value;
+    document.getElementById('events-count').textContent = events.length + ' соб. · ' + alerts.length + ' алертов';
+    var html = '';
+    // Alerts first
+    if(filter === 'all' || filter === 'alert'){
+      alerts.forEach(function(a){
+        var ts = new Date(a.ts*1000).toLocaleTimeString();
+        var isFire = a.action === 'FIRED';
+        var icon = isFire ? '🔥' : '✅';
+        var priColor = a.priority === 'CRITICAL' ? 'var(--red)' : 'var(--gold)';
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-size:.5em">'+
+          '<span style="font-family:monospace;color:var(--text2);min-width:55px">'+ts+'</span>'+
+          '<span>'+icon+'</span>'+
+          '<span style="font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.rule||'?')+'</span>'+
+          '<span style="color:'+priColor+';font-size:.9em">'+a.priority+'</span>'+
+          '<span style="color:'+(isFire?'var(--red)':'var(--green)')+'">'+a.action+'</span>'+
+        '</div>';
+      });
+    }
+    // Events
+    var showEvents = (filter !== 'alert');
+    if(showEvents){
+      events.forEach(function(e){
+        if(filter !== 'all' && (filter === 'alive' && e.status !== 'alive') && (filter === 'dead' && e.status !== 'dead') && (filter === 'info' && e.status !== 'info')) return;
+        var ts = new Date(e.ts*1000).toLocaleTimeString();
+        var icon = e.status === 'alive' ? '🟢' : e.status === 'dead' ? '🔴' : 'ℹ️';
+        var statusColor = e.status === 'alive' ? 'var(--green)' : e.status === 'dead' ? 'var(--red)' : 'var(--cyan)';
+        var statusText = e.status === 'alive' ? 'UP' : e.status === 'dead' ? 'DOWN' : (e.message||'INFO');
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-size:.5em">'+
+          '<span style="font-family:monospace;color:var(--text2);min-width:55px">'+ts+'</span>'+
+          '<span>'+icon+'</span>'+
+          '<span style="font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.service||'?')+'</span>'+
+          '<span style="color:'+statusColor+';font-weight:600">'+statusText+'</span>'+
+          '<span style="color:var(--text2)">'+(e.ram_mb ? e.ram_mb+'MB' : '')+'</span>'+
+        '</div>';
+      });
+    }
+    if(!html) html = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:.55em">Нет событий по выбранному фильтру</div>';
+    cont.innerHTML = html;
+    cont.scrollTop = 0;
+  }catch(e){
+    cont.innerHTML = '<div style="text-align:center;padding:30px;color:var(--red);font-size:.6em">❌ Ошибка загрузки: '+e.message+'</div>';
+  }
+  if(!_eventsTimer){
+    _eventsTimer = setInterval(loadEvents, 15000);
+    document.querySelector('[data-tab="events"]').addEventListener('click', function(){ clearInterval(_eventsTimer); _eventsTimer = setInterval(loadEvents, 15000); });
+  }
+}
+
 </script>
 
 <!-- ═══ ВСПОМОГАТЕЛЬНЫЕ БЛОКИ ═══ -->

@@ -337,6 +337,13 @@ def handle_request(method, path, body=None):
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == '/health':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps({'status': 'ok', 'service': 'api_gateway', 'port': PORT}).encode())
+            return
         if not _check_rate_limit(self.client_address[0]):
             return
         data = handle_request("GET", self.path)

@@ -4,11 +4,12 @@ SNIN Hub API v2 — FastAPI + WebSocket.
 Все старые эндпоинты + /ws для WebSocket прокси в simple_agent.
 """
 
-import json, os, time, socket, subprocess, urllib.request, sys, sqlite3, threading, random
+import json, os, time, socket, subprocess, urllib.request, sys, sqlite3, threading, random, asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import uvicorn
+from starlette.responses import FileResponse
 
 PORT = 9950
 TCP_HOST = "127.0.0.1"
@@ -1765,6 +1766,166 @@ async def identity_proxy(path: str):
 @app.api_route("/identity-proxy/", methods=["GET"])
 async def identity_proxy_root():
     return await identity_proxy("")
+
+
+@app.get("/fabric")
+async def fabric_dashboard():
+    """Mesh Fabric dashboard — L5T L13 L14 L15"""
+    return FileResponse(os.path.join(os.path.dirname(__file__), "fabric_dashboard.html"))
+
+
+# ═══ V5 Mesh Fabric API Proxies ═══
+HEALTH_ENGINE_URL = "http://127.0.0.1:9999"
+
+async def _proxy_to_health_engine(path: str, method: str = "GET", body: dict = None):
+    """Прокси на Health Engine (:9999)"""
+    try:
+        url = f"{HEALTH_ENGINE_URL}{path}"
+        req = urllib.request.Request(url, method=method)
+        if body:
+            import json as _json
+            req.data = _json.dumps(body).encode()
+            req.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(req, timeout=5) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        return {"ok": False, "error": f"HTTP {e.code}"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+@app.get("/api/v5/health/dashboard")
+async def v5_health_dashboard():
+    return await _proxy_to_health_engine("/api/v1/health/dashboard")
+
+@app.get("/api/v5/health/services")
+async def v5_health_services():
+    r = await _proxy_to_health_engine("/api/v1/health/dashboard")
+    if isinstance(r, dict) and "summary" in r:
+        return {"ok": True, "services": r.get("services", {}), "summary": r["summary"], "layers": r.get("layers", {})}
+    return {"ok": False, "error": "health engine unreachable"}
+
+@app.get("/api/v5/alerts")
+async def v5_alerts(limit: int = 20, active: str = "false"):
+    return await _proxy_to_health_engine(f"/api/v1/alerts?limit={limit}&active={active}")
+
+@app.get("/api/v5/alerts/active")
+async def v5_alerts_active():
+    return await _proxy_to_health_engine("/api/v1/alerts/active")
+
+@app.post("/api/v5/alerts/ack/{alert_id}")
+async def v5_alerts_ack(alert_id: str):
+    return await _proxy_to_health_engine(f"/api/v1/alerts/ack/{alert_id}", method="POST")
+
+@app.get("/api/v5/recovery/stats")
+async def v5_recovery_stats():
+    return await _proxy_to_health_engine("/api/v1/recovery/stats")
+
+@app.get("/api/v5/recovery/events")
+async def v5_recovery_events(limit: int = 20, service: str = ""):
+    q = f"limit={limit}"
+    if service: q += f"&service={service}"
+    return await _proxy_to_health_engine(f"/api/v1/recovery/events?{q}")
+
+@app.get("/api/v5/recovery/analysis")
+async def v5_recovery_analysis():
+    return await _proxy_to_health_engine("/api/v1/recovery/analysis")
+
+@app.get("/api/v5/deadletter/stats")
+async def v5_dlq_stats():
+    return await _proxy_to_health_engine("/api/v1/deadletter/stats")
+
+
+# ═══ Event Log + Alert History — in-memory tracker ═══
+
+_event_log = []
+_alert_history = []
+_prev_services = {}
+_prev_alerts = {}  # rule_name → hash
+_startup_done = False
+
+async def _track_events():
+    """Background: poll health engine every 15s, track state changes"""
+    global _prev_services, _prev_alerts
+    while True:
+        try:
+            now = time.time()
+            # 1. Track service state changes
+            data = await _proxy_to_health_engine("/api/v1/health/dashboard")
+            if isinstance(data, dict) and "services" in data:
+                for name, svc in data["services"].items():
+                    curr = svc.get("is_alive", False)
+                    prev = _prev_services.get(name)
+                    if prev is not None and prev != curr:
+                        ev = {
+                            "ts": now, "type": "service",
+                            "service": name,
+                            "message": f"🟢 alive" if curr else "🔴 dead",
+                            "status": "alive" if curr else "dead",
+                            "port": svc.get("port", "—"),
+                            "ram_mb": svc.get("ram_mb", "—")
+                        }
+                        _event_log.append(ev)
+                    _prev_services[name] = curr
+
+            # 2. Track alert changes
+            alerts_resp = await _proxy_to_health_engine("/api/v1/alerts?active=true&limit=50")
+            if isinstance(alerts_resp, dict) and "alerts" in alerts_resp:
+                current_rules = {}
+                for a in alerts_resp["alerts"]:
+                    rn = a.get("rule_name", "?")
+                    current_rules[rn] = a.get("priority", "INFO")
+                
+                # Detect new alerts
+                for rn, pri in current_rules.items():
+                    if rn not in _prev_alerts:
+                        _alert_history.append({
+                            "ts": now, "rule": rn,
+                            "service": a.get("service_name", "?"),
+                            "priority": pri, "action": "FIRED"
+                        })
+                # Detect resolved alerts
+                for rn in _prev_alerts:
+                    if rn not in current_rules:
+                        _alert_history.append({
+                            "ts": now, "rule": rn,
+                            "service": "?", "priority": _prev_alerts[rn],
+                            "action": "RESOLVED"
+                        })
+                _prev_alerts = current_rules
+
+            # Trim
+            while len(_event_log) > 500:
+                _event_log.pop(0)
+            while len(_alert_history) > 200:
+                _alert_history.pop(0)
+        except Exception:
+            pass
+        await asyncio.sleep(15)
+
+@app.on_event("startup")
+async def _start_event_tracker():
+    global _startup_done
+    # Seed first event to show UI works
+    _event_log.append({
+        "ts": time.time(), "type": "system",
+        "service": "SNIN Hub",
+        "message": "🚀 Event tracker started",
+        "status": "info",
+        "port": "9950", "ram_mb": "—"
+    })
+    _startup_done = True
+    asyncio.create_task(_track_events())
+
+@app.get("/api/events")
+async def get_events(limit: int = 50):
+    items = _event_log[-limit:] if _event_log else []
+    return {"ok": True, "events": list(reversed(items))}
+
+@app.get("/api/alerts/history")
+async def get_alert_history(limit: int = 50):
+    items = _alert_history[-limit:] if _alert_history else []
+    return {"ok": True, "alerts": list(reversed(items))}
+
 
 if __name__ == "__main__":
     import argparse
