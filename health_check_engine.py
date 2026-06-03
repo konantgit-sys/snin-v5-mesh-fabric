@@ -301,6 +301,37 @@ async def start_http_server():
     app.router.add_get("/status", health_summary)
     app.router.add_get("/health", health_ping)
 
+    # ═══ L5T: Dead-Letter Sync API ═══
+    async def dlq_sync(request):
+        try:
+            from dead_letter import get_dlq
+            data = await request.json()
+            to_pubkey = data.get("pubkey", "")
+            since = data.get("since", 0)
+            if not to_pubkey:
+                return web.json_response({"ok": False, "error": "pubkey required"}, status=400)
+            dlq = get_dlq()
+            messages = await dlq.sync(to_pubkey, since)
+            return web.json_response({
+                "ok": True,
+                "count": len(messages),
+                "messages": [m.to_dict() for m in messages],
+            })
+        except Exception as e:
+            return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+    app.router.add_post("/api/v1/deadletter/sync", dlq_sync)
+
+    async def dlq_stats(request):
+        try:
+            from dead_letter import get_dlq
+            dlq = get_dlq()
+            return web.json_response({"ok": True, **dlq.stats()})
+        except Exception as e:
+            return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+    app.router.add_get("/api/v1/deadletter/stats", dlq_stats)
+
     engine_port = config.get("orchestration.health_engine.port", 9999)
     runner = web.AppRunner(app)
     await runner.setup()

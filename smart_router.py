@@ -1268,6 +1268,27 @@ class SmartRouter:
             best_result["channels_used"] = ok_count
         else:
             self.stats["failed"] += 1
+            # ═══ L5T: Dead-Letter Queue — если получатель офлайн ═══
+            to_agent_full = msg.get("to", "")
+            if to_agent_full and to_agent_full != "broadcast" and to_agent_full != "?":
+                try:
+                    from dead_letter import get_dlq
+                    dlq = get_dlq()
+                    dlq_result = await dlq.push(
+                        from_pubkey=msg.get("from", msg.get("pubkey", "")),
+                        to_pubkey=to_agent_full,
+                        content=msg.get("content", json.dumps(msg).decode() if hasattr(json.dumps(msg), 'decode') else str(json.dumps(msg))),
+                        kind=msg.get("kind", 39002),
+                        priority=meta.get("priority", "normal"),
+                    )
+                    if dlq_result["ok"]:
+                        self.stats["dlq_queued"] += 1
+                        best_result["ok"] = True
+                        best_result["dlq"] = True
+                        best_result["dlq_hash"] = dlq_result["hash"]
+                        print(f"[Router] 📥 DLQ queued for {to_agent_full[:12]}:{dlq_result['hash']}")
+                except Exception as ex:
+                    self.stats["dlq_error"] += 1
 
         return best_result
 
