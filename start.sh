@@ -77,7 +77,7 @@ echo "CRV2=$!"; sleep 2
 # Запуск с контролем — если упал, рестарт (макс 3 попытки)
 for attempt in 1 2 3; do
     > logs/smart_router.log
-    nohup python3 -u smart_router.py > logs/smart_router.log 2>&1 &
+    nohup python3 -u router_api.py > logs/smart_router.log 2>&1 &
     SR_PID=$!
     echo "SR=$SR_PID (попытка $attempt)"
     
