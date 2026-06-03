@@ -51,6 +51,7 @@ from router_policy import (
     TRAFFIC_CLASSES, KIND_TO_TRAFFIC_CLASS, ROUTE_STATS_KEY,
     ROUTE_HISTORY_KEY, ROUTE_BEST_KEY, TC_STATS_KEY, TC_HISTORY_KEY,
     TC_BEST_KEY, TC_POLICY_KEY, BP_MAX_CONCURRENT, BP_MAX_QUEUE_TIME,
+    POLICY_KEY,
 )
 
 # ─── Настройки (из mesh_config.yaml) ──────────────────────────────────
@@ -1561,3 +1562,9 @@ class SmartRouter:
                 health.serve_forever(),
                 self.self_learning_loop(),
             )
+
+# ═══ Entry point — запуск напрямую или через router_api.py ═══
+if __name__ == "__main__":
+    print("[SmartRouter] Starting via __main__...")
+    from router_api import run_router
+    asyncio.run(run_router())
