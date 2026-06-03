@@ -22,7 +22,7 @@ import sqlite3
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Union
 
 # ── Шифрование ──
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -51,10 +51,12 @@ def _derive_shared_secret(privkey_hex: str, pubkey_hex: str) -> bytes:
     """
     ECDH key exchange через secp256k1.
     Возвращает 32-байтовый shared secret (результат ecdh + SHA256).
+    pubkey_hex: hex string ИЛИ bytes (оба варианта бывают от разных API).
     """
     if secp256k1 is None:
         raise ImportError("secp256k1 required for NIP-04 encryption")
-    pub = secp256k1.PublicKey(bytes.fromhex(pubkey_hex), raw=True)
+    pubkey_bytes = bytes.fromhex(pubkey_hex) if isinstance(pubkey_hex, str) else pubkey_hex
+    pub = secp256k1.PublicKey(pubkey_bytes, raw=True)
     raw_shared = pub.ecdh(bytes.fromhex(privkey_hex))
     return hashlib.sha256(raw_shared).digest()
 
@@ -510,7 +512,7 @@ class DeadLetterQueue:
         4. Помечает доставленные
         """
         # Сначала локальные не доставленные
-        local_undelivered = self._get_local_undelivered(to_pubkey)
+        local_undelivered = self._get_local_undelivered(to_pubkey, since=since)
         local_hashes = {m.hash for m in local_undelivered}
 
         # Потом с релеев
@@ -523,15 +525,23 @@ class DeadLetterQueue:
         local_undelivered.sort(key=lambda m: m.created_at)
         return local_undelivered
 
-    def _get_local_undelivered(self, to_pubkey: str) -> list:
-        """Вернуть не доставленные сообщения из локальной БД."""
+    def _get_local_undelivered(self, to_pubkey: str, since: int = 0) -> list:
+        """Вернуть не доставленные сообщения из локальной БД (опционально с since)."""
         conn = self._get_conn()
-        rows = conn.execute(
-            """SELECT * FROM dead_letter_queue
-               WHERE to_pubkey = ? AND delivered = 0 AND ttl > ?
-               ORDER BY created_at ASC""",
-            (to_pubkey, int(time.time()))
-        ).fetchall()
+        if since > 0:
+            rows = conn.execute(
+                """SELECT * FROM dead_letter_queue
+                   WHERE to_pubkey = ? AND delivered = 0 AND ttl > ? AND created_at >= ?
+                   ORDER BY created_at ASC""",
+                (to_pubkey, int(time.time()), since)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """SELECT * FROM dead_letter_queue
+                   WHERE to_pubkey = ? AND delivered = 0 AND ttl > ?
+                   ORDER BY created_at ASC""",
+                (to_pubkey, int(time.time()))
+            ).fetchall()
         result = []
         for row in rows:
             msg = DeadLetterMessage(
