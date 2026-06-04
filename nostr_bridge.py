@@ -359,7 +359,7 @@ class NostrBridge:
             all_tasks.append(self._relay_list_task)
         if self._sr_listener_task:
             all_tasks.append(self._sr_listener_task)
-        if self._gateway_task:
+        if IS_PUBLISHER and hasattr(self, '_gateway_task') and self._gateway_task:
             all_tasks.append(self._gateway_task)
         all_tasks.extend(nostr_tasks)
         all_tasks.append(self._memory_check_task)

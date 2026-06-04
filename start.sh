@@ -32,7 +32,7 @@ for i in $(seq 1 30); do
 done
 if ! redis-cli ping 2>/dev/null | grep -q "PONG"; then
     echo "[start.sh] ❌ Redis не отвечает через 30с — запускаю..."
-    redis-server --daemonize yes 2>/dev/null
+    redis-server /etc/redis/redis.conf 2>/dev/null
     sleep 2
 fi
 
@@ -203,4 +203,14 @@ echo "Rotator=$!"
 echo ""
 echo "=== Relay Mesh V2 — All Services Started ==="
 echo "Ports: RE=9910 CRV2=9920 SR=9932 EG=9931 NB=9941-9945 Relay=8198"
+
+# 10. Health Check Engine v3.3 L13 (:9999)
+# Для алертов: export ALERT_TG_BOT_TOKEN="токен" ALERT_TG_CHAT_ID="чат"
+#             export NOSTR_PRIVATE_KEY="приватный_ключ"
+pkill -f "health_check_engine.py" 2>/dev/null
+sleep 1
+nohup python3 -u health_check_engine.py > logs/health_engine.log 2>&1 &
+echo "HE=$!"; sleep 2
+echo "[start.sh] ✅ HealthEngine поднялся на :9999"
+
 rm -f "$LOCKFILE"
