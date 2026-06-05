@@ -133,7 +133,9 @@ async def run_router():
             router._dht_scan_loop(),
             router._reorder_timeout_loop(),
             router._reorder_cleanup_loop(),
-            router._dedup_cleanup_loop()
+            router._dedup_cleanup_loop(),
+            router._priority_aging_loop(),
+            *[router._priority_worker(i) for i in range(router._pq_workers)]
         )
     except Exception as e:
         import traceback
