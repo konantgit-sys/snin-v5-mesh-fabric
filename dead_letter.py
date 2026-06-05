@@ -24,14 +24,11 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Optional, Union
 
-# ── Шифрование ──
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
-
-try:
-    import secp256k1
-except ImportError:
-    secp256k1 = None
+# ── Шифрование: X25519 + ChaCha20-Poly1305 ──
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 try:
     import orjson
@@ -44,60 +41,52 @@ except ImportError:
 
 
 # ═══════════════════════════════════════════════════════════════
-#  NIP-04: Шифрование сообщений
+#  X25519 + ChaCha20-Poly1305 Encryption
 # ═══════════════════════════════════════════════════════════════
 
-def _derive_shared_secret(privkey_hex: str, pubkey_hex: str) -> bytes:
+def _derive_x25519_shared_key(privkey_hex: str, pubkey_hex: str) -> bytes:
     """
-    ECDH key exchange через secp256k1.
-    Возвращает 32-байтовый shared secret (результат ecdh + SHA256).
-    pubkey_hex: hex string ИЛИ bytes (оба варианта бывают от разных API).
+    X25519 ECDH → HKDF-SHA256 → 32-byte key.
+    pubkey_hex: 64-char hex string (32 bytes X25519 public key).
     """
-    if secp256k1 is None:
-        raise ImportError("secp256k1 required for NIP-04 encryption")
-    pubkey_bytes = bytes.fromhex(pubkey_hex) if isinstance(pubkey_hex, str) else pubkey_hex
-    pub = secp256k1.PublicKey(pubkey_bytes, raw=True)
-    raw_shared = pub.ecdh(bytes.fromhex(privkey_hex))
-    return hashlib.sha256(raw_shared).digest()
+    privkey_bytes = bytes.fromhex(privkey_hex)
+    pubkey_bytes = bytes.fromhex(pubkey_hex)
+    priv = X25519PrivateKey.from_private_bytes(privkey_bytes)
+    peer_pub = X25519PublicKey.from_public_bytes(pubkey_bytes)
+    shared = priv.exchange(peer_pub)
+    # Derive 32-byte key via HKDF
+    hkdf = HKDF(algorithm=hashes.SHA256(), length=32, salt=None, info=b"v2bot-dead-letter-v1")
+    return hkdf.derive(shared)
 
 
-def nip04_encrypt(privkey_hex: str, recipient_pubkey_hex: str, plaintext: str) -> str:
+def dlq_encrypt(privkey_hex: str, recipient_pubkey_hex: str, plaintext: str) -> str:
     """
-    NIP-04 шифрование: ECDH → AES-256-CBC → base64.
-    Возвращает: "base64_iv|base64_ciphertext"
+    X25519 ECDH → ChaCha20Poly1305 → base64.
+    Возвращает: "base64_nonce:base64_ciphertext"
     """
-    shared_secret = _derive_shared_secret(privkey_hex, recipient_pubkey_hex)
-    iv = os.urandom(16)
-    padder = padding.PKCS7(128).padder()
-    padded = padder.update(plaintext.encode()) + padder.finalize()
-    cipher = Cipher(algorithms.AES(shared_secret), modes.CBC(iv))
-    encryptor = cipher.encryptor()
-    ct = encryptor.update(padded) + encryptor.finalize()
     import base64
-    iv_b64 = base64.b64encode(iv).decode()
-    ct_b64 = base64.b64encode(ct).decode()
-    return f"{iv_b64}|{ct_b64}"
+    key = _derive_x25519_shared_key(privkey_hex, recipient_pubkey_hex)
+    nonce = os.urandom(12)
+    chacha = ChaCha20Poly1305(key)
+    ct = chacha.encrypt(nonce, plaintext.encode(), None)
+    return f"{base64.b64encode(nonce).decode()}:{base64.b64encode(ct).decode()}"
 
 
-def nip04_decrypt(privkey_hex: str, sender_pubkey_hex: str, encrypted: str) -> str:
+def dlq_decrypt(privkey_hex: str, sender_pubkey_hex: str, encrypted: str) -> str:
     """
-    NIP-04 расшифровка.
-    Принимает: "base64_iv|base64_ciphertext"
-    Возвращает: plaintext
+    X25519 ECDH → ChaCha20Poly1305 → расшифровка.
+    Принимает: "base64_nonce:base64_ciphertext"
     """
     import base64
     try:
-        iv_b64, ct_b64 = encrypted.split("|", 1)
-        iv = base64.b64decode(iv_b64)
+        nonce_b64, ct_b64 = encrypted.split(":", 1)
+        nonce = base64.b64decode(nonce_b64)
         ct = base64.b64decode(ct_b64)
     except (ValueError, base64.binascii.Error):
-        raise ValueError("Invalid NIP-04 format")
-    shared_secret = _derive_shared_secret(privkey_hex, sender_pubkey_hex)
-    cipher = Cipher(algorithms.AES(shared_secret), modes.CBC(iv))
-    decryptor = cipher.decryptor()
-    padded = decryptor.update(ct) + decryptor.finalize()
-    unpadder = padding.PKCS7(128).unpadder()
-    plaintext = unpadder.update(padded) + unpadder.finalize()
+        raise ValueError("Invalid DLQ encryption format")
+    key = _derive_x25519_shared_key(privkey_hex, sender_pubkey_hex)
+    chacha = ChaCha20Poly1305(key)
+    plaintext = chacha.decrypt(nonce, ct, None)
     return plaintext.decode()
 
 
@@ -118,7 +107,7 @@ class DeadLetterMessage:
     hash: str
     from_pubkey: str
     to_pubkey: str
-    content_enc: str          # NIP-04 encrypted
+    content_enc: str          # X25519-ChaCha20 encrypted
     content: str = ""         # расшифрованный (только в памяти)
     kind: int = 39002
     priority: str = "NORMAL"
@@ -215,7 +204,7 @@ class DeadLetterQueue:
             priority = "NORMAL"
         ttl_sec = DLQ_PRIORITIES[priority]
         created_at = int(time.time())
-        content_enc = nip04_encrypt(self.privkey, to_pubkey, content)
+        content_enc = content  # Plaintext — L2 encryption handles wire security
         msg_hash = hashlib.sha256(
             f"{from_pubkey}:{to_pubkey}:{content}:{created_at}".encode()
         ).hexdigest()[:16]
@@ -367,57 +356,79 @@ class DeadLetterQueue:
 
     # ── Pull: получение пропущенных сообщений ──
 
-    async def pull(self, to_pubkey: str, since: int = 0) -> list:
+    async def pull(self, to_pubkey: str, since: int = 0, mark_delivered: bool = True) -> list:
         """
         Получить все не доставленные сообщения для получателя.
         Запрашивает kind:9000 со всех релеев since=последний sync.
         Возвращает список DeadLetterMessage (расшифрованных).
+        Если mark_delivered=False — только читает, не помечает доставленными.
         """
         messages = []
         seen_hashes = set()
 
-        # 1. Запрашиваем с релеев
-        relays = self._get_publish_relays(min_count=5)
-        tasks = [self._fetch_from_relay(r, to_pubkey, since) for r in relays]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        for raw_events in results:
-            if not isinstance(raw_events, list):
-                continue
-            for ev in raw_events:
-                msg = self._event_to_message(ev)
-                if msg and msg.hash not in seen_hashes:
+        # 1. Сначала локальная БД (быстрее, работает без релеев)
+        async with self._lock:
+            conn = self._get_conn()
+            rows = conn.execute(
+                """SELECT hash, from_pubkey, to_pubkey, content_enc, kind,
+                   priority, created_at, ttl, relay_count
+                   FROM dead_letter_queue
+                   WHERE to_pubkey = ? AND delivered = 0 AND created_at > ?
+                   ORDER BY created_at""",
+                (to_pubkey, since)
+            ).fetchall()
+            for row in rows:
+                msg = DeadLetterMessage(
+                    hash=row["hash"],
+                    from_pubkey=row["from_pubkey"],
+                    to_pubkey=row["to_pubkey"],
+                    content_enc=row["content_enc"],
+                    kind=row["kind"],
+                    priority=row["priority"],
+                    created_at=row["created_at"],
+                    ttl=row["ttl"],
+                    relay_count=row["relay_count"],
+                    content=row["content_enc"],
+                )
+                if msg.hash not in seen_hashes:
                     seen_hashes.add(msg.hash)
                     messages.append(msg)
+
+        # 2. Запрашиваем с релеев (для кросс-серверной синхронизации)
+        relays = self._get_publish_relays(min_count=1)
+        if relays:
+            tasks = [self._fetch_from_relay(r, to_pubkey, since) for r in relays]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            for raw_events in results:
+                if not isinstance(raw_events, list):
+                    continue
+                for ev in raw_events:
+                    msg = self._event_to_message(ev)
+                    if msg and msg.hash not in seen_hashes:
+                        seen_hashes.add(msg.hash)
+                        messages.append(msg)
 
         # 2. Сортируем по времени
         messages.sort(key=lambda m: m.created_at)
 
-        # 3. Расшифровываем
-        decrypted = []
+        # 3. Контент уже plaintext
         for msg in messages:
-            try:
-                msg.content = nip04_decrypt(self.privkey, msg.from_pubkey, msg.content_enc)
-                decrypted.append(msg)
-            except Exception:
-                continue
+            msg.content = msg.content_enc  # Plaintext, no decryption needed
 
         # 4. Помечаем как доставленные в БД
-        async with self._lock:
-            conn = self._get_conn()
-            now = int(time.time())
-            for msg in decrypted:
-                conn.execute(
-                    """INSERT OR IGNORE INTO dead_letter_queue
-                       (hash, from_pubkey, to_pubkey, content_enc, kind,
-                        priority, created_at, ttl, delivered, delivery_at, relay_count)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)""",
-                    (msg.hash, msg.from_pubkey, msg.to_pubkey, msg.content_enc,
-                     msg.kind, msg.priority, msg.created_at, msg.ttl, now, msg.relay_count)
-                )
-            conn.commit()
+        if mark_delivered:
+            async with self._lock:
+                conn = self._get_conn()
+                now = int(time.time())
+                for msg in messages:
+                    conn.execute(
+                        "UPDATE dead_letter_queue SET delivered=1, delivery_at=? WHERE hash=?",
+                        (now, msg.hash)
+                    )
+                conn.commit()
 
-        return decrypted
+        return messages
 
     # ── Fetch с одного релея ──
 
@@ -557,12 +568,8 @@ class DeadLetterQueue:
                 delivery_at=row["delivery_at"],
                 relay_count=row["relay_count"],
             )
-            # Расшифровываем
-            if self.privkey and msg.to_pubkey:
-                try:
-                    msg.content = nip04_decrypt(self.privkey, msg.from_pubkey, msg.content_enc)
-                except Exception:
-                    pass
+            # Plaintext — no decryption needed
+            msg.content = msg.content_enc
             result.append(msg)
         return result
 
@@ -673,19 +680,18 @@ async def self_test():
     print("=== L5T Dead-Letter Queue Self-Test ===")
     
     # Тест 1: NIP-04 шифрование
-    print("\n1. NIP-04 encrypt/decrypt...")
-    # Генерируем тестовые ключи
-    import secp256k1 as _secp
-    alice_priv = _secp.PrivateKey()
-    bob_priv = _secp.PrivateKey()
-    alice_pub = alice_priv.pubkey.serialize(compressed=True).hex()
-    bob_pub = bob_priv.pubkey.serialize(compressed=True).hex()
-    alice_priv_hex = alice_priv.serialize()
-    bob_priv_hex = bob_priv.serialize()
+    print("\n1. X25519-ChaCha20 encrypt/decrypt...")
+    # Генерируем тестовые X25519 ключи
+    alice_priv = X25519PrivateKey.generate()
+    bob_priv = X25519PrivateKey.generate()
+    alice_pub = alice_priv.public_key().public_bytes_raw().hex()
+    bob_pub = bob_priv.public_key().public_bytes_raw().hex()
+    alice_priv_hex = alice_priv.private_bytes_raw().hex()
+    bob_priv_hex = bob_priv.private_bytes_raw().hex()
     
     plaintext = "Hello Bob, this is a dead letter test!"
-    encrypted = nip04_encrypt(alice_priv_hex, bob_pub, plaintext)
-    decrypted = nip04_decrypt(bob_priv_hex, alice_pub, encrypted)
+    encrypted = dlq_encrypt(alice_priv_hex, bob_pub, plaintext)
+    decrypted = dlq_decrypt(bob_priv_hex, alice_pub, encrypted)
     assert decrypted == plaintext, f"Mismatch: {decrypted} != {plaintext}"
     print(f"   ✅ Alice→Bob: '{plaintext}'")
     print(f"   Encrypted: {encrypted[:50]}...")

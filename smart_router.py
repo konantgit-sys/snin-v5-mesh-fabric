@@ -1,4 +1,4 @@
-"""Smart Router v2 — 4 канала, маршрутные политики, самообучение.
+"""Smart Router v2 — 4 канала, маршрутные политики, самообучение + L5T Dead-Letter.
 
 Каналы доставки:
   direct  — TCP напрямую к агенту (IP из DHT)          — ~2ms
@@ -19,12 +19,24 @@
     "from": "agent_name",
     "to": "target_agent",
     "kind": 39002,
-    "pubkey": "hex",
-    "payload": {"text": "..."},
-    "meta": { "priority": "high|normal|low", "channel": "auto|direct|mesh|gossip|nostr",
-              "ttl": 60, "max_hops": 3, "ack": true }
+    "payload": "message text",
+    "meta": {
+        "channel": "nostr",
+        "priority": "high",
+        "agent": "forecaster_ai",
+    }
   }
 """
+
+
+# ═══ L5T: Dead-Letter Middleware ═══
+try:
+    from l5t_middleware import create_l5t_middleware, L5TMiddleware, HeartbeatTracker
+    L5T_AVAILABLE = True
+except ImportError:
+    L5T_AVAILABLE = False
+    print("[Router] ⚠️ L5T middleware not available")
+
 
 import asyncio
 import orjson as json
@@ -38,6 +50,9 @@ from collections import defaultdict, deque
 from mesh_config import config
 from gossip_stream import GossipStream
 from graceful_degradation import GracefulDegradation
+from rate_limiter import RateLimiter
+from message_sequencer import SeqNumTracker, ReorderBuffer, reorder_timeout_loop, reorder_cleanup_loop
+from message_deduplicator import MessageDeduplicator, dedup_cleanup_loop
 
 # Level 2: CPU-bound crypto в ProcessPool
 sys.path.insert(0, "/home/agent/data/sites/relay-mesh")
@@ -66,7 +81,11 @@ start_health(LISTEN_PORT, "smart_router")
 CR_HOST = "127.0.0.1"
 CR_PORT = config.get("transport.content_router_v2.port", 9920)
 NOSTR_GW_HOST = "127.0.0.1"
-NOSTR_GW_PORTS = [config.get("nostr.bridge_base_port", 9941)]
+NOSTR_GW_PORTS = [9941, 9942, 9943, 9944, 9945]  # Фаза 2: все 5 шардов — gateway
+
+# ═══ L5T Constants ═══
+HEARTBEAT_KIND = 39000
+DEAD_LETTER_KIND = 9000
 GOSSIP_PORTS = [9100, 9101, 9102, 9103, 9104]
 CR_V2_PORT = CR_PORT
 
@@ -82,6 +101,37 @@ HEALTH_PORT = config.get("transport.smart_router.health_port", 9933)
 # Redis (lazy import в aredis())
 REDIS_CLIENT = None
 _GLOBAL_ROUTER = None  # глобальный синглтон SmartRouter (in-memory best_channel)
+
+# ═══ Phase 2: Relay Signing — подписанные релеи (L5 Identity) ═══
+SIGNED_RELAYS_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "data", "signed_relays.json"
+)
+_signed_relays_cache: dict[str, dict] = {}
+
+
+def _load_signed_relays():
+    """Загрузить список подписанных релеев из файла."""
+    global _signed_relays_cache
+    try:
+        with open(SIGNED_RELAYS_FILE) as f:
+            _signed_relays_cache = json.loads(f.read())
+    except (FileNotFoundError, json.JSONDecodeError, Exception):
+        _signed_relays_cache = {}
+
+
+def is_relay_signed(relay_url: str) -> bool:
+    """Проверить, подписан ли релей через L5 Identity."""
+    return relay_url in _signed_relays_cache
+
+
+def get_signed_relay_count() -> int:
+    """Количество подписанных релеев."""
+    return len(_signed_relays_cache)
+
+
+# Загрузка при старте
+_load_signed_relays()
 
 
 class SmartRouter:
@@ -101,6 +151,7 @@ class SmartRouter:
             "gossip": {"ok": 0, "fail": 0, "avg_ms": 0},
             "nostr": {"ok": 0, "fail": 0, "avg_ms": 0},
             "direct": {"ok": 0, "fail": 0, "avg_ms": 0},
+            "fire-and-forget": {"ok": 0, "fail": 0, "avg_ms": 0},
         }
         # ═══ Фаза 2: Circuit Breaker + Backpressure ═══
         self._cb = InMemoryCircuitBreaker()
@@ -133,57 +184,104 @@ class SmartRouter:
         self._last_cr_reconnect = 0.0  # rate-limit reconnect
         # ═══ Фаза 1: DHT Kademlia ═══
         self._dht = None
+        # ═══ L5T: Dead-Letter Queue Middleware ═══
+        self.l5t = create_l5t_middleware() if L5T_AVAILABLE else None
+        self._l5t_heartbeat_task: asyncio.Task = None  # type: ignore
+        if self.l5t:
+            print("[Router] 📮 L5T Dead-Letter middleware initialized")
         # ═══ Фаза 8: Event subscribers (push-канал для агентов) ═══
         self._event_subscribers: dict[int, tuple] = {}  # id → (writer, agent_name)
         self._sub_next_id = 0
+        # ═══ Фаза 1 Rate Limiter (token bucket) ═══
+        self._rate_limiter = RateLimiter(rate=100.0, burst=200)
+        # ═══ Фаза 3 Message Ordering (seq_num + reorder buffer) ═══
+        self._seq_tracker = SeqNumTracker()
+        self._reorder = ReorderBuffer()
+        # ═══ Фаза 4 Message Deduplication ═══
+        self._dedup = MessageDeduplicator()
 
     # ═══ Фаза 6.2: In-memory Policy Cache ═══
     async def _load_policy_cache(self):
-        """Загрузить все политики из Redis в in-memory cache.
-        Вызывается при старте и раз в 60 секунд в self_learning_loop.
-        """
+        """Загрузить все политики из Redis в in-memory cache."""
         r = await aredis()
         if not r:
+            print("[PolicyCache] aredis returned None!")
             return
         try:
             all_raw = await r.hgetall(POLICY_KEY)
+            # DEBUG: show raw default
+            raw_default = all_raw.get("default", "MISSING")
+            print(f"[PolicyCache] RAW default: {raw_default}")
             cache = {}
             for key, raw in all_raw.items():
                 try:
-                    # orjson требует bytes; Redis с decode_responses=True отдаёт str
                     data = raw.encode() if isinstance(raw, str) else raw
                     cache[key] = json.loads(data)
-                except Exception:
-                    cache[key] = {"mesh": 1.0}  # fallback
+                except Exception as e:
+                    print(f"[PolicyCache] ERROR key={key}: {e}")
+                    cache[key] = {"mesh": 1.0}
             self._policy_cache = cache
             self._policy_cache_loaded = True
+            # 🔒 Gossip-first enforcement: gossip ≥ mesh in all policies
+            for key in cache:
+                w = cache[key]
+                # Ensure gossip exists in all policies
+                if "gossip" not in w:
+                    w["gossip"] = 1.0  # add gossip with high weight
+                # Gossip must be at least as heavy as mesh
+                mesh_w = w.get("mesh", 0)
+                gossip_w = w.get("gossip", 0)
+                if gossip_w < mesh_w:
+                    w["gossip"] = mesh_w  # equalize
+                # Normalize
+                total = sum(w.values())
+                if total > 0:
+                    for ch in w:
+                        w[ch] = round(w[ch] / total, 3)
+                cache[key] = w
+            self._policy_cache = cache
+            print(f"[Router] Policy cache loaded: {len(cache)} rules, default={cache.get('default', 'N/A')}")
         except Exception as e:
             print(f"[PolicyCache] Error loading: {e}")
 
     def get_policy(self, kind: int) -> dict:
         """In-memory: вернуть политику для kind без Redis.
         Exact match → Range match → Default.
-        Если кэш пуст — fallback на Redis функцию.
+        Gossip-first enforced inline.
         """
         sk = str(kind)
+        result = None
 
         # Exact match
         if sk in self._policy_cache:
-            return self._policy_cache[sk]
-
-        # Range match (39010_39025 → mesh:1.0)
-        for key, weights in self._policy_cache.items():
-            if "_" in key:
-                parts = key.split("_")
-                try:
-                    lo, hi = int(parts[0]), int(parts[1])
-                    if lo <= kind <= hi:
-                        return weights
-                except (ValueError, IndexError):
-                    continue
-
-        # Default
-        return self._policy_cache.get("default", {"mesh": 1.0})
+            result = dict(self._policy_cache[sk])
+        else:
+            # Range match (39010_39025)
+            for key, weights in self._policy_cache.items():
+                if "_" in key:
+                    parts = key.split("_")
+                    try:
+                        lo, hi = int(parts[0]), int(parts[1])
+                        if lo <= kind <= hi:
+                            result = dict(weights)
+                            break
+                    except (ValueError, IndexError):
+                        continue
+        
+        if result is None:
+            result = self._policy_cache.get("default", {"gossip": 1.0, "mesh": 0.5})
+        
+        # 🔒 Gossip-first: ensure gossip ≥ mesh
+        result = dict(result)  # copy to avoid mutating cache
+        if "gossip" not in result:
+            result["gossip"] = 1.0
+        if result.get("gossip", 0) < result.get("mesh", 0):
+            result["gossip"] = result["mesh"]
+            total = sum(result.values())
+            for ch in result:
+                result[ch] = round(result[ch] / total, 3)
+        
+        return result
 
     async def _sync_best_channels(self):
         """Раз в 60 сек: синхронизировать best_channel из Redis.
@@ -629,10 +727,13 @@ class SmartRouter:
                 print(f"[Router] 🟣 nostr: {len(alive_shards)}/{len(NOSTR_GW_PORTS)} shards alive")
                 if not alive_shards:
                     print(f"[Router] 🔴 All nostr shards dead, reconnecting publisher...")
-                    asyncio.ensure_future(self._reconnect_nostr_shard(0))
-                    self.stats["chan_fail:nostr"] += 1
-                    result["error"] = "all nostr shards dead, reconnecting..."
-                    return result
+                    # ⚡ BLOCKING reconnect (не ensure_future — ждём результат)
+                    await self._reconnect_nostr_shard(0)
+                    alive_shards = [i for i, w in enumerate(self._nostr_writers) if w is not None]
+                    if not alive_shards:
+                        self.stats["chan_fail:nostr"] += 1
+                        result["error"] = "all nostr shards dead, reconnect failed"
+                        return result
 
                 # 🔧 Рекурсивная конвертация bytes→str во всей структуре
                 def _bytes_to_str(v):
@@ -816,6 +917,35 @@ class SmartRouter:
                             return_exceptions=True
                         )
                     self.stats["gossip_broadcast"] += 1
+
+            elif channel == "fire-and-forget" and self._gossip_writers:
+                # ═══ Fire-and-Forget: broadcast без confirm, без drain ═══
+                gossip_msg = dict(message)
+                if "meta" not in gossip_msg:
+                    gossip_msg["meta"] = {}
+                if isinstance(gossip_msg["meta"], dict):
+                    gossip_msg["meta"] = {**gossip_msg["meta"], "origin": "smart_router", "channel": "fire-and-forget"}
+                gossip_payload = json.dumps(gossip_msg) + b"\n"
+                
+                ok_count = 0
+                for idx, w in enumerate(self._gossip_writers):
+                    if w is None:
+                        continue
+                    try:
+                        w.write(gossip_payload)
+                        ok_count += 1
+                    except Exception:
+                        self._gossip_writers[idx] = None
+                        asyncio.ensure_future(self._reconnect_gossip_shard(idx))
+                
+                # Fire-and-forget: не ждём drain — возвращаем сразу
+                result["ok"] = ok_count > 0
+                result["shards_ok"] = ok_count
+                result["latency_ms"] = round((time.time() - start) * 1000, 1)
+                self.stats["fire_forget_sent"] += 1
+                if ok_count == 0:
+                    self.stats["fire_forget_fail"] += 1
+                    result["error"] = "all gossip shards dead"
 
             elif channel == "gossip_data":
                 # V8: GossipStream — data channel между реле
@@ -1011,6 +1141,14 @@ class SmartRouter:
                             safe_avg = max(1.0, h["avg_ms"])
                             score = h["ok"] / max(1, total) * 100 / safe_avg
                             health_scores[ch] = score
+                        else:
+                            # Неиспользованные каналы — даём нейтральный скор (не penalize!)
+                            health_scores[ch] = 50.0  # neutral, не 0
+                    
+                    # Gossip-first: boost gossip by default
+                    if "gossip" in health_scores and health_scores.get("gossip", 0) < 30:
+                        health_scores["gossip"] = max(health_scores["gossip"], 50.0)
+                    
                     if health_scores:
                         max_score = max(health_scores.values())
                         if max_score > 0:
@@ -1033,6 +1171,14 @@ class SmartRouter:
                                             weights[ch] = 0.95
                                 total_w = sum(weights.values())
                                 if total_w > 0:
+                                    for ch in weights:
+                                        weights[ch] = round(weights[ch] / total_w, 3)
+                                # 🔒 Gossip-first enforcement: gossip ≥ mesh
+                                if "gossip" not in weights:
+                                    weights["gossip"] = 1.0
+                                if weights.get("gossip", 0) < weights.get("mesh", 0):
+                                    weights["gossip"] = weights["mesh"]
+                                    total_w = sum(weights.values())
                                     for ch in weights:
                                         weights[ch] = round(weights[ch] / total_w, 3)
                                 if weights != old_weights:
@@ -1097,6 +1243,49 @@ class SmartRouter:
         kind = msg.get("kind", 39002)
         priority = meta.get("priority", "normal")
         channel_pref = meta.get("channel", "auto")
+
+        # ═══ Rate Limiter: token bucket per agent ═══
+        if not self._rate_limiter.allow(from_agent):
+            self.stats["rate_limited"] += 1
+            return {"ok": False, "error": "rate_limited", "channel": "drop"}
+
+        # ═══ L5T: Agent-to-Agent → проверка online/offline ═══
+        to_full = msg.get("to", "")
+        if to_full and to_full != "broadcast" and self.l5t:
+            # Это agent-to-agent сообщение — проверяем статус получателя
+            is_online = await self.l5t.heartbeat.is_online(to_full)
+            print(f"[Router] L5T: agent msg to={to_full[:16]}... online={is_online}")
+            if not is_online:
+                # Получатель офлайн → Dead-Letter Queue
+                self.stats["l5t:queued"] += 1
+                try:
+                    result = await self.l5t.queue_to_dlq(msg)
+                    result["channel"] = "deadletter"
+                    if "seq" in msg:
+                        result["seq"] = msg["seq"]
+                    print(f"[Router] L5T: ✅ queued to DLQ hash={result.get('dlq_hash','?')[:8]}...")
+                    return result
+                except Exception as e:
+                    print(f"[Router] L5T: ❌ DLQ error: {e}")
+                    import traceback; traceback.print_exc()
+                    result = {"ok": False, "error": f"dlq_failed: {e}"}
+                    if "seq" in msg:
+                        result["seq"] = msg["seq"]
+                    return result
+            self.stats["l5t:direct_agent"] += 1
+
+        # ═══ Heartbeat обработка ═══
+        if kind == HEARTBEAT_KIND and self.l5t:
+            from_full = msg.get("from", msg.get("pubkey", ""))
+            hb_result = await self.l5t.process_incoming_heartbeat(from_full, meta)
+            return {
+                "ok": True,
+                "channel": "heartbeat",
+                "status": "ack",
+                "online": hb_result.get("online", True),
+                "agent": hb_result.get("name", ""),
+                "pending_messages": hb_result.get("pending_messages", 0),
+            }
         
         # ═══ Вектор 3: Self-Learning по traffic_class ═══
         traffic_class = classify_traffic(kind, meta)
@@ -1111,15 +1300,17 @@ class SmartRouter:
             tc_best = await self._get_tc_best(traffic_class)
             
             if tc_best and tc_best in policy:
-                channel = tc_best
-            else:
-                # Default weights для traffic_class
-                tc_default = TRAFFIC_CLASSES.get(traffic_class, {"mesh": 1.0})
-                # Комбинируем с policy: берём общие каналы с весами из tc
-                combined = {ch: tc_default.get(ch, 0.1) for ch in policy}
-                chs = list(combined.keys())
-                weights = [combined[c] for c in chs]
+                # 🔀 Multi-channel: bias toward best but preserve diversity
+                chs = list(policy.keys())
+                weights = [policy[c] * (3.0 if c == tc_best else 1.0) for c in chs]
                 channel = random.choices(chs, weights=weights, k=1)[0]
+            else:
+                # Используем policy weights напрямую (не перезаписываем через TRAFFIC_CLASSES)
+                chs = list(policy.keys())
+                weights = [policy[c] for c in chs]
+                channel = random.choices(chs, weights=weights, k=1)[0]
+                if random.random() < 0.1:  # log 10% for debug
+                    print(f"[Router] DEBUG auto-pick: policy={policy} chs={chs} w={weights} → {channel}")
             
             # Фаза 2: если канал зациркуичен — перевыбираем
             if self._cb.is_blocked(channel):
@@ -1138,7 +1329,7 @@ class SmartRouter:
                         self.stats["congestion_reroute"] += 1
                 elif health["avg_ms"] > 200:
                     self.stats["congestion_slow"] += 1
-        elif channel_pref in ("direct", "mesh", "gossip", "nostr", "content_router", "chequebook", "gossip_data", "nostr_data"):
+        elif channel_pref in ("direct", "mesh", "gossip", "nostr", "content_router", "chequebook", "gossip_data", "nostr_data", "fire-and-forget"):
             channel = channel_pref
             # Фаза 2: если явно запрошенный канал зациркуичен — mesh fallback
             if self._cb.is_blocked(channel):
@@ -1291,6 +1482,10 @@ class SmartRouter:
                 except Exception as ex:
                     self.stats["dlq_error"] += 1
 
+        # Add seq info to response
+        if "seq" in msg:
+            best_result["seq"] = msg["seq"]
+
         return best_result
 
     async def handle_client(self, reader, writer):
@@ -1371,6 +1566,36 @@ class SmartRouter:
                     writer.write(json.dumps({"ok": True, "subscribed": True, "sub_id": sub_id}) + b"\n")
                     await writer.drain()
                     print(f"[Router] ✅ Agent '{agent_name}' subscribed (id={sub_id}, total={len(self._event_subscribers)})")
+                    
+                    # ═══ L5T: Flush pending DLQ messages to subscriber ═══
+                    if self.l5t:
+                        try:
+                            pending = await self.l5t.sync_for_agent(agent_name, since=0)
+                            if pending:
+                                for dlq_msg in pending:
+                                    try:
+                                        content = dlq_msg.content
+                                        if isinstance(content, (bytes, str)):
+                                            payload = json.loads(content) if content else {}
+                                    except:
+                                        payload = {"raw": str(dlq_msg.content)[:100]}
+                                    push_event = {
+                                        "type": "push",
+                                        "kind": dlq_msg.kind,
+                                        "from": dlq_msg.from_pubkey,
+                                        "to": agent_name,
+                                        "meta": {"channel": "deadletter_sync", "dlq": True},
+                                        "payload": payload,
+                                        "dlq_hash": dlq_msg.hash,
+                                    }
+                                    data = json.dumps(push_event) + b"\n"
+                                    writer.write(data)
+                                await writer.drain()
+                                print(f"[Router] 📬 Flushed {len(pending)} DLQ messages to {agent_name[:16]}...")
+                        except Exception as e:
+                            print(f"[Router] ⚠️ DLQ flush error: {e}")
+                            import traceback; traceback.print_exc()
+                    
                     continue
                 elif kind == "unsubscribe":
                     sub_id = msg.get("sub_id", -1)
@@ -1385,13 +1610,34 @@ class SmartRouter:
                 
                 # ═══ Фаза 9: Push всем подписанным агентам (кроме отправителя) ═══
                 from_agent = msg.get("from", "")
+                
+                # ═══ Фаза 4: Dedup check (до seq assignment — по payload) ═══
+                is_dup = await self._dedup.is_duplicate(msg)
+                if is_dup:
+                    self.stats["dedup_dropped"] += 1
+                    writer.write(json.dumps({"ok": False, "error": "duplicate", "channel": "dedup_drop"}) + b"\n")
+                    await writer.drain()
+                    continue
+                
+                # ═══ Фаза 3: seq_num assignment (before push) ═══
+                to_full = msg.get("to", "")
+                if to_full and to_full != "broadcast":
+                    seq = await self._seq_tracker.next_seq(from_agent, to_full)
+                    msg["seq"] = seq
+                    if "meta" not in msg:
+                        msg["meta"] = {}
+                    msg["meta"]["seq"] = seq
+                    self.stats["seq_assigned"] += 1
+                
                 event_for_push = {
                     "type": "push",
                     "kind": kind,
                     "from": from_agent,
+                    "to": msg.get("to", ""),
                     "pubkey": msg.get("pubkey", ""),
                     "payload": msg.get("payload", msg.get("content", "")),
                     "meta": msg.get("meta", {}),
+                    "seq": msg.get("seq"),
                     "ts": time.time(),
                 }
                 await self._push_to_subscribers(event_for_push, exclude_writer=writer)
@@ -1424,9 +1670,39 @@ class SmartRouter:
             self.stats["disconnects"] += 1
 
     async def _push_to_subscribers(self, event: dict, exclude_writer=None):
-        """Разослать событие всем подписанным агентам."""
+        """Разослать событие всем подписанным агентам.
+        
+        Фаза 3: agent-to-agent сообщения проходят через reorder buffer.
+        Фаза 4: dedup-проверка перед отправкой.
+        Broadcast идут напрямую.
+        """
         if not self._event_subscribers:
             return
+        
+        # ═══ Фаза 4: Dedup check ═══
+        if await self._dedup.is_duplicate(event):
+            self.stats["dedup_push_dropped"] += 1
+            return
+        
+        to_agent = event.get("to", "")
+        from_agent = event.get("from", event.get("pubkey", "?"))[:16]
+        seq = event.get("seq")
+        
+        # ═══ Фаза 3: Reorder buffer для agent-to-agent ═══
+        if to_agent and to_agent != "broadcast" and seq is not None:
+            ready_msgs = await self._reorder.deliver(from_agent, to_agent, seq, event)
+            if not ready_msgs:
+                # Сообщение буферизировано — не доставляем пока
+                return
+            # Доставляем готовые сообщения
+            for ready_msg in ready_msgs:
+                await self._push_single(ready_msg, exclude_writer)
+        else:
+            # Broadcast или без seq → доставляем сразу
+            await self._push_single(event, exclude_writer)
+    
+    async def _push_single(self, event: dict, exclude_writer=None):
+        """Отправить одно сообщение всем подписчикам."""
         dead_ids = []
         payload = json.dumps(event) + b"\n"
         for sid, (w, name) in list(self._event_subscribers.items()):
@@ -1448,6 +1724,40 @@ class SmartRouter:
                 await self._dht.refresh_agent(pubkey, meta)
         except Exception as e:
             print(f"[DHT] refresh error: {type(e).__name__}: {e}")
+
+    # ═══ Фаза 3: Reorder background loops ═══
+    async def _reorder_timeout_loop(self):
+        """Фоновый цикл: проверка тайм-аутов reorder buffer."""
+        while True:
+            await asyncio.sleep(1.0)
+            try:
+                timed_out = await self._reorder.check_timeouts()
+                if timed_out:
+                    for from_agent, to_agent, msg in timed_out:
+                        await self._push_single(msg)
+            except Exception as e:
+                print(f"[Reorder] timeout check error: {e}")
+
+    async def _reorder_cleanup_loop(self):
+        """Фоновый цикл: очистка старых пар reorder buffer."""
+        while True:
+            await asyncio.sleep(300.0)
+            try:
+                removed = self._reorder.cleanup_old_pairs()
+                if removed:
+                    print(f"[Reorder] Cleaned {removed} stale pairs")
+            except Exception as e:
+                print(f"[Reorder] cleanup error: {e}")
+
+    # ═══ Фаза 4: Dedup background loop ═══
+    async def _dedup_cleanup_loop(self):
+        """Фоновый цикл: очистка dedup-кеша."""
+        while True:
+            await asyncio.sleep(120.0)
+            try:
+                await self._dedup.cleanup()
+            except Exception as e:
+                print(f"[Dedup] cleanup error: {e}")
 
     async def run(self):
         global _GLOBAL_ROUTER
@@ -1484,6 +1794,8 @@ class SmartRouter:
         print(f"[Router]    Policies: {n_policies} rules in Redis")
         print(f"[Router]    Route-learning: ON")
         print(f"[Router]    Phase 4: orjson + Health :{HEALTH_PORT}")
+        print(f"[Router]    Phase 3: Message Ordering ENABLED (seq_num + reorder)")
+        print(f"[Router]    Phase 4: Message Deduplication ENABLED")
 
         async def health_check(reader, writer):
             """HTTP endpoint: /health — общая статистика, /dht — детали DHT."""

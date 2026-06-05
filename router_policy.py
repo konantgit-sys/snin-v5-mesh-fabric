@@ -79,7 +79,9 @@ async def aredis():
                 decode_responses=True
             )
             await _REDIS_CLIENT.ping()
-        except Exception:
+            print(f"[Redis] aredis: connected to localhost:6379 db=0")
+        except Exception as e:
+            print(f"[Redis] aredis: FAILED - {e}")
             pass
     return _REDIS_CLIENT
 
