@@ -63,7 +63,8 @@ _shard_args, _ = _shard_parser.parse_known_args()
 SHARD_ID = _shard_args.shard_id
 TOTAL_SHARDS = _shard_args.total_shards
 PUBLISHER_SHARD_ID = 0
-IS_PUBLISHER = SHARD_ID == PUBLISHER_SHARD_ID
+# Фаза 2: ВСЕ шарды — gateway. Резервирование Nostr-канала.
+IS_PUBLISHER = True  # было: SHARD_ID == PUBLISHER_SHARD_ID
 
 # ─── Настройки ───
 SMART_ROUTER_HOST = config.get("nostr.smart_router_host", "127.0.0.1")
@@ -98,6 +99,7 @@ class NostrBridge:
     def __init__(self, pubkey_hex: str = "", privkey_hex: str = ""):
         self.pubkey = pubkey_hex
         self.privkey = privkey_hex
+        self.stats = stats
         self.clients: list[NostrRelayClient] = []
         self._publish_queue: asyncio.Queue = asyncio.Queue(maxsize=500)
         self._published_cache: TTLCache = TTLCache(maxsize=5000, ttl=600)
@@ -277,15 +279,22 @@ class NostrBridge:
         while self._running:
             try:
                 event = await asyncio.wait_for(self._publish_queue.get(), timeout=1)
+                print(f"[Publisher] ⚡ Got event id={event.get('id','?')[:16]}... queue_size={self._publish_queue.qsize()}")
                 if not self.clients:
+                    print(f"[Publisher] ⚠️ No clients!")
                     await asyncio.sleep(0.5)
                     continue
                 alive = [c for c in self.clients if c.connected and not c.cb.permanently_dead]
+                print(f"[Publisher] 🟢 alive={len(alive)}/{len(self.clients)} clients")
                 if not alive:
                     continue
                 for c in alive[:3]:
                     asyncio.create_task(c.publish(event))
                 self._published_cache.add(event.get("id", ""))
+                # Debug: dump event keys
+                ev_keys = list(event.keys())
+                ev_content = str(event.get('content',''))[:60]
+                print(f"[Publisher] 📦 event keys={ev_keys} content={ev_content} sig_len={len(event.get('sig','') or '')}")
             except asyncio.TimeoutError:
                 continue
 
@@ -402,18 +411,38 @@ class NostrBridge:
                     break
                 raw = line.decode().strip()
                 event = orjson.loads(raw)
-                if event.get("kind") == 39002:
+                kind = event.get("kind")
+                if kind is None:
+                    continue
+                if kind == 39002:
                     content = event.get("payload", {}).get("text", "") or event.get("content", "")
+                    # Рекурсивно извлекаем текст: может быть JSON-строка или вложенный dict
+                    for _ in range(3):  # Максимум 3 уровня вложенности
+                        if isinstance(content, dict):
+                            content = content.get("text", "") or content.get("content", "") or str(content)
+                        elif isinstance(content, str) and content.startswith('{') and content.endswith('}'):
+                            try:
+                                content = json.loads(content)
+                            except (json.JSONDecodeError, TypeError, ValueError):
+                                break  # Это настоящий текст, не JSON
+                        else:
+                            break  # Обычная строка — это и есть контент
+                    if not isinstance(content, str) or not content.strip():
+                        print(f"[GW] ⚠️ Empty content after extraction, raw={str(event.get('payload',{}))[:80]}")
+                        continue
                     if content:
                         ev_id = event.get("id", "")
                         if ev_id and not self._published_cache.add(ev_id):
                             continue
+                        print(f"[GW] 📥 Received kind=39002 content={content[:50]}...")
                         nostr_event = await sign_event_async(
                             pubkey_hex=self.pubkey, private_key_hex=self.privkey,
                             content=content, kind=1, tags=event.get("tags", []),
                         )
+                        print(f"[GW] ✅ Signed: id={nostr_event.get('id','?')[:16]}... sig={nostr_event.get('sig','?')[:16]}...")
                         try:
                             self._publish_queue.put_nowait(nostr_event)
+                            print(f"[GW] 📤 Queued for publishing")
                         except asyncio.QueueFull:
                             stats["dropped"] = stats.get("dropped", 0) + 1
                         stats["mesh_to_nostr"] += 1
@@ -583,7 +612,7 @@ if __name__ == "__main__":
     pubkey = "npub1snin_mesh_bridge"
     privkey = ""
     try:
-        with open(AGENTS_FILE) as f:
+        with open("/home/agent/data/sites/relay-mesh/agents.json") as f:
             agents = json.load(f)
             for pk, info in agents.items():
                 if info.get("name") == "archivist_ai":
@@ -593,6 +622,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"[Bridge] ⚠️ Cannot load agents.json: {e}")
 
+    print(f"[Bridge] 🔑 Loaded keys: pubkey={'SET' if pubkey else 'EMPTY'} privkey_len={len(privkey) if privkey else 'NONE'}")
     bridge = NostrBridge(pubkey_hex=pubkey, privkey_hex=privkey)
     _shutting_down = False
 

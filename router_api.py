@@ -50,7 +50,11 @@ async def print_status(router: SmartRouter):
         print(f"[Router] Channels: mesh={router.stats['chan_ok:mesh']} "
               f"gossip={router.stats['chan_ok:gossip']} "
               f"nostr={router.stats['chan_ok:nostr']} "
-              f"direct={router.stats['chan_ok:direct']}")
+              f"direct={router.stats['chan_ok:direct']} "
+              f"faf={router.stats['fire_forget_sent']}")
+        print(f"[Router] RateLimiter: allowed={router._rate_limiter.stats['allowed']} "
+              f"denied={router._rate_limiter.stats['denied']} "
+              f"buckets={len(router._rate_limiter._buckets)}")
         print(f"[Router] Fallbacks: {router.stats['fallback_to_mesh']} | "
               f"congestion_reroute: {router.stats['congestion_reroute']} | "
               f"congestion_slow: {router.stats['congestion_slow']}")
@@ -126,7 +130,10 @@ async def run_router():
         await asyncio.gather(
             router.run(),
             print_status(router),
-            router._dht_scan_loop()
+            router._dht_scan_loop(),
+            router._reorder_timeout_loop(),
+            router._reorder_cleanup_loop(),
+            router._dedup_cleanup_loop()
         )
     except Exception as e:
         import traceback

@@ -32,24 +32,8 @@ if TYPE_CHECKING:
 async def sign_event_async(pubkey_hex: str, private_key_hex: str, content: str,
                           kind: int, tags: list = None, created_at: int = 0) -> dict:
     """Подписать событие Nostr (async, через ProcessPool)."""
-    if created_at == 0:
-        created_at = int(time.time())
-    if tags is None:
-        tags = []
-    content_hash = await hash_sha256_async(
-        json.dumps([0, pubkey_hex, created_at, kind, tags, content],
-                   ensure_ascii=False, separators=(',', ':'))
-    )
-    sig = await sign_event_full_async(private_key_hex, content_hash)
-    return {
-        "id": content_hash,
-        "pubkey": pubkey_hex,
-        "created_at": created_at,
-        "kind": kind,
-        "tags": tags,
-        "content": content,
-        "sig": sig,
-    }
+    # Делегируем полную подпись (хеширование + Schnorr) в sign_event_full_async
+    return await sign_event_full_async(pubkey_hex, private_key_hex, content, kind, tags, created_at)
 
 
 def sign_event(pubkey_hex: str, private_key_hex: str, content: str,
@@ -59,18 +43,25 @@ def sign_event(pubkey_hex: str, private_key_hex: str, content: str,
         created_at = int(time.time())
     if tags is None:
         tags = []
+    # Strip compressed/uncompressed prefix — Nostr expects bare 32-byte pubkey
+    if len(pubkey_hex) == 66 and pubkey_hex[:2] in ('02', '03'):
+        bare_pubkey = pubkey_hex[2:]
+    elif len(pubkey_hex) == 130 and pubkey_hex[:2] == '04':
+        bare_pubkey = pubkey_hex[2:]
+    else:
+        bare_pubkey = pubkey_hex
     import secp256k1
     serialized = json.dumps(
-        [0, pubkey_hex, created_at, kind, tags, content],
+        [0, bare_pubkey, created_at, kind, tags, content],
         ensure_ascii=False, separators=(',', ':')
     )
     event_id = hashlib.sha256(serialized.encode()).hexdigest()
     privkey_bytes = bytes.fromhex(private_key_hex)
     pk = secp256k1.PrivateKey(privkey_bytes)
-    sig = pk.schnorr_sign(bytes.fromhex(event_id), None)
+    sig = pk.schnorr_sign(bytes.fromhex(event_id), None, raw=True)
     return {
         "id": event_id,
-        "pubkey": pubkey_hex,
+        "pubkey": bare_pubkey,
         "created_at": created_at,
         "kind": kind,
         "tags": tags,
@@ -276,9 +267,12 @@ class NostrRelayClient:
                     await self._reconnect()
 
     async def _handle_auth(self, challenge: str):
+        pk = getattr(self.bridge, 'pubkey', getattr(self.bridge, '_pubkey_hex', ''))
+        sk = getattr(self.bridge, "privkey", getattr(self.bridge, "_privkey_hex", ""))
+        print(f"[AUTH] bridge.pubkey={'SET' if pk else 'EMPTY'} bridge.privkey={'SET' if sk else 'EMPTY'} privkey_len={len(sk) if sk else 'NONE'}")
         auth_event = make_auth_event(
-            pubkey_hex=self.bridge._pubkey_hex,
-            privkey_hex=self.bridge._privkey_hex,
+            pubkey_hex=getattr(self.bridge, 'pubkey', getattr(self.bridge, '_pubkey_hex', '')),
+            privkey_hex=getattr(self.bridge, "privkey", getattr(self.bridge, "_privkey_hex", "")),
             challenge=challenge,
             relay_url=self.url,
         )
@@ -291,10 +285,12 @@ class NostrRelayClient:
             self.bridge.stats["confirmed"] += 1
             self._consecutive_rejects = 0
             self._pending_oks.pop(event_id, None)
+            print(f"[✅{self.url[-35:]}] CONFIRMED id={event_id[:16]}...")
         else:
             self.bridge.stats["rejected"] += 1
             self._consecutive_rejects += 1
             self.bridge.stats["errors"] += 1
+            print(f"[⛔{self.url[-40:]}] REJECTED id={event_id[:16]}... reason={note[:80]}")
             if "auth-required" in note.lower() or "restricted" in note.lower():
                 if self._auth_cycles < 3:
                     self._auth_cycles += 1
@@ -313,9 +309,11 @@ class NostrRelayClient:
             payload = orjson.dumps(["EVENT", event]).decode()
             await self.ws.send(payload)
             self.cb.record_success()
+            print(f"[Publish] ✅ {self.url[-30:]} id={event.get('id','?')[:12]}...")
         except Exception as e:
             self.cb.record_failure()
             self.bridge.stats["errors"] += 1
+            print(f"[Publish] ❌ {self.url[-30:]}: {type(e).__name__}: {e}")
 
     async def close(self):
         self._running = False

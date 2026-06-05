@@ -93,6 +93,15 @@ create_event_with_async_sha256 = make_nostr_id_async
 
 # ── Worker для подписи (запускается в отдельном процессе) ──
 
+def _bare_pubkey(pubkey_hex: str) -> str:
+    """Strip secp256k1 prefix (02/03/04) — Nostr expects bare 32-byte pubkey."""
+    if len(pubkey_hex) == 66 and pubkey_hex[:2] in ('02', '03'):
+        return pubkey_hex[2:]  # compressed → bare
+    if len(pubkey_hex) == 130 and pubkey_hex[:2] == '04':
+        return pubkey_hex[2:]  # uncompressed → bare
+    return pubkey_hex
+
+
 def _sign_event_worker(pubkey_hex: str, private_key_hex: str, content: str,
                         kind: int, tags: list | None, created_at: int) -> dict:
     """
@@ -105,13 +114,16 @@ def _sign_event_worker(pubkey_hex: str, private_key_hex: str, content: str,
     ts = created_at or int(__import__('time').time())
     tags = tags or []
 
+    # Strip compressed/uncompressed prefix — Nostr expects bare 32-byte pubkey
+    bare_pubkey = _bare_pubkey(pubkey_hex)
+
     # SHA256 event ID (в процессе — не блокирует event loop)
-    serialized = _js.dumps([0, pubkey_hex, ts, kind, tags, content], separators=(",", ":"))
+    serialized = _js.dumps([0, bare_pubkey, ts, kind, tags, content], separators=(",", ":"))
     event_id = _hl.sha256(serialized.encode()).hexdigest()
 
     event = {
         "id": event_id,
-        "pubkey": pubkey_hex,
+        "pubkey": bare_pubkey,
         "created_at": ts,
         "kind": kind,
         "tags": tags,
@@ -131,7 +143,7 @@ def _sign_event_worker(pubkey_hex: str, private_key_hex: str, content: str,
 
         ev = Event(
             content=content,
-            public_key=pubkey_hex,
+            public_key=bare_pubkey,
             kind=kind,
             tags=tags,
             created_at=ts,
