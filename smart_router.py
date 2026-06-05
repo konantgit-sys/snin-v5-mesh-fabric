@@ -54,6 +54,7 @@ from rate_limiter import RateLimiter
 from message_sequencer import SeqNumTracker, ReorderBuffer, reorder_timeout_loop, reorder_cleanup_loop
 from message_deduplicator import MessageDeduplicator, dedup_cleanup_loop
 from priority_queue import PriorityQueue
+from agent_registry import AgentRegistry
 
 # Level 2: CPU-bound crypto в ProcessPool
 sys.path.insert(0, "/home/agent/data/sites/relay-mesh")
@@ -203,6 +204,8 @@ class SmartRouter:
         # ═══ Фаза 5 Message Prioritization ═══
         self._priority_queue = PriorityQueue()
         self._pq_workers = 2  # кол-во worker-корутин (мало = CRITICAL не ждёт долго)
+        # ═══ Фаза 6 Agent Capability Registry ═══
+        self._agent_registry = AgentRegistry()
 
     # ═══ Фаза 6.2: In-memory Policy Cache ═══
     async def _load_policy_cache(self):
@@ -1612,6 +1615,77 @@ class SmartRouter:
                     await writer.drain()
                     continue
                 
+                # ═══ Фаза 6: Agent Capability Registry ═══
+                elif kind == "register_capability":
+                    agent_id = msg.get("from", "")
+                    capabilities = msg.get("capabilities", [])
+                    description = msg.get("description", "")
+                    if agent_id and capabilities:
+                        is_new = self._agent_registry.register(agent_id, capabilities, description)
+                        action = "registered" if is_new else "updated"
+                        writer.write(json.dumps({
+                            "ok": True, "channel": "capability_registry",
+                            "action": action, "agent": agent_id,
+                            "total_agents": self._agent_registry.stats["total_agents"]
+                        }) + b"\n")
+                    else:
+                        writer.write(json.dumps({"ok": False, "error": "missing agent_id or capabilities"}) + b"\n")
+                    await writer.drain()
+                    continue
+                
+                elif kind == "smart_query":
+                    topic = msg.get("payload", msg.get("query", ""))
+                    from_agent = msg.get("from", "")
+                    top_k = msg.get("top_k", 5)
+                    
+                    if not topic:
+                        writer.write(json.dumps({"ok": False, "error": "missing query topic"}) + b"\n")
+                        await writer.drain()
+                        continue
+                    
+                    matches = self._agent_registry.query(topic, top_k)
+                    matching_agents = [aid for aid, score in matches if score > 0.1]
+                    
+                    if not matching_agents:
+                        writer.write(json.dumps({
+                            "ok": True, "channel": "smart_query_result",
+                            "query": topic, "matches": [],
+                            "message": "no matching agents found"
+                        }) + b"\n")
+                        await writer.drain()
+                        continue
+                    
+                    # Broadcast query только matching агентам
+                    query_msg = {
+                        "type": "smart_query",
+                        "from": from_agent,
+                        "query": topic,
+                        "payload": topic,
+                        "meta": {"query_id": msg.get("meta", {}).get("query_id", str(int(time.time()*1000)))},
+                        "ts": time.time(),
+                    }
+                    
+                    pushed_count = 0
+                    for target_id in matching_agents:
+                        for sid, (sw, sub_info) in list(self._event_subscribers.items()):
+                            if sub_info.get("agent_id") == target_id:
+                                try:
+                                    query_msg["to"] = target_id
+                                    sw.write(json.dumps(query_msg) + b"\n")
+                                    await sw.drain()
+                                    pushed_count += 1
+                                except (BrokenPipeError, ConnectionResetError):
+                                    self._event_subscribers.pop(sid, None)
+                    
+                    writer.write(json.dumps({
+                        "ok": True, "channel": "smart_query_result",
+                        "query": topic, "matches": matches[:top_k],
+                        "pushed_to": pushed_count,
+                        "total_matching": len(matching_agents),
+                    }) + b"\n")
+                    await writer.drain()
+                    continue
+                
                 # ═══ Фаза 9: Push всем подписанным агентам (кроме отправителя) ═══
                 from_agent = msg.get("from", "")
                 
@@ -1848,6 +1922,8 @@ class SmartRouter:
         print(f"[Router]    Phase 3: Message Ordering ENABLED (seq_num + reorder)")
         print(f"[Router]    Phase 4: Message Deduplication ENABLED")
         print(f"[Router]    Phase 5: Priority Queue ENABLED ({self._pq_workers} workers, aging)")
+        print(f"[Router]    Phase 6: Agent Capability Registry ENABLED")
+        print(f"[Router]    Agent API: register_capability | smart_query")
 
         async def health_check(reader, writer):
             """HTTP endpoint: /health — общая статистика, /dht — детали DHT."""
