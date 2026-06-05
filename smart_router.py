@@ -55,6 +55,7 @@ from message_sequencer import SeqNumTracker, ReorderBuffer, reorder_timeout_loop
 from message_deduplicator import MessageDeduplicator, dedup_cleanup_loop
 from priority_queue import PriorityQueue
 from agent_registry import AgentRegistry
+from marketplace_registry import MarketplaceRegistry
 
 # Level 2: CPU-bound crypto в ProcessPool
 sys.path.insert(0, "/home/agent/data/sites/relay-mesh")
@@ -206,6 +207,8 @@ class SmartRouter:
         self._pq_workers = 2  # кол-во worker-корутин (мало = CRITICAL не ждёт долго)
         # ═══ Фаза 6 Agent Capability Registry ═══
         self._agent_registry = AgentRegistry()
+        # ═══ Фаза 6b Marketplace Registry (Avito для агентов) ═══
+        self._marketplace = MarketplaceRegistry()
 
     # ═══ Фаза 6.2: In-memory Policy Cache ═══
     async def _load_policy_cache(self):
@@ -1686,6 +1689,106 @@ class SmartRouter:
                     await writer.drain()
                     continue
                 
+                # ═══ Фаза 6b: Marketplace Registry (Avito для агентов) ═══
+                elif kind == "register_marketplace":
+                    agent_id = msg.get("from", "")
+                    offers = msg.get("offers", [])
+                    wants = msg.get("wants", [])
+                    contact = msg.get("contact", "")
+                    pubkey = msg.get("pubkey", "")
+                    
+                    if not agent_id or (not offers and not wants):
+                        writer.write(json.dumps({"ok": False, "error": "need agent_id + offers/wants"}) + b"\n")
+                        await writer.drain()
+                        continue
+                    
+                    is_new = self._marketplace.register(agent_id, offers, wants, contact, pubkey)
+                    action = "registered" if is_new else "updated"
+                    st = self._marketplace.stats
+                    writer.write(json.dumps({
+                        "ok": True, "channel": "marketplace",
+                        "action": action, "agent": agent_id,
+                        "category": self._marketplace._agents[agent_id]["category"],
+                        "total_agents": st["total_agents"],
+                        "categories": st["categories"],
+                    }) + b"\n")
+                    await writer.drain()
+                    continue
+                
+                elif kind == "marketplace_search":
+                    query = msg.get("payload", msg.get("query", ""))
+                    category = msg.get("category", None)
+                    top_k = msg.get("top_k", 10)
+                    
+                    if not query:
+                        writer.write(json.dumps({"ok": False, "error": "missing query"}) + b"\n")
+                        await writer.drain()
+                        continue
+                    
+                    results = self._marketplace.search(query, top_k, category)
+                    
+                    try:
+                        # orjson: возвращает bytes, unicode по умолчанию
+                        resp_bytes = json.dumps({
+                            "ok": True, "channel": "marketplace_results",
+                            "query": query,
+                            "total_matches": len(results),
+                            "results": results,
+                        })
+                        writer.write(resp_bytes + b"\n")
+                        await writer.drain()
+                    except Exception as e:
+                        writer.write(json.dumps({"ok": False, "error": str(e)}) + b"\n")
+                        await writer.drain()
+                    continue
+                
+                elif kind == "marketplace_connect":
+                    from_agent = msg.get("from", "")
+                    to_agent = msg.get("to", "")
+                    message = msg.get("payload", "")
+                    
+                    if not from_agent or not to_agent:
+                        writer.write(json.dumps({"ok": False, "error": "need from/to"}) + b"\n")
+                        await writer.drain()
+                        continue
+                    
+                    # Проверить что оба агента в реестре
+                    from_info = self._marketplace._agents.get(from_agent, {})
+                    to_info = self._marketplace._agents.get(to_agent, {})
+                    
+                    if not to_info:
+                        writer.write(json.dumps({"ok": False, "error": f"agent {to_agent} not found"}) + b"\n")
+                        await writer.drain()
+                        continue
+                    
+                    # Переслать запрос на связь целевому агенту (если он онлайн)
+                    connect_msg = {
+                        "type": "connection_request",
+                        "from": from_agent,
+                        "from_contact": from_info.get("contact", ""),
+                        "message": message,
+                        "ts": time.time(),
+                    }
+                    
+                    pushed = False
+                    for sid, (sw, sub_info) in list(self._event_subscribers.items()):
+                        if sub_info.get("agent_id") == to_agent:
+                            try:
+                                sw.write(json.dumps(connect_msg) + b"\n")
+                                await sw.drain()
+                                pushed = True
+                            except (BrokenPipeError, ConnectionResetError):
+                                self._event_subscribers.pop(sid, None)
+                    
+                    writer.write(json.dumps({
+                        "ok": True, "channel": "marketplace_connect",
+                        "from": from_agent, "to": to_agent,
+                        "target_contact": to_info.get("contact", ""),
+                        "delivered": pushed,
+                    }) + b"\n")
+                    await writer.drain()
+                    continue
+                
                 # ═══ Фаза 9: Push всем подписанным агентам (кроме отправителя) ═══
                 from_agent = msg.get("from", "")
                 
@@ -1923,7 +2026,8 @@ class SmartRouter:
         print(f"[Router]    Phase 4: Message Deduplication ENABLED")
         print(f"[Router]    Phase 5: Priority Queue ENABLED ({self._pq_workers} workers, aging)")
         print(f"[Router]    Phase 6: Agent Capability Registry ENABLED")
-        print(f"[Router]    Agent API: register_capability | smart_query")
+        print(f"[Router]    Phase 6b: Marketplace Registry ENABLED (Avito для агентов)")
+        print(f"[Router]    Agent API: register_capability | smart_query | register_marketplace | marketplace_search | marketplace_connect")
 
         async def health_check(reader, writer):
             """HTTP endpoint: /health — общая статистика, /dht — детали DHT."""
