@@ -53,6 +53,7 @@ from graceful_degradation import GracefulDegradation
 from rate_limiter import RateLimiter
 from message_sequencer import SeqNumTracker, ReorderBuffer, reorder_timeout_loop, reorder_cleanup_loop
 from message_deduplicator import MessageDeduplicator, dedup_cleanup_loop
+from priority_queue import PriorityQueue
 
 # Level 2: CPU-bound crypto в ProcessPool
 sys.path.insert(0, "/home/agent/data/sites/relay-mesh")
@@ -199,6 +200,9 @@ class SmartRouter:
         self._reorder = ReorderBuffer()
         # ═══ Фаза 4 Message Deduplication ═══
         self._dedup = MessageDeduplicator()
+        # ═══ Фаза 5 Message Prioritization ═══
+        self._priority_queue = PriorityQueue()
+        self._pq_workers = 2  # кол-во worker-корутин (мало = CRITICAL не ждёт долго)
 
     # ═══ Фаза 6.2: In-memory Policy Cache ═══
     async def _load_policy_cache(self):
@@ -1646,12 +1650,18 @@ class SmartRouter:
                 if kind == "pipeline_feed":
                     continue
 
-                result = await self.route_message(msg)
-                try:
-                    writer.write(json.dumps(result) + b"\n")
-                    await writer.drain()
-                except (BrokenPipeError, ConnectionResetError):
-                    break
+                # ═══ Фаза 5: Priority Queue (вместо прямого route_message) ═══
+                qm = await self._priority_queue.put(msg)
+                # Клиент получает мгновенное подтверждение
+                writer.write(json.dumps({
+                    "ok": True,
+                    "channel": "queued",
+                    "priority": qm.priority.name,
+                    "seq": msg.get("seq"),
+                    "queue_depth": self._priority_queue.sizes["total"]
+                }) + b"\n")
+                await writer.drain()
+                continue
 
         except asyncio.TimeoutError:
             self.stats["client_timeout"] += 1
@@ -1759,6 +1769,47 @@ class SmartRouter:
             except Exception as e:
                 print(f"[Dedup] cleanup error: {e}")
 
+    # ═══ Фаза 5: Priority Queue workers + aging ═══
+    async def _priority_worker(self, worker_id: int):
+        """Worker: вытаскивает из priority queue и обрабатывает.
+        
+        Стратегия: после каждой обработки проверяет CRITICAL очередь.
+        Это гарантирует, что CRITICAL не ждёт за NORMAL/HIGH.
+        """
+        print(f"[PQ] Worker #{worker_id} started")
+        while True:
+            try:
+                # ═══ СНАЧАЛА проверяем CRITICAL (мгновенно, без ожидания) ═══
+                qm = await self._priority_queue.try_get_critical()
+                if qm is None:
+                    # Нет CRITICAL — берём любое из очереди
+                    qm = await self._priority_queue.get()
+                
+
+                await self.route_message(qm.msg)
+                
+                wait = qm.age
+                if wait > 1.0:
+                    print(f"[PQ] Worker #{worker_id}: p={qm.priority.name} wait={wait:.2f}s")
+                
+                self.stats["pq_processed"] += 1
+                
+            except Exception as e:
+                self.stats["pq_errors"] += 1
+                print(f"[PQ] Worker #{worker_id} error: {e}")
+                await asyncio.sleep(0.1)
+
+    async def _priority_aging_loop(self):
+        """Фоновый цикл: проверка aging сообщений."""
+        while True:
+            await asyncio.sleep(5.0)
+            try:
+                promoted = await self._priority_queue.age_messages()
+                if promoted:
+                    print(f"[PQ] Aged up {promoted} messages")
+            except Exception as e:
+                print(f"[PQ] Aging error: {e}")
+
     async def run(self):
         global _GLOBAL_ROUTER
         _GLOBAL_ROUTER = self
@@ -1796,6 +1847,7 @@ class SmartRouter:
         print(f"[Router]    Phase 4: orjson + Health :{HEALTH_PORT}")
         print(f"[Router]    Phase 3: Message Ordering ENABLED (seq_num + reorder)")
         print(f"[Router]    Phase 4: Message Deduplication ENABLED")
+        print(f"[Router]    Phase 5: Priority Queue ENABLED ({self._pq_workers} workers, aging)")
 
         async def health_check(reader, writer):
             """HTTP endpoint: /health — общая статистика, /dht — детали DHT."""
