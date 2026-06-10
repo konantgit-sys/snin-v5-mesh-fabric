@@ -83,8 +83,12 @@ class GraphEdge:
             if k != "edge_id"
         })
 
-    def compute_weight(self) -> float:
-        """Пересчитать композитный вес ребра."""
+    def compute_weight(self, cb_penalty: float = 1.0) -> float:
+        """Пересчитать композитный вес ребра.
+
+        Args:
+            cb_penalty: множитель CircuitBreaker (1.0 = без штрафа, >1.0 = penalty)
+        """
         w = (self.latency_ms / 1000.0)              # нормализованная задержка
         w += (1.0 - self.success_rate) * 10.0        # штраф за ненадёжность
         w += self.hop_count * 0.5                     # штраф за каждый hop
@@ -97,6 +101,9 @@ class GraphEdge:
         elif self.bandwidth_kbps < 1000:
             w += 2.0   # LoRa fast
         # WiFi (>1000 kbps) — без штрафа
+
+        # Phase 7: CircuitBreaker penalty multiplier
+        w *= cb_penalty
 
         self.weight = round(w, 4)
         return self.weight
@@ -128,6 +135,19 @@ class KnowledgeGraph:
         self._edges: dict[str, GraphEdge] = {}
         self._adj: dict[str, set[str]] = defaultdict(set)
         self._initialized = False
+
+        # Phase 7: CircuitBreaker карта штрафов
+        # Ключ: имя канала CB (direct/mesh/nostr/gossip)
+        # Значение: множитель веса (1.0 = без штрафа, OPEN=100, HALF_OPEN=20)
+        self._cb_penalties: dict[str, float] = {}
+
+        # Phase 7: маппинг CB-каналов на edge-транспорты
+        self._cb_to_transport: dict[str, str | None] = {
+            "direct": "wifi",    # TCP Gateway → wifi edges
+            "mesh": None,        # SmartRouter — ВСЕ рёбра
+            "nostr": "nostr",    # NostrBridge → nostr edges
+            "gossip": "lora",    # GossipServer → lora edges
+        }
 
     # ─── Инициализация ──────────────────────────────────
 
@@ -200,8 +220,9 @@ class KnowledgeGraph:
     # ─── Рёбра ────────────────────────────────────────────
 
     def upsert_edge(self, edge: GraphEdge) -> None:
-        """Добавить или обновить ребро. Автоматически пересчитывает вес."""
-        edge.compute_weight()
+        """Добавить или обновить ребро. Автоматически пересчитывает вес с CB-штрафом."""
+        penalty = self._cb_weight_penalty(edge.transport)
+        edge.compute_weight(cb_penalty=penalty)
         eid = edge.edge_id
         self._edges[eid] = edge
         self._adj[edge.source].add(edge.target)
@@ -240,7 +261,7 @@ class KnowledgeGraph:
             else:
                 edge.latency_ms = edge.latency_ms * 0.7 + latency_ms * 0.3
 
-        edge.compute_weight()
+        edge.compute_weight(cb_penalty=self._cb_weight_penalty(edge.transport))
         self.r.hset(self.KEY_EDGES, edge.edge_id, edge.to_json())
 
     def decay_edges(self) -> int:
@@ -252,7 +273,7 @@ class KnowledgeGraph:
             last_activity = max(edge.last_success, edge.last_failure)
             if last_activity > 0 and now - last_activity > 600:
                 edge.success_rate = max(0.1, edge.success_rate * 0.99)
-                edge.compute_weight()
+                edge.compute_weight(cb_penalty=self._cb_weight_penalty(edge.transport))
                 self.r.hset(self.KEY_EDGES, eid, edge.to_json())
                 count += 1
 
@@ -440,6 +461,80 @@ class KnowledgeGraph:
             "valid": True,
             "path": path,
         }
+
+    # ─── Phase 7: CircuitBreaker интеграция ────────────────
+
+    def _cb_weight_penalty(self, transport: str) -> float:
+        """Множитель веса на основе состояния CircuitBreaker.
+
+        mesh (None-транспорт) → штрафуется через специальный ключ 'mesh',
+        влияющий на ВСЕ рёбра. Для остальных — матчинг по транспорту.
+        """
+        penalty = 1.0
+
+        # mesh-канал затрагивает ВСЕ рёбра (value=None в маппинге)
+        mesh_penalty = self._cb_penalties.get("mesh", 1.0)
+        if mesh_penalty > 1.0:
+            penalty = mesh_penalty
+
+        # Матчинг по транспорту (прямой)
+        for cb_name, cb_transport in self._cb_to_transport.items():
+            if cb_transport is not None and cb_transport == transport:
+                if cb_name in self._cb_penalties:
+                    penalty = max(penalty, self._cb_penalties[cb_name])
+
+        return penalty
+
+    def update_from_circuit_breaker(self, cb_channels: dict) -> dict:
+        """Обновить штрафы на основе состояния CircuitBreaker.
+
+        Args:
+            cb_channels: словарь {channel_name: {"state": "closed"|"open"|"half_open"}}
+
+        Returns:
+            dict с изменениями: {"applied": [...], "cleared": [...]}
+        """
+        applied = []
+        cleared = []
+
+        for name, info in cb_channels.items():
+            state = info.get("state", "unknown")
+            if state == "open":
+                self._cb_penalties[name] = 100.0
+                applied.append(f"{name}:OPEN(x100)")
+            elif state == "half_open":
+                self._cb_penalties[name] = 20.0
+                applied.append(f"{name}:HALF_OPEN(x20)")
+            elif state == "closed":
+                if name in self._cb_penalties:
+                    del self._cb_penalties[name]
+                    cleared.append(f"{name}:→no penalty")
+                # Также очищаем для здоровых каналов (на случай stale)
+            else:
+                # unknown state — очищаем
+                if name in self._cb_penalties:
+                    del self._cb_penalties[name]
+                    cleared.append(f"{name}:unknown→cleared")
+
+        # Пересчитываем веса всех рёбер с новыми штрафами
+        modified = 0
+        for edge in self._edges.values():
+            old_weight = edge.weight
+            penalty = self._cb_weight_penalty(edge.transport)
+            edge.compute_weight(cb_penalty=penalty)
+            if edge.weight != old_weight:
+                modified += 1
+
+        return {
+            "applied": applied,
+            "cleared": cleared,
+            "edges_modified": modified,
+            "active_penalties": dict(self._cb_penalties),
+        }
+
+    def get_cb_penalties(self) -> dict:
+        """Текущие CB-штрафы для отладки."""
+        return dict(self._cb_penalties)
 
     # ─── Статистика ───────────────────────────────────────
 
