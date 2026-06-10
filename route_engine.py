@@ -59,6 +59,10 @@ class RouteEngine:
     GRAPH_DECAY_INTERVAL = 60
     # Phase 7: интервал синхронизации CircuitBreaker (каждые 15 сек)
     CB_SYNC_INTERVAL = 15
+    # Phase 8: интервал обработки PubSub событий (каждые 2 сек)
+    SYNC_PROCESS_INTERVAL = 2
+    # Phase 8: интервал полной перезагрузки из Redis (каждые 5 мин)
+    FULL_RELOAD_INTERVAL = 300
 
     def __init__(self):
         self.batches = defaultdict(list)  # type -> list of events
@@ -66,6 +70,8 @@ class RouteEngine:
         self._http = None  # httpx.AsyncClient (lazy init)
         self._last_decay = time.time()
         self._last_cb_sync = time.time()  # Phase 7: CB sync timer
+        self._last_sync_process = time.time()  # Phase 8: PubSub process timer
+        self._last_full_reload = time.time()  # Phase 8: full reload timer
 
         # Phase 3: Knowledge Graph
         try:
@@ -350,13 +356,43 @@ class RouteEngine:
         self.last_flush = now
 
     async def tick(self):
-        """Тик — flush batch раз в BATCH_WINDOW + decay графа + CB sync."""
+        """Тик — flush batch + decay графа + CB sync + Redis PubSub sync."""
+        # Phase 8: запустить PubSub listener
+        if self.graph and self.graph.r:
+            try:
+                self.graph.start_sync()
+                print(f"[RouteEngine] Graph PubSub sync started (node={self.graph.node_id})")
+            except Exception as e:
+                print(f"[RouteEngine] Graph PubSub start failed: {e}")
+
         while True:
             await asyncio.sleep(BATCH_WINDOW)
             await self._flush_batch()
 
-            # Phase 3: периодическая деградация рёбер
             now = time.time()
+
+            # Phase 8: обработка PubSub событий (каждые 2 сек)
+            if self.graph and (now - self._last_sync_process) >= self.SYNC_PROCESS_INTERVAL:
+                try:
+                    result = self.graph.process_sync_events()
+                    if result["reloaded_nodes"] > 0 or result["reloaded_edges"] > 0:
+                        print(f"[RouteEngine] Sync: +{result['reloaded_nodes']}n +{result['reloaded_edges']}e "
+                              f"(skipped={result['skipped_own']})")
+                except Exception:
+                    pass
+                self._last_sync_process = now
+
+            # Phase 8: полная перезагрузка из Redis (каждые 5 мин)
+            if self.graph and (now - self._last_full_reload) >= self.FULL_RELOAD_INTERVAL:
+                try:
+                    changes = self.graph.full_reload()
+                    if changes > 0:
+                        print(f"[RouteEngine] Full reload: {changes} changes")
+                except Exception:
+                    pass
+                self._last_full_reload = now
+
+            # Phase 3: периодическая деградация рёбер
             if self.graph and (now - self._last_decay) >= self.GRAPH_DECAY_INTERVAL:
                 try:
                     decayed = self.graph.decay_edges()

@@ -128,8 +128,12 @@ class KnowledgeGraph:
     # TTL для рёбер без активности (24 часа)
     EDGE_TTL = 86400
 
-    def __init__(self, redis_client: redis.Redis):
+    # Phase 8: Redis PubSub channel для multi-node синхронизации
+    SYNC_CHANNEL = "graph:sync"
+
+    def __init__(self, redis_client: redis.Redis, node_id: str = "node-0"):
         self.r = redis_client
+        self.node_id = node_id  # Phase 8: идентификатор ноды для фильтрации своих событий
         # In-memory кеш для быстрых операций (синхронизируется с Redis)
         self._nodes: dict[str, GraphNode] = {}
         self._edges: dict[str, GraphEdge] = {}
@@ -149,6 +153,11 @@ class KnowledgeGraph:
             "gossip": "lora",    # GossipServer → lora edges
         }
 
+        # Phase 8: PubSub синхронизация
+        self._pubsub: redis.client.PubSub | None = None
+        self._sync_running = False
+        self._sync_stats = {"published": 0, "received": 0, "skipped_own": 0, "errors": 0}
+
     # ─── Инициализация ──────────────────────────────────
 
     def load_from_redis(self) -> bool:
@@ -160,6 +169,8 @@ class KnowledgeGraph:
         for pk_bytes, data_bytes in nodes_raw.items():
             pk = pk_bytes.decode() if isinstance(pk_bytes, bytes) else pk_bytes
             try:
+                if isinstance(data_bytes, bytes):
+                    data_bytes = data_bytes.decode()
                 self._nodes[pk] = GraphNode.from_json(data_bytes)
             except Exception:
                 continue
@@ -168,6 +179,8 @@ class KnowledgeGraph:
         for eid_bytes, data_bytes in edges_raw.items():
             eid = eid_bytes.decode() if isinstance(eid_bytes, bytes) else eid_bytes
             try:
+                if isinstance(data_bytes, bytes):
+                    data_bytes = data_bytes.decode()
                 edge = GraphEdge.from_json(data_bytes)
                 self._edges[eid] = edge
                 self._adj[edge.source].add(edge.target)
@@ -188,6 +201,7 @@ class KnowledgeGraph:
         self._nodes[node.node_id] = node
         self.r.hset(self.KEY_NODES, node.node_id, node.to_json())
         self._initialized = True
+        self._publish("node:upsert", {"node_id": node.node_id, "node_type": node.node_type, "status": node.status})
 
     def get_node(self, node_id: str) -> Optional[GraphNode]:
         return self._nodes.get(node_id)
@@ -201,6 +215,7 @@ class KnowledgeGraph:
         if last_seen is not None:
             node.last_seen = last_seen
         self.r.hset(self.KEY_NODES, node_id, node.to_json())
+        self._publish("node:upsert", {"node_id": node_id, "status": status})
         return True
 
     def get_node_status(self, node_id: str) -> str:
@@ -228,6 +243,7 @@ class KnowledgeGraph:
         self._adj[edge.source].add(edge.target)
         self.r.hset(self.KEY_EDGES, eid, edge.to_json())
         self.r.sadd(f"{self.KEY_ADJ}:{edge.source}", edge.target)
+        self._publish("edge:upsert", {"edge_id": eid, "source": edge.source, "target": edge.target, "transport": edge.transport})
 
     def get_edge(self, source: str, target: str) -> Optional[GraphEdge]:
         return self._edges.get(f"{source}→{target}")
@@ -263,6 +279,7 @@ class KnowledgeGraph:
 
         edge.compute_weight(cb_penalty=self._cb_weight_penalty(edge.transport))
         self.r.hset(self.KEY_EDGES, edge.edge_id, edge.to_json())
+        self._publish("edge:delivery", {"edge_id": edge.edge_id, "success": success})
 
     def decay_edges(self) -> int:
         """Деградировать рёбра без активности. Возвращает количество затронутых."""
@@ -275,6 +292,7 @@ class KnowledgeGraph:
                 edge.success_rate = max(0.1, edge.success_rate * 0.99)
                 edge.compute_weight(cb_penalty=self._cb_weight_penalty(edge.transport))
                 self.r.hset(self.KEY_EDGES, eid, edge.to_json())
+                self._publish("edge:delivery", {"edge_id": eid, "decayed": True})
                 count += 1
 
             # Если нет активности > 24 часов — удалить
@@ -282,6 +300,7 @@ class KnowledgeGraph:
                 del self._edges[eid]
                 self.r.hdel(self.KEY_EDGES, eid)
                 self._adj[edge.source].discard(edge.target)
+                self._publish("edge:delete", {"edge_id": eid})
                 count += 1
 
         return count
@@ -536,6 +555,183 @@ class KnowledgeGraph:
         """Текущие CB-штрафы для отладки."""
         return dict(self._cb_penalties)
 
+    # ─── Phase 8: Redis PubSub Multi-node Sync ────────────
+
+    def _publish(self, event_type: str, payload: dict) -> bool:
+        """Опубликовать событие синхронизации в Redis PubSub."""
+        if not self.r:
+            return False
+        try:
+            data = json.dumps({
+                "node_id": self.node_id,
+                "ts": time.time(),
+                "type": event_type,
+                "payload": payload,
+            })
+            self.r.publish(self.SYNC_CHANNEL, data)
+            self._sync_stats["published"] += 1
+            return True
+        except Exception:
+            self._sync_stats["errors"] += 1
+            return False
+
+    def reload_node(self, node_id: str) -> bool:
+        """Перезагрузить один узел из Redis."""
+        if not self.r:
+            return False
+        raw = self.r.hget(self.KEY_NODES, node_id)
+        if raw:
+            try:
+                if isinstance(raw, bytes):
+                    raw = raw.decode()
+                self._nodes[node_id] = GraphNode.from_json(raw)
+                return True
+            except Exception:
+                return False
+        else:
+            # Узел удалён из Redis — удалить из кеша
+            self._nodes.pop(node_id, None)
+            return False
+
+    def reload_edge(self, edge_id: str) -> bool:
+        """Перезагрузить одно ребро из Redis."""
+        if not self.r:
+            return False
+        raw = self.r.hget(self.KEY_EDGES, edge_id)
+        if raw:
+            try:
+                if isinstance(raw, bytes):
+                    raw = raw.decode()
+                edge = GraphEdge.from_json(raw)
+                self._edges[edge_id] = edge
+                # Обновить adjacency
+                self._adj[edge.source].add(edge.target)
+                return True
+            except Exception:
+                return False
+        else:
+            # Ребро удалено из Redis
+            old = self._edges.pop(edge_id, None)
+            if old:
+                self._adj[old.source].discard(old.target)
+            return False
+
+    def full_reload(self) -> int:
+        """Полная перезагрузка графа из Redis. Возвращает количество изменений."""
+        old_nodes = set(self._nodes.keys())
+        old_edges = set(self._edges.keys())
+        self._nodes.clear()
+        self._edges.clear()
+        self._adj.clear()
+        self.load_from_redis()
+        new_nodes = set(self._nodes.keys())
+        new_edges = set(self._edges.keys())
+        added_nodes = new_nodes - old_nodes
+        removed_nodes = old_nodes - new_nodes
+        added_edges = new_edges - old_edges
+        removed_edges = old_edges - new_edges
+        return len(added_nodes) + len(removed_nodes) + len(added_edges) + len(removed_edges)
+
+    def start_sync(self) -> None:
+        """Запустить синхронизацию через PubSub (вызывается в асинхронном контексте)."""
+        if not self.r:
+            return
+        self._pubsub = self.r.pubsub()
+        self._pubsub.subscribe(self.SYNC_CHANNEL)
+        self._sync_running = True
+        # Дать Redis время обработать subscribe (требуется ~0.3s стабильно)
+        time.sleep(0.5)
+
+    def process_sync_events(self) -> dict:
+        """Обработать накопившиеся события PubSub (неблокирующий вызов).
+
+        Пауза 0.5с для получения pending-сообщений, затем drain до 50 сообщений.
+
+        Возвращает: {"processed": int, "skipped_own": int, "reloaded_nodes": int,
+                       "reloaded_edges": int, "errors": int}
+        """
+        if not self._pubsub or not self._sync_running:
+            return {"processed": 0, "skipped_own": 0, "reloaded_nodes": 0, "reloaded_edges": 0, "errors": 0}
+
+        stats = {"processed": 0, "skipped_own": 0, "reloaded_nodes": 0, "reloaded_edges": 0, "errors": 0}
+
+        try:
+            # Пауза для получения pending-сообщений (Redis PubSub latency ~0.1-0.5s)
+            time.sleep(0.5)
+
+            # Drain до 50 сообщений
+            for _ in range(50):
+                msg = self._pubsub.get_message(ignore_subscribe_messages=True, timeout=0.02)
+                if msg is None:
+                    break
+
+                stats["processed"] += 1
+                self._sync_stats["received"] += 1
+
+                try:
+                    data_raw = msg.get("data", b"{}")
+                    if isinstance(data_raw, bytes):
+                        data_raw = data_raw.decode()
+                    data = json.loads(data_raw)
+                    if not isinstance(data, dict):
+                        stats["errors"] += 1
+                        continue
+                except json.JSONDecodeError:
+                    stats["errors"] += 1
+                    continue
+
+                # Пропускаем свои события
+                if data.get("node_id") == self.node_id:
+                    self._sync_stats["skipped_own"] += 1
+                    stats["skipped_own"] += 1
+                    continue
+
+                event_type = data.get("type", "")
+                payload = data.get("payload", {})
+
+                try:
+                    if event_type == "node:upsert":
+                        if self.reload_node(payload.get("node_id", "")):
+                            stats["reloaded_nodes"] += 1
+                    elif event_type == "edge:upsert":
+                        if self.reload_edge(payload.get("edge_id", "")):
+                            stats["reloaded_edges"] += 1
+                    elif event_type == "edge:delivery":
+                        if self.reload_edge(payload.get("edge_id", "")):
+                            stats["reloaded_edges"] += 1
+                    elif event_type == "edge:delete":
+                        edge_id = payload.get("edge_id", "")
+                        old = self._edges.pop(edge_id, None)
+                        if old:
+                            self._adj[old.source].discard(old.target)
+                            stats["reloaded_edges"] += 1
+                    elif event_type == "full:sync":
+                        # Другая нода просит полную перезагрузку
+                        changes = self.full_reload()
+                        stats["reloaded_nodes"] += changes
+                except Exception:
+                    stats["errors"] += 1
+
+        except Exception:
+            stats["errors"] += 1
+
+        return stats
+
+    def stop_sync(self) -> None:
+        """Остановить синхронизацию."""
+        self._sync_running = False
+        if self._pubsub:
+            try:
+                self._pubsub.unsubscribe(self.SYNC_CHANNEL)
+                self._pubsub.close()
+            except Exception:
+                pass
+            self._pubsub = None
+
+    def get_sync_stats(self) -> dict:
+        """Статистика синхронизации."""
+        return dict(self._sync_stats)
+
     # ─── Статистика ───────────────────────────────────────
 
     def get_stats(self) -> dict:
@@ -577,6 +773,8 @@ class KnowledgeGraph:
         for eid in self.r.hkeys(self.KEY_EDGES):
             self.r.hdel(self.KEY_EDGES, eid)
         self.r.delete(self.KEY_STATS)
+
+        self._publish("full:sync", {"action": "flush"})
 
     # ─── Статус-строка (для логов) ───────────────────────
 
