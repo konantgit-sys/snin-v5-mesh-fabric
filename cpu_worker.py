@@ -22,14 +22,27 @@ _CPU_POOL = ThreadPoolExecutor(max_workers=2, thread_name_prefix="cpu_")
 _CRYPTO_POOL: ProcessPoolExecutor | None = None
 _POOL_INIT_LOCK = asyncio.Lock()
 
+# Queue depth tracking (атомарный счётчик подписанных/ожидающих)
+_signing_active = 0
+_signing_lock = None  # инициализируется при первом использовании
+
+
+def sign_queue_depth() -> int:
+    """Текущая глубина очереди подписи (сколько событий в процессе подписи)."""
+    return _signing_active
+
 
 def _get_crypto_pool() -> ProcessPoolExecutor:
-    """Lazy init ProcessPoolExecutor с spawn контекстом (fork-safe)."""
-    global _CRYPTO_POOL
+    """Lazy init ProcessPoolExecutor с spawn контекстом (fork-safe).
+    max_workers=4 — 8 ядер, оставляем 4 для mesh-процессов.
+    """
+    global _CRYPTO_POOL, _signing_lock
     if _CRYPTO_POOL is None:
+        import threading
+        _signing_lock = threading.Lock()
         ctx = multiprocessing.get_context('spawn')
         _CRYPTO_POOL = ProcessPoolExecutor(
-            max_workers=1,
+            max_workers=4,
             mp_context=ctx,
         )
     return _CRYPTO_POOL
@@ -163,15 +176,25 @@ async def sign_event_full_async(pubkey_hex: str, private_key_hex: str, content: 
     Level 2: Полная подпись Nostr события в ProcessPool.
     SHA256 + Schnorr — оба в отдельном процессе.
     Event loop не блокируется вообще.
-    Использовать вместо sign_event_async() на горячих путях.
+    max_workers=4 — параллельная подпись до 4 событий одновременно.
     """
+    global _signing_active, _signing_lock
     loop = get_cpu_loop()
     pool = _get_crypto_pool()
-    return await loop.run_in_executor(
-        pool,
-        _sign_event_worker,
-        pubkey_hex, private_key_hex, content, kind, tags, created_at,
-    )
+
+    # Атомарный инкремент счётчика
+    with _signing_lock:
+        _signing_active += 1
+
+    try:
+        return await loop.run_in_executor(
+            pool,
+            _sign_event_worker,
+            pubkey_hex, private_key_hex, content, kind, tags, created_at,
+        )
+    finally:
+        with _signing_lock:
+            _signing_active -= 1
 
 
 # ── Worker для Ed25519 verify (запускается в отдельном процессе) ──
