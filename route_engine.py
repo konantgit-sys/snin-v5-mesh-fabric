@@ -2,10 +2,15 @@
 """Route Engine — Маршрутизатор между P2P bridge и relay-mesh.
 
 Классифицирует события по kind:
-  - kind:39000 с type=heartbeat → bypass→файл (не в relay)
+  - kind:39000 с type=heartbeat → bypass→файл + обновление Knowledge Graph
   - kind:39001 (DHT) → batch → POST /api/ingest/batch
   - kind:39010+ (DAO) → immediate → POST /api/ingest
   - kind:39000/39002/39003 (mesh) → batch → POST /api/ingest/batch
+
+Phase 3 (Knowledge Graph):
+  Строит граф mesh-топологии из потока событий.
+  Предоставляет route_to(target) — поиск оптимального пути через Dijkstra.
+  Fallback broadcast если граф не готов.
 
 Запуск:
     python3 route_engine.py
@@ -25,6 +30,10 @@ import sys
 from collections import defaultdict
 
 import httpx
+import redis as _redis
+
+# Phase 3 (Knowledge Graph): ядро графа для маршрутизации
+from knowledge_graph import KnowledgeGraph, GraphNode, GraphEdge, create_knowledge_graph
 
 RELAY_MESH = "http://localhost:9907"
 SMART_ROUTER_HOST = "127.0.0.1"
@@ -44,12 +53,29 @@ UNIX_SOCK_PATH = f"{UNIX_SOCK_DIR}/re.sock"
 
 
 class RouteEngine:
-    """Классификатор + батчер + bypass."""
+    """Классификатор + батчер + Knowledge Graph (Phase 3)."""
+
+    # Интервал деградации рёбер (каждые 60 сек)
+    GRAPH_DECAY_INTERVAL = 60
 
     def __init__(self):
         self.batches = defaultdict(list)  # type -> list of events
         self.last_flush = time.time()
         self._http = None  # httpx.AsyncClient (lazy init)
+        self._last_decay = time.time()
+
+        # Phase 3: Knowledge Graph
+        try:
+            self.r = _redis.Redis(host="localhost", port=6379, db=0, decode_responses=False)
+            self.r.ping()
+            self.graph = KnowledgeGraph(self.r)
+            loaded = self.graph.load_from_redis()
+            print(f"[RouteEngine] KnowledgeGraph loaded: {'✅' if loaded else '⌀ empty'}")
+        except Exception as e:
+            print(f"[RouteEngine] ⚠️ KnowledgeGraph init failed: {e}")
+            self.r = None
+            self.graph = None
+
         self.stats = {
             "received": 0,
             "heartbeat_bypassed": 0,
@@ -59,6 +85,11 @@ class RouteEngine:
             "errors": 0,
             "flushes": 0,
             "ws_flushes": 0,
+            # Phase 3
+            "graph_nodes": 0,
+            "graph_edges": 0,
+            "graph_paths_found": 0,
+            "graph_fallbacks": 0,
         }
 
     async def _get_http(self):
@@ -106,9 +137,12 @@ class RouteEngine:
         return "unknown"
 
     async def add(self, event: dict):
-        """Добавить событие в очередь. Классифицирует и маршрутизирует."""
+        """Добавить событие в очередь. Классифицирует, обновляет граф, маршрутизирует."""
         rtype = self.classify(event)
         self.stats["received"] += 1
+
+        # Phase 3: обновить граф из события
+        self._update_graph_from_event(event, rtype)
 
         if rtype == "heartbeat":
             self._bypass_heartbeat(event)
@@ -123,6 +157,118 @@ class RouteEngine:
         # Всё остальное — в batch
         self.batches[rtype].append(event)
         self.stats["batched"] += 1
+
+    def _update_graph_from_event(self, event: dict, rtype: str):
+        """Phase 3: обновить Knowledge Graph из события.
+
+        Извлекает source (pubkey или content.from), target (если есть),
+        транспорт, и обновляет узлы/рёбра.
+        """
+        if not self.graph:
+            return
+
+        now = time.time()
+        pubkey = event.get("pubkey", "")
+
+        # Извлечь контент (может быть строкой JSON)
+        content = event.get("content", {})
+        if isinstance(content, str):
+            try:
+                content = _json.loads(content)
+            except (_json.JSONDecodeError, TypeError):
+                content = {}
+
+        source_id = content.get("from", pubkey or "unknown")
+        target_id = content.get("to", content.get("target", ""))
+        transport = content.get("transport", event.get("transport", "unknown"))
+
+        # 1. Обновить/создать source-узел
+        if source_id and source_id != "?":
+            node = self.graph.get_node(source_id)
+            if node:
+                node.last_seen = now
+                node.status = "online"
+                self.graph.upsert_node(node)
+            else:
+                self.graph.upsert_node(GraphNode(
+                    node_id=source_id,
+                    node_type="agent",
+                    last_seen=now,
+                    status="online",
+                    capabilities=content.get("capabilities", []),
+                ))
+
+        # 2. Если есть target — создать/обновить ребро
+        if target_id and source_id and source_id != target_id:
+            edge = self.graph.get_edge(source_id, target_id)
+            if not edge:
+                edge = GraphEdge(
+                    source=source_id,
+                    target=target_id,
+                    transport=transport,
+                    last_success=now,
+                )
+                self.graph.upsert_edge(edge)
+            else:
+                edge.last_success = now
+                if edge.transport == "unknown" and transport != "unknown":
+                    edge.transport = transport
+                self.graph.upsert_edge(edge)
+
+        # 3. Heartbeat: обновить last_seen конкретно
+        if rtype == "heartbeat":
+            agent_id = content.get("from", "")
+            if agent_id and agent_id != "?":
+                self.graph.update_node_status(agent_id, "online", now)
+
+        self.stats["graph_nodes"] = len(self.graph._nodes)
+        self.stats["graph_edges"] = len(self.graph._edges)
+
+    def route_to(self, target_id: str, source_id: str = "route_engine") -> dict:
+        """Phase 3: найти оптимальный маршрут до target.
+
+        Возвращает:
+            {
+                "found": bool,
+                "path": list[str] | None,
+                "next_hop": str | None,
+                "hops": int,
+                "total_weight": float,
+                "fallback": bool,        # True если использован ненадёжный путь
+            }
+        Если граф не готов — found=False.
+        """
+        if not self.graph or not self.graph.is_ready:
+            return {"found": False, "path": None, "next_hop": None,
+                    "hops": 0, "total_weight": 0.0, "fallback": False}
+
+        # Пробуем надёжный путь
+        path = self.graph.find_path(source_id, target_id)
+        fallback = False
+
+        if not path:
+            # Fallback — разрешаем ненадёжные рёбра
+            path = self.graph.find_path_fallback(source_id, target_id)
+            fallback = True
+            self.stats["graph_fallbacks"] += 1
+        else:
+            self.stats["graph_paths_found"] += 1
+
+        if not path:
+            return {"found": False, "path": None, "next_hop": None,
+                    "hops": 0, "total_weight": 0.0, "fallback": True}
+
+        info = self.graph.get_path_info(path)
+        next_hop = path[1] if len(path) > 1 else None  # следующий после себя
+
+        return {
+            "found": True,
+            "path": path,
+            "next_hop": next_hop,
+            "hops": info["hops"],
+            "total_weight": info["total_weight"],
+            "fallback": fallback,
+        }
 
     def _bypass_heartbeat(self, event: dict):
         """Heartbeat пишем в файл, не в relay."""
@@ -201,13 +347,33 @@ class RouteEngine:
         self.last_flush = now
 
     async def tick(self):
-        """Тик — проверка и flush batch раз в BATCH_WINDOW."""
+        """Тик — flush batch раз в BATCH_WINDOW + decay графа раз в GRAPH_DECAY_INTERVAL."""
         while True:
             await asyncio.sleep(BATCH_WINDOW)
             await self._flush_batch()
 
+            # Phase 3: периодическая деградация рёбер
+            now = time.time()
+            if self.graph and (now - self._last_decay) >= self.GRAPH_DECAY_INTERVAL:
+                try:
+                    decayed = self.graph.decay_edges()
+                    if decayed > 0:
+                        print(f"[RouteEngine] Graph decay: {decayed} edges")
+                except Exception:
+                    pass
+                self._last_decay = now
+
     def stats_report(self) -> dict:
-        return dict(self.stats)
+        s = dict(self.stats)
+        # Phase 3: живая статистика графа
+        if self.graph:
+            gs = self.graph.get_stats()
+            s["graph_nodes"] = gs["total_nodes"]
+            s["graph_edges"] = gs["total_edges"]
+            s["graph_online"] = gs["nodes_online"]
+            s["graph_degraded"] = gs["nodes_degraded"]
+            s["graph_offline"] = gs["nodes_offline"]
+        return s
 
 
 class RouteEngineServer:
@@ -277,9 +443,15 @@ async def main():
             print(f"[RouteEngine] Stats: recv={s['received']} hb_bypass={s['heartbeat_bypassed']} "
                   f"dao={s['dao_immediate']} batch={s['batched']} flush={s['flushes']} "
                   f"ws={s['ws_flushes']} err={s['errors']}")
+            if engine.graph:
+                print(f"[RouteEngine] Graph: nodes={s.get('graph_nodes',0)} edges={s.get('graph_edges',0)} "
+                      f"online={s.get('graph_online',0)} off={s.get('graph_offline',0)} "
+                      f"paths={s['graph_paths_found']} fallback={s['graph_fallbacks']} "
+                      f"avg_w={engine.graph.get_stats().get('avg_weight',0)}")
             # Сброс счётчиков
             for k in s:
-                engine.stats[k] = 0
+                if isinstance(s[k], int):
+                    engine.stats[k] = 0
 
     await asyncio.gather(
         server.run(),
