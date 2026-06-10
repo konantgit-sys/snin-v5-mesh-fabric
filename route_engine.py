@@ -57,12 +57,15 @@ class RouteEngine:
 
     # Интервал деградации рёбер (каждые 60 сек)
     GRAPH_DECAY_INTERVAL = 60
+    # Phase 7: интервал синхронизации CircuitBreaker (каждые 15 сек)
+    CB_SYNC_INTERVAL = 15
 
     def __init__(self):
         self.batches = defaultdict(list)  # type -> list of events
         self.last_flush = time.time()
         self._http = None  # httpx.AsyncClient (lazy init)
         self._last_decay = time.time()
+        self._last_cb_sync = time.time()  # Phase 7: CB sync timer
 
         # Phase 3: Knowledge Graph
         try:
@@ -347,7 +350,7 @@ class RouteEngine:
         self.last_flush = now
 
     async def tick(self):
-        """Тик — flush batch раз в BATCH_WINDOW + decay графа раз в GRAPH_DECAY_INTERVAL."""
+        """Тик — flush batch раз в BATCH_WINDOW + decay графа + CB sync."""
         while True:
             await asyncio.sleep(BATCH_WINDOW)
             await self._flush_batch()
@@ -362,6 +365,24 @@ class RouteEngine:
                 except Exception:
                     pass
                 self._last_decay = now
+
+            # Phase 7: синхронизация CircuitBreaker → Graph
+            if self.graph and (now - self._last_cb_sync) >= self.CB_SYNC_INTERVAL:
+                try:
+                    from circuit_breaker import get_circuit_breaker
+                    cb = get_circuit_breaker()
+                    cb_channels = {
+                        name: {"state": ch.state.value}
+                        for name, ch in cb.channels.items()
+                    }
+                    result = self.graph.update_from_circuit_breaker(cb_channels)
+                    if result["applied"] or result["cleared"]:
+                        print(f"[RouteEngine] CB sync: {result['applied'] or 'none'} / "
+                              f"cleared={result['cleared'] or 'none'}, "
+                              f"edges_modified={result['edges_modified']}")
+                except Exception as e:
+                    print(f"[RouteEngine] CB sync error: {e}")
+                self._last_cb_sync = now
 
     def stats_report(self) -> dict:
         s = dict(self.stats)
