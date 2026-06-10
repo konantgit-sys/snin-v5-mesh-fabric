@@ -58,6 +58,15 @@ async def print_status(router: SmartRouter):
         print(f"[Router] Fallbacks: {router.stats['fallback_to_mesh']} | "
               f"congestion_reroute: {router.stats['congestion_reroute']} | "
               f"congestion_slow: {router.stats['congestion_slow']}")
+        # Phase 4: Graph stats
+        if router.graph:
+            gs = router.graph.get_stats()
+            print(f"[Router] 📊 Graph: nodes={gs['total_nodes']} edges={gs['total_edges']} "
+                  f"online={gs['nodes_online']} avg_w={gs['avg_weight']:.2f} | "
+                  f"paths={router.stats.get('graph_paths_found',0)} "
+                  f"fallback={router.stats.get('graph_fallbacks',0)} "
+                  f"direct={router.stats.get('graph_routed_direct',0)} "
+                  f"mesh={router.stats.get('graph_routed_mesh',0)}")
         print(f"[Router] Channel health (last cycle):")
         for ch, h in router._channel_health.items():
             total = h["ok"] + h["fail"]
