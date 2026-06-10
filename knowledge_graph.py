@@ -12,6 +12,8 @@ Redis-ключи:
   graph:edges      — Hash: "source→target" → JSON(GraphEdge)
   graph:adj:{pk}   — Set: соседи узла
   graph:stats      — Hash: метрики графа
+  graph:memory:{id}— Hash: key → JSON(MemoryEntry) (Phase 10)
+  graph:snapshot    — String: последний снапшот (Phase 9)
 """
 
 import json
@@ -827,8 +829,8 @@ class KnowledgeGraph:
         for src, targets in self._adj.items():
             adj[src] = sorted(targets)
 
-        return {
-            "version": 9,
+        state = {
+            "version": 10,
             "node_id": self.node_id,
             "exported_at": time.time(),
             "nodes": nodes,
@@ -836,6 +838,12 @@ class KnowledgeGraph:
             "adj": adj,
             "stats": self.get_stats(),
         }
+
+        # Phase 10: включаем memory если подключена
+        if hasattr(self, '_graph_memory') and self._graph_memory:
+            state["memory"] = self._graph_memory.export_memory()
+
+        return state
 
     def import_state(self, state: dict, clear_first: bool = True) -> int:
         """Импортировать состояние графа из export_state() dict.
@@ -874,6 +882,11 @@ class KnowledgeGraph:
             self._edges[eid] = edge
             self._adj.setdefault(edge.source, set()).add(edge.target)
             count += 1
+
+        # Phase 10: восстанавливаем memory если есть в снапшоте
+        if "memory" in state and hasattr(self, '_graph_memory') and self._graph_memory:
+            mem_count = self._graph_memory.import_memory(state["memory"], clear_first=clear_first)
+            count += mem_count
 
         return count
 
