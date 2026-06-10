@@ -63,6 +63,8 @@ class RouteEngine:
     SYNC_PROCESS_INTERVAL = 2
     # Phase 8: интервал полной перезагрузки из Redis (каждые 5 мин)
     FULL_RELOAD_INTERVAL = 300
+    # Phase 9: интервал снапшотов графа (каждые 5 мин)
+    SNAPSHOT_INTERVAL = 300
 
     def __init__(self):
         self.batches = defaultdict(list)  # type -> list of events
@@ -72,6 +74,8 @@ class RouteEngine:
         self._last_cb_sync = time.time()  # Phase 7: CB sync timer
         self._last_sync_process = time.time()  # Phase 8: PubSub process timer
         self._last_full_reload = time.time()  # Phase 8: full reload timer
+        self._last_snapshot = time.time()  # Phase 9: snapshot timer
+        self._graph_supervisor = None  # Phase 9: будет установлен внешне
 
         # Phase 3: Knowledge Graph
         try:
@@ -391,6 +395,22 @@ class RouteEngine:
                 except Exception:
                     pass
                 self._last_full_reload = now
+
+            # Phase 9: Snapshot графа (каждые 5 мин — вместе с full_reload)
+            if self.graph and (now - self._last_snapshot) >= self.SNAPSHOT_INTERVAL:
+                try:
+                    import os as _os
+                    snap_dir = "/home/agent/data/sites/relay-mesh/snapshots"
+                    _os.makedirs(snap_dir, exist_ok=True)
+                    ts = time.strftime("%Y-%m-%dT%H:%M:%S")
+                    path = f"{snap_dir}/graph_snapshot_{ts}.json"
+                    self.graph.save_snapshot(path)
+                    integrity = self.graph.integrity_check()
+                    if not integrity["ok"]:
+                        print(f"[RouteEngine] ⚠️ Integrity: {len(integrity['issues'])} issues")
+                except Exception as e:
+                    print(f"[RouteEngine] Snapshot error: {e}")
+                self._last_snapshot = now
 
             # Phase 3: периодическая деградация рёбер
             if self.graph and (now - self._last_decay) >= self.GRAPH_DECAY_INTERVAL:

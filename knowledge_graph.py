@@ -15,6 +15,7 @@ Redis-ключи:
 """
 
 import json
+import os
 import time
 import redis
 from dataclasses import dataclass, field, asdict
@@ -119,6 +120,7 @@ class KnowledgeGraph:
     KEY_EDGES = "graph:edges"
     KEY_ADJ = "graph:adj"
     KEY_STATS = "graph:stats"
+    KEY_SNAPSHOT = "graph:snapshot"
 
     # Пороги для статусов
     ONLINE_THRESHOLD = 30      # сек: last_seen < 30 → online
@@ -742,11 +744,14 @@ class KnowledgeGraph:
 
         weights = [e.weight for e in self._edges.values()]
         avg_weight = round(sum(weights) / len(weights), 2) if weights else 0
+        success_rates = [e.success_rate for e in self._edges.values()]
+        avg_success_rate = round(sum(success_rates) / len(success_rates), 3) if success_rates else 0
 
         return {
             "total_nodes": len(self._nodes),
             "total_edges": len(self._edges),
             "avg_weight": avg_weight,
+            "avg_success_rate": avg_success_rate,
             "nodes_online": online,
             "nodes_offline": offline,
             "nodes_degraded": degraded,
@@ -784,6 +789,219 @@ class KnowledgeGraph:
         return (f"Graph: nodes={s['total_nodes']} edges={s['total_edges']} "
                 f"avg_w={s['avg_weight']} "
                 f"online={s['nodes_online']} off={s['nodes_offline']} deg={s['nodes_degraded']}")
+
+    # ════════════════════════════════════════════════════════════
+    # Phase 9: Snapshots, Integrity, Export/Import
+    # ════════════════════════════════════════════════════════════
+
+    def export_state(self) -> dict:
+        """Экспортировать полное состояние графа как dict (для snapshot/checkpoint).
+
+        Результат содержит nodes, edges и adjacency, готовые к JSON-сериализации.
+        """
+        nodes = {}
+        for pk, node in self._nodes.items():
+            nodes[pk] = {
+                "node_id": node.node_id,
+                "node_type": node.node_type,
+                "last_seen": node.last_seen,
+                "status": node.status,
+                "pubkey": getattr(node, "pubkey", ""),
+                "transport_hint": getattr(node, "transport_hint", ""),
+            }
+
+        edges = {}
+        for eid, edge in self._edges.items():
+            edges[eid] = {
+                "source": edge.source,
+                "target": edge.target,
+                "transport": edge.transport,
+                "latency_ms": edge.latency_ms,
+                "success_rate": edge.success_rate,
+                "last_success": edge.last_success,
+                "nack_count": getattr(edge, "nack_count", 0),
+                "weight": getattr(edge, "weight", 0.0),
+            }
+
+        adj = {}
+        for src, targets in self._adj.items():
+            adj[src] = sorted(targets)
+
+        return {
+            "version": 9,
+            "node_id": self.node_id,
+            "exported_at": time.time(),
+            "nodes": nodes,
+            "edges": edges,
+            "adj": adj,
+            "stats": self.get_stats(),
+        }
+
+    def import_state(self, state: dict, clear_first: bool = True) -> int:
+        """Импортировать состояние графа из export_state() dict.
+
+        clear_first=True: очистить текущий граф перед импортом.
+        Возвращает количество импортированных сущностей.
+        """
+        if clear_first:
+            self._nodes.clear()
+            self._edges.clear()
+            self._adj.clear()
+
+        count = 0
+        for pk, ndata in state.get("nodes", {}).items():
+            node = GraphNode(
+                node_id=ndata["node_id"],
+                node_type=ndata.get("node_type", "agent"),
+                last_seen=ndata.get("last_seen", time.time()),
+                status=ndata.get("status", "online"),
+            )
+            node.pubkey = ndata.get("pubkey", "")
+            node.transport_hint = ndata.get("transport_hint", "")
+            self._nodes[pk] = node
+            count += 1
+
+        for eid, edata in state.get("edges", {}).items():
+            edge = GraphEdge(
+                source=edata["source"],
+                target=edata["target"],
+                transport=edata.get("transport", "unknown"),
+                latency_ms=edata.get("latency_ms", 0),
+                success_rate=edata.get("success_rate", 1.0),
+                last_success=edata.get("last_success", time.time()),
+            )
+            edge.nack_count = edata.get("nack_count", 0)
+            self._edges[eid] = edge
+            self._adj.setdefault(edge.source, set()).add(edge.target)
+            count += 1
+
+        return count
+
+    def save_snapshot(self, path: str) -> int:
+        """Сохранить снапшот графа в JSON-файл + записать в Redis.
+
+        Возвращает размер файла в байтах.
+        """
+        state = self.export_state()
+        json_bytes = json.dumps(state, indent=2, ensure_ascii=False).encode()
+
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(json_bytes)
+
+        # Дублируем в Redis (TTL: 7 дней для аварийного restore)
+        self.r.set(self.KEY_SNAPSHOT, json_bytes, ex=604800)
+
+        return len(json_bytes)
+
+    def restore_snapshot(self, path: str = None) -> int:
+        """Восстановить граф из снапшота.
+
+        Приоритет: 1) переданный path, 2) Redis KEY_SNAPSHOT, 3) load_from_redis.
+        Возвращает количество импортированных сущностей.
+        """
+        state = None
+
+        # 1) Файл
+        if path and os.path.exists(path):
+            with open(path, "rb") as f:
+                state = json.loads(f.read().decode())
+
+        # 2) Redis snapshot
+        if not state:
+            raw = self.r.get(self.KEY_SNAPSHOT)
+            if raw:
+                state = json.loads(raw.decode() if isinstance(raw, bytes) else raw)
+
+        # 3) Fallback: обычная загрузка
+        if not state:
+            self.load_from_redis()
+            return len(self._nodes) + len(self._edges)
+
+        return self.import_state(state, clear_first=True)
+
+    def integrity_check(self) -> dict:
+        """Проверить целостность графа.
+
+        Возвращает: {"ok": bool, "issues": [str], "orphan_nodes": [], "dangling_edges": []}
+        """
+        issues = []
+        orphan_nodes = []
+        dangling_edges = []
+
+        # Дубликаты рёбер
+        seen = set()
+        for eid in list(self._edges.keys()):
+            if eid in seen:
+                issues.append(f"dup edge: {eid}")
+            seen.add(eid)
+
+        # Висячие рёбра (source или target отсутствуют)
+        for eid, edge in self._edges.items():
+            if edge.source not in self._nodes:
+                dangling_edges.append(eid)
+                issues.append(f"dangling edge {eid}: source {edge.source} missing")
+            if edge.target not in self._nodes:
+                dangling_edges.append(eid)
+                issues.append(f"dangling edge {eid}: target {edge.target} missing")
+
+        # Узлы без рёбер (сироты — не обязательно ошибка, но отмечаем)
+        connected = set()
+        for edge in self._edges.values():
+            connected.add(edge.source)
+            connected.add(edge.target)
+        orphan_nodes = sorted(set(self._nodes.keys()) - connected)
+
+        # adjacency vs edges consistency
+        for eid, edge in self._edges.items():
+            if edge.target not in self._adj.get(edge.source, set()):
+                issues.append(f"adj mismatch: {eid} — target not in _adj")
+
+        for src, targets in self._adj.items():
+            for tgt in targets:
+                eid = f"{src}→{tgt}"
+                if eid not in self._edges:
+                    issues.append(f"adj has {eid} but no edge")
+
+        return {
+            "ok": len(issues) == 0,
+            "issues": issues,
+            "orphan_nodes": orphan_nodes,
+            "dangling_edges": dangling_edges,
+            "total_nodes": len(self._nodes),
+            "total_edges": len(self._edges),
+        }
+
+    # ════════════════════════════════════════════════════════════
+    # Phase 9: Graph Health (для Supervisor мониторинга)
+    # ════════════════════════════════════════════════════════════
+
+    def get_graph_health(self) -> dict:
+        """Метрики здоровья графа для supervisor.
+
+        Возвращает: {"ready": bool, "nodes": int, "edges": int,
+                      "synced": bool, "integrity_ok": bool, "degraded_pct": float}
+        """
+        stats = self.get_stats()
+        integrity = self.integrity_check()
+
+        total = stats["total_nodes"]
+        degraded_pct = (stats["nodes_degraded"] / total * 100) if total > 0 else 0
+
+        return {
+            "ready": self.is_ready,
+            "nodes": total,
+            "edges": stats["total_edges"],
+            "online": stats["nodes_online"],
+            "offline": stats["nodes_offline"],
+            "degraded": stats["nodes_degraded"],
+            "degraded_pct": round(degraded_pct, 1),
+            "syncing": self._sync_running,
+            "integrity_ok": integrity["ok"],
+            "integrity_issues": len(integrity["issues"]),
+            "avg_weight": round(stats["avg_weight"], 3),
+            "avg_success_rate": round(stats["avg_success_rate"], 3),
+        }
 
 
 # ─── Factory ──────────────────────────────────────────────
