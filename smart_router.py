@@ -72,6 +72,14 @@ from router_policy import (
     POLICY_KEY,
 )
 
+# Phase 4 (Knowledge Graph): графовая маршрутизация
+try:
+    from knowledge_graph import KnowledgeGraph, GraphNode, GraphEdge
+    KG_AVAILABLE = True
+except ImportError:
+    KG_AVAILABLE = False
+    print("[Router] ⚠️ Knowledge Graph not available")
+
 # ─── Настройки (из mesh_config.yaml) ──────────────────────────────────
 LISTEN_HOST = config.get("transport.smart_router.host", "0.0.0.0")
 LISTEN_PORT = config.get("transport.smart_router.port", 9932)
@@ -195,6 +203,23 @@ class SmartRouter:
         # ═══ Фаза 8: Event subscribers (push-канал для агентов) ═══
         self._event_subscribers: dict[int, tuple] = {}  # id → (writer, agent_name)
         self._sub_next_id = 0
+
+        # ═══ Phase 4: Knowledge Graph for targeted routing ═══
+        self.graph = None
+        if KG_AVAILABLE:
+            try:
+                import redis as _r
+                self._graph_redis = _r.Redis(host="localhost", port=6379, db=0, decode_responses=False)
+                self._graph_redis.ping()
+                self.graph = KnowledgeGraph(self._graph_redis)
+                loaded = self.graph.load_from_redis()
+                print(f"[Router] 📊 KnowledgeGraph: {'loaded' if loaded else 'empty'}")
+                self.stats["graph_paths_found"] = 0
+                self.stats["graph_fallbacks"] = 0
+                self.stats["graph_broadcasts"] = 0
+            except Exception as e:
+                print(f"[Router] ⚠️ KnowledgeGraph init failed: {e}")
+                self.graph = None
         # ═══ Фаза 1 Rate Limiter (token bucket) ═══
         self._rate_limiter = RateLimiter(rate=100.0, burst=200)
         # ═══ Фаза 3 Message Ordering (seq_num + reorder buffer) ═══
@@ -1244,6 +1269,100 @@ class SmartRouter:
             except Exception as e:
                 print(f"[SelfLearn] Error: {e}")
 
+    # ═══════════════════════════════════════════════════════════
+    # Phase 4: Knowledge Graph методы
+    # ═══════════════════════════════════════════════════════════
+
+    def _update_graph_from_msg(self, msg: dict):
+        """Обновить Knowledge Graph из сообщения.
+
+        Извлекает source (from/pubkey), target (to), transport (meta.transport),
+        и обновляет узлы/рёбра в графе.
+        """
+        if not self.graph:
+            return
+
+        now = time.time()
+        pubkey = msg.get("pubkey", "")
+        from_id = msg.get("from", pubkey or "?")
+        to_id = msg.get("to", "")
+        kind = msg.get("kind", 0)
+        meta = msg.get("meta", {})
+        transport = meta.get("transport", "mesh")
+
+        # 1. Source — всегда создаём/обновляем
+        if from_id and from_id != "?":
+            node = self.graph.get_node(from_id)
+            if node:
+                node.last_seen = now
+                node.status = "online"
+                self.graph.upsert_node(node)
+            else:
+                self.graph.upsert_node(GraphNode(
+                    node_id=from_id,
+                    node_type="agent",
+                    last_seen=now,
+                    status="online",
+                ))
+
+        # 2. Target (если есть) → ребро
+        if to_id and to_id != "broadcast" and to_id != "?" and from_id != to_id:
+            edge = self.graph.get_edge(from_id, to_id)
+            if not edge:
+                self.graph.upsert_edge(GraphEdge(
+                    source=from_id,
+                    target=to_id,
+                    transport=transport,
+                    last_success=now,
+                ))
+            else:
+                edge.last_success = now
+                if edge.transport == "unknown" and transport != "unknown":
+                    edge.transport = transport
+                self.graph.upsert_edge(edge)
+
+        # 3. Heartbeat → обновить статус
+        if kind == HEARTBEAT_KIND and from_id and from_id != "?":
+            self.graph.update_node_status(from_id, "online", now)
+
+    def _route_via_graph(self, target_id: str, msg: dict) -> dict | None:
+        """Phase 4: попытаться найти маршрут до target через Knowledge Graph.
+
+        Возвращает словарь с found, path, next_hop, total_weight, fallback
+        или None если граф не готов.
+        """
+        if not self.graph or not self.graph.is_ready:
+            return None
+
+        source_id = msg.get("from", "smart_router")
+
+        # Пробуем надёжный путь
+        path = self.graph.find_path(source_id, target_id)
+        fallback = False
+
+        if not path:
+            path = self.graph.find_path_fallback(source_id, target_id)
+            fallback = True
+            self.stats["graph_fallbacks"] += 1
+        else:
+            self.stats["graph_paths_found"] += 1
+
+        if not path:
+            return {"found": False, "path": None, "next_hop": None,
+                    "total_weight": 0.0, "fallback": True}
+
+        info = self.graph.get_path_info(path)
+        next_hop = path[1] if len(path) > 1 else None
+
+        return {
+            "found": True,
+            "path": path,
+            "next_hop": next_hop,
+            "hops": info["hops"],
+            "total_weight": info["total_weight"],
+            "fallback": fallback,
+        }
+
     async def route_message(self, msg: dict) -> dict:
         self.stats["received"] += 1
 
@@ -1253,6 +1372,34 @@ class SmartRouter:
         kind = msg.get("kind", 39002)
         priority = meta.get("priority", "normal")
         channel_pref = meta.get("channel", "auto")
+
+        # ═══ Phase 4: Knowledge Graph update ═══
+        self._update_graph_from_msg(msg)
+
+        # ═══ Phase 5: ACK/NACK → record_delivery ═══
+        if kind == 8011 and self.graph:
+            ack_source = msg.get("from", "")
+            ack_content = msg.get("content", msg.get("payload", {}))
+            if isinstance(ack_content, str):
+                try:
+                    ack_content = json.loads(ack_content)
+                except Exception:
+                    ack_content = {}
+            orig_source = ack_content.get("original_source", ack_content.get("from", ""))
+            orig_target = ack_content.get("original_target", ack_content.get("to", ""))
+            success = ack_content.get("success", ack_content.get("ok", True))
+            ack_latency = ack_content.get("latency_ms", ack_content.get("latency", 0))
+            if orig_source and orig_target:
+                self.graph.record_delivery(orig_source, orig_target, bool(success), float(ack_latency))
+                self.stats["graph_acks_processed"] += 1
+                print(f"[Router] 📊 ACK recorded: {orig_source[:12]}→{orig_target[:12]} "
+                      f"success={success} latency={ack_latency}ms")
+
+        # ═══ Phase 4: Targeted routing via graph ═══
+        to_full = msg.get("to", "")
+        graph_route = None
+        if self.graph and to_full and to_full != "broadcast" and to_full != "?":
+            graph_route = self._route_via_graph(to_full, msg)
 
         # ═══ Rate Limiter: token bucket per agent ═══
         if not self._rate_limiter.allow(from_agent):
@@ -1352,7 +1499,7 @@ class SmartRouter:
         try:
             sender_pubkey = event.get("pubkey", "")
             if sender_pubkey:
-                rep_weight = _get_reputation_weight(sender_pubkey)
+                rep_weight = get_reputation_weight(sender_pubkey)
                 if rep_weight < 0.3:
                     # Низкая репутация → только mesh (контролируемый канал)
                     if channel in ("nostr", "gossip", "gossip_data", "nostr_data"):
@@ -1360,7 +1507,29 @@ class SmartRouter:
                         channel = "mesh"
         except Exception:
             pass
-        
+
+        # ═══ Phase 4: Graph-aware routing override ═══
+        if graph_route and graph_route["found"]:
+            next_hop = graph_route.get("next_hop")
+            if next_hop and not self._cb.is_blocked("direct"):
+                channel = "direct"
+                self.stats["graph_routed_direct"] += 1
+                msg["meta"] = msg.get("meta", {})
+                msg["meta"]["graph_path"] = graph_route["path"]
+                msg["meta"]["graph_next_hop"] = next_hop
+                msg["meta"]["graph_weight"] = graph_route["total_weight"]
+                print(f"[Router] 📊 Graph route: {graph_route['path']} → next={next_hop} (direct)")
+            elif next_hop and not self._cb.is_blocked("mesh"):
+                channel = "mesh"
+                self.stats["graph_routed_mesh"] += 1
+                msg["meta"] = msg.get("meta", {})
+                msg["meta"]["graph_path"] = graph_route["path"]
+                msg["meta"]["graph_next_hop"] = next_hop
+                msg["meta"]["graph_weight"] = graph_route["total_weight"]
+                print(f"[Router] 📊 Graph route: {graph_route['path']} → next={next_hop} (mesh, direct blocked)")
+            else:
+                self.stats["graph_routed_fallback"] += 1
+
         # Шаг 2: собираем каналы для отправки (исключая CB-blocked)
         policy = self.get_policy(kind)
         channels_to_try = [ch for ch in [channel] if not self._cb.is_blocked(ch)]
@@ -1495,6 +1664,16 @@ class SmartRouter:
         # Add seq info to response
         if "seq" in msg:
             best_result["seq"] = msg["seq"]
+
+        # Phase 4: graph route info
+        if graph_route and graph_route["found"]:
+            best_result["graph"] = {
+                "path": graph_route["path"],
+                "next_hop": graph_route.get("next_hop"),
+                "hops": graph_route.get("hops", 0),
+                "weight": graph_route.get("total_weight", 0),
+                "fallback": graph_route.get("fallback", False),
+            }
 
         return best_result
 
@@ -1822,6 +2001,24 @@ class SmartRouter:
                     "ts": time.time(),
                 }
                 await self._push_to_subscribers(event_for_push, exclude_writer=writer)
+                
+                # ═══ Phase 5: ACK/NACK graph record_delivery (для всех путей, включая pipeline_feed) ═══
+                if kind == 8011 and self.graph:
+                    ack_content = msg.get("content", msg.get("payload", {}))
+                    if isinstance(ack_content, str):
+                        try:
+                            ack_content = json.loads(ack_content)
+                        except Exception:
+                            ack_content = {}
+                    orig_source = ack_content.get("original_source", ack_content.get("from", ""))
+                    orig_target = ack_content.get("original_target", ack_content.get("to", ""))
+                    success = ack_content.get("success", ack_content.get("ok", True))
+                    ack_latency = ack_content.get("latency_ms", ack_content.get("latency", 0))
+                    if orig_source and orig_target:
+                        self.graph.record_delivery(orig_source, orig_target, bool(success), float(ack_latency))
+                        self.stats["graph_acks_processed"] += 1
+                        print(f"[Router] 📊 ACK (pipeline): {orig_source[:12]}→{orig_target[:12]} "
+                              f"success={success}")
                 
                 # pipeline_feed от RE — только push, без роутинга (избегаем цикла RE→SR→CRV2→RE)
                 if kind == "pipeline_feed":
