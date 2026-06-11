@@ -39,6 +39,7 @@ class ContentClassification:
     matched_expertise: str = ""
     hashtags: list = field(default_factory=list)
     extracted_text: str = ""
+    recipients: list = field(default_factory=list)  # P15: matching agent pubkeys
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -137,9 +138,55 @@ class ContentRouter:
             "by_keyword": 0,
             "by_semantic": 0,
             "unknown": 0,
+            "capability_matched": 0,   # P15
         }
 
-    # ─── Кеш экспертизы ────────────────────────────────
+        # P15: Topic → Capability mapping for marketplace routing
+        self._topic_cap_map = {
+            "AI": ["ai_analysis", "ml_inference"],
+            "Crypto": ["crypto_trading", "blockchain_indexing"],
+            "BTC": ["btc_trading", "bitcoin_analytics"],
+            "DeFi": ["defi_analysis", "yield_optimizer"],
+            "Nostr": ["nostr_relay", "nostr_indexer"],
+            "Tech": ["tech_monitoring", "code_review"],
+            "Finance": ["market_analysis", "trading_signal"],
+            "News": ["news_aggregation", "event_detection"],
+            "Privacy": ["privacy_audit", "encryption_service"],
+        }
+
+    # ─── P15: Capability-based recipient discovery ─────
+
+    def find_recipients(self, topic: str) -> list:
+        """P15: Найти агентов с подходящими capability для этой темы.
+
+        Использует first_contact.capabilities для поиска агентов,
+        чьи capabilities соответствуют данной теме (через _topic_cap_map).
+        """
+        try:
+            import first_contact as fc
+            fc._load_capabilities()
+        except (ImportError, FileNotFoundError):
+            return []
+
+        if topic not in self._topic_cap_map:
+            return []
+
+        target_caps = set(self._topic_cap_map[topic])
+        recipients = []
+
+        for pubkey, info in fc.capabilities.items():
+            if not isinstance(info, dict):
+                continue
+            agent_caps = set(info.get("capabilities", []))
+            if agent_caps & target_caps:
+                recipients.append({
+                    "pubkey": pubkey,
+                    "capabilities": list(agent_caps & target_caps),
+                    "registered_at": info.get("registered_at", 0),
+                })
+
+        recipients.sort(key=lambda r: -r.get("registered_at", 0))
+        return recipients
 
     def _load_expertise_cache(self):
         """Загрузить ключевые слова из зарегистрированной экспертизы.
@@ -168,34 +215,46 @@ class ContentRouter:
         try:
             r = self.gm.r
             PREFIX = self.gm.KEY_PREFIX  # "graph:memory"
-            for key_bytes in r.scan_iter(match=f"{PREFIX}:*".encode()):
-                node_id = key_bytes.decode().split(f"{PREFIX}:")[1]
+            for key_raw in r.scan_iter(match=f"{PREFIX}:*"):
+                # Нормализуем bytes → str (на случай decode_responses=False)
+                key_str = key_raw.decode() if isinstance(key_raw, bytes) else key_raw
+                node_id = key_str.split(f"{PREFIX}:")[1]
                 # Получаем все поля HSET
-                fields = r.hgetall(key_bytes)
+                fields = r.hgetall(key_raw)
                 for field_k, field_v in fields.items():
                     k = field_k.decode() if isinstance(field_k, bytes) else field_k
-                    if not k.startswith("expertise:") or "_tags" in k:
-                        continue
-                    # k = "expertise:BTC", извлекаем тему
-                    topic = k.replace("expertise:", "")
                     v = field_v.decode() if isinstance(field_v, bytes) else field_v
 
-                    # Парсим JSON чтобы получить value
-                    try:
-                        import json
-                        entry = json.loads(v)
-                        desc = entry.get("value", v)
-                    except Exception:
-                        desc = v
+                    # P15: process both main expertise and _tags entries
+                    if k.startswith("expertise:") and "_tags" not in k:
+                        topic = k.replace("expertise:", "")
+                        try:
+                            import json
+                            entry = json.loads(v)
+                            desc = entry.get("value", v)
+                        except (json.JSONDecodeError, ValueError):
+                            desc = v
+                        for word in desc.split():
+                            word = word.lower().strip(".,;:!?()[]{}\"'")
+                            if len(word) >= 2 and word not in ("the", "and", "for", "via", "with",
+                                                                "of", "in", "to", "on", "is", "at"):
+                                self._expertise_cache.setdefault(word, {"topic": topic, "nodes": [node_id]})
 
-                    # Индексируем слова из описания
-                    for word in str(desc).lower().split():
-                        word = word.strip(".,;:!?\"'()[]{}")
-                        if len(word) >= 3 and word not in ("the", "and", "for", "via",
-                                                            "with", "of", "in", "to",
-                                                            "on", "is", "at"):
-                            self._expertise_cache.setdefault(
-                                word, {"topic": topic, "nodes": [node_id]})
+                    # P15: also index _tags entries as keywords
+                    elif k.startswith("expertise:") and "_tags" in k:
+                        topic = k.replace("expertise:_tags:", "")
+                        # v is a JSON with "value" being the search_text
+                        try:
+                            import json
+                            entry = json.loads(v)
+                            search_text = entry.get("value", v)
+                        except (json.JSONDecodeError, ValueError):
+                            search_text = v
+                        for word in search_text.split():
+                            word = word.lower().strip(".,;:!?()[]{}\"'")
+                            if len(word) >= 2 and word not in ("the", "and", "for", "via", "with",
+                                                                "of", "in", "to", "on", "is", "at"):
+                                self._expertise_cache.setdefault(word, {"topic": topic, "nodes": [node_id]})
         except Exception as e:
             logger.debug(f"[ContentRouter] Redis scan for expertise cache: {e}")
 
@@ -235,61 +294,64 @@ class ContentRouter:
         Стратегия (по убыванию приоритета):
           1. Хэштеги из tags → маппинг HASHTAG_TOPIC_MAP
           2. Ключевые слова в тексте → матчинг по expertise-ключам
-          3. Семантический поиск по всему тексту
+          3. Семантический поиск по всему тексту (P14: только латиница)
           4. "unknown" если ничего не найдено
 
+        P15: После классификации заполняется recipients — список агентов
+        с подходящими capabilities для этой темы.
+
         Returns:
-            ContentClassification с topic, confidence, method
+            ContentClassification с topic, confidence, method, recipients
         """
         content = event.get("content", "")
         hashtags = self.extract_hashtags(event)
 
-        # Обновляем кеш если нужно
         if not self._expertise_cache_loaded:
             self._load_expertise_cache()
+
+        result: ContentClassification | None = None
 
         # Стратегия 1: хэштеги
         if hashtags:
             for h in hashtags:
                 if h in self.HASHTAG_TOPIC_MAP:
-                    topic = self.HASHTAG_TOPIC_MAP[h]
-                    return ContentClassification(
-                        topic=topic,
+                    result = ContentClassification(
+                        topic=self.HASHTAG_TOPIC_MAP[h],
                         confidence=0.95,
                         method="hashtag",
                         hashtags=hashtags,
                         extracted_text=content[:200],
                     )
+                    break
 
         # Стратегия 2: ключевые слова
-        text_lower = content.lower()
-        matched_topics: dict[str, int] = {}  # topic → hits
+        if result is None:
+            text_lower = content.lower()
+            matched_topics: dict[str, int] = {}
 
-        for keyword, info in self._expertise_cache.items():
-            if re.search(r'\b' + re.escape(keyword) + r'\b', text_lower):
-                topic = info["topic"]
-                matched_topics[topic] = matched_topics.get(topic, 0) + 1
+            for keyword, info in self._expertise_cache.items():
+                if re.search(r'\b' + re.escape(keyword) + r'\b', text_lower):
+                    topic = info["topic"]
+                    matched_topics[topic] = matched_topics.get(topic, 0) + 1
 
-        if matched_topics:
-            # Выбираем тему с наибольшим количеством совпадений
-            best_topic = max(matched_topics, key=matched_topics.get)
-            confidence = min(0.85, 0.40 + matched_topics[best_topic] * 0.15)
-            return ContentClassification(
-                topic=best_topic,
-                confidence=confidence,
-                method="keyword",
-                matched_expertise=best_topic,
-                hashtags=hashtags,
-                extracted_text=content[:200],
-            )
+            if matched_topics:
+                best_topic = max(matched_topics, key=matched_topics.get)
+                confidence = min(0.85, 0.40 + matched_topics[best_topic] * 0.15)
+                result = ContentClassification(
+                    topic=best_topic,
+                    confidence=confidence,
+                    method="keyword",
+                    matched_expertise=best_topic,
+                    hashtags=hashtags,
+                    extracted_text=content[:200],
+                )
 
-        # Стратегия 3: семантический поиск (только для латинского текста)
-        # P14 fix: non-Latin scripts (CJK, Arabic, Cyrillic, etc.) дают шумные эмбеддинги
-        if content.strip():
+        # Стратегия 3: семантический поиск (P14: только латиница)
+        if result is None and content.strip():
             if ContentRouter._is_latin_script(content):
                 experts = self.sr.find_experts(content, top_k=1)
                 if experts and experts[0].score > 0.20:
-                    return ContentClassification(
+                    result = ContentClassification(
                         topic=experts[0].topic,
                         confidence=experts[0].score,
                         method="semantic",
@@ -299,13 +361,22 @@ class ContentRouter:
                     )
 
         # Стратегия 4: unknown
-        return ContentClassification(
-            topic="unknown",
-            confidence=0.0,
-            method="unknown",
-            hashtags=hashtags,
-            extracted_text=content[:200],
-        )
+        if result is None:
+            result = ContentClassification(
+                topic="unknown",
+                confidence=0.0,
+                method="unknown",
+                hashtags=hashtags,
+                extracted_text=content[:200],
+            )
+
+        # P15: Populate recipients from capability registry
+        if result.topic != "unknown":
+            result.recipients = self.find_recipients(result.topic)
+            if result.recipients:
+                self.stats["capability_matched"] += 1
+
+        return result
 
     # ─── Маршрутизация ─────────────────────────────────
 

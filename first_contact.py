@@ -55,6 +55,20 @@ CAPABILITY_TEMPLATES = {
     "dht_storage": {"channel": "internal", "kinds": [39001], "ttl": 60},
     "p2p_forward": {"channel": "p2p", "kinds": [39002], "protocol": "tcp"},
     "auth_provider": {"feature": "nip42_auth", "methods": ["schnorr", "session"]},
+    # P15: marketplace capabilities
+    "ai_analysis": {"domain": "ai", "kinds": [39020], "description": "AI analysis and inference"},
+    "ml_inference": {"domain": "ai", "kinds": [39020], "description": "ML model inference"},
+    "crypto_trading": {"domain": "crypto", "kinds": [39021], "description": "Cryptocurrency trading"},
+    "blockchain_indexing": {"domain": "crypto", "kinds": [39021], "description": "Blockchain data indexing"},
+    "btc_trading": {"domain": "btc", "kinds": [39022], "description": "Bitcoin trading signals"},
+    "bitcoin_analytics": {"domain": "btc", "kinds": [39022], "description": "Bitcoin on-chain analytics"},
+    "nostr_relay": {"domain": "nostr", "kinds": [39023], "description": "Nostr relay operation"},
+    "nostr_indexer": {"domain": "nostr", "kinds": [39023], "description": "Nostr content indexing"},
+    "defi_analysis": {"domain": "defi", "kinds": [39024], "description": "DeFi protocol analysis"},
+    "market_analysis": {"domain": "finance", "kinds": [39024], "description": "Market analysis"},
+    "news_aggregation": {"domain": "news", "kinds": [39025], "description": "News aggregation"},
+    "code_review": {"domain": "tech", "kinds": [39026], "description": "Code review service"},
+    "privacy_audit": {"domain": "privacy", "kinds": [39027], "description": "Privacy audit"},
 }
 
 def register_capabilities(pubkey: str, caps: list = None) -> dict:
@@ -229,6 +243,28 @@ def build_kind39005_event(pubkey: str, status: str = "alive") -> dict:
                 int(time.time() - capabilities[pubkey].get("registered_at", time.time())),
         }),
     }
+
+def add_to_buffer(pubkey: str, data: dict, ttl: int = 300):
+    """P15: Add agent to buffer zone (pending verification)."""
+    buffer_zone[pubkey] = {
+        **data,
+        "expired_at": time.time() + ttl,
+        "added_at": time.time(),
+    }
+    _save_buffer()
+
+def decide_buffer_action(pubkey: str) -> dict:
+    """P15: Decide what to do with a buffered agent."""
+    if pubkey not in buffer_zone:
+        return {"action": "unknown", "reason": "not in buffer"}
+    info = buffer_zone[pubkey]
+    now = time.time()
+    if now > info.get("expired_at", 0):
+        return {"action": "expire", "reason": "ttl expired", "age": int(now - info.get("added_at", now))}
+    age = now - info.get("added_at", now)
+    if age < 30:
+        return {"action": "validate", "reason": "new agent, pending validation", "age": int(age)}
+    return {"action": "promote", "reason": "passed probation", "age": int(age)}
 
 def process_heartbeat(pubkey: str, agents: dict) -> dict:
     """Process agent heartbeat — update last_seen, handle buffer zone."""
