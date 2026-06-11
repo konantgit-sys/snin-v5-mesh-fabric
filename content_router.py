@@ -98,6 +98,23 @@ class ContentRouter:
         "dao": "DAO",
     }
 
+    @staticmethod
+    def _is_latin_script(text: str, threshold: float = 0.5) -> bool:
+        """P14: Определить, является ли текст преимущественно латиницей.
+
+        Не-латинские скрипты (CJK, арабица, кириллица) дают шумные эмбеддинги
+        и должны пропускаться через семантический роутер только при наличии
+        экспертизы с соответствующим языком.
+        """
+        if not text or not text.strip():
+            return False
+        # Считаем символы: латиница (a-z, A-Z), цифры, whitespace, базовая пунктуация
+        latin_chars = sum(1 for c in text if c.isascii() and (c.isalpha() or c.isspace() or c.isdigit() or c in '.,;:!?\'\"()-_/'))
+        total_chars = sum(1 for c in text if not c.isspace())
+        if total_chars == 0:
+            return False
+        return (latin_chars / total_chars) >= threshold
+
     def __init__(self, semantic_router: SemanticRouter, gm: GraphMemory = None):
         """
         semantic_router: SemanticRouter (Phase 11)
@@ -266,18 +283,20 @@ class ContentRouter:
                 extracted_text=content[:200],
             )
 
-        # Стратегия 3: семантический поиск
+        # Стратегия 3: семантический поиск (только для латинского текста)
+        # P14 fix: non-Latin scripts (CJK, Arabic, Cyrillic, etc.) дают шумные эмбеддинги
         if content.strip():
-            experts = self.sr.find_experts(content, top_k=1)
-            if experts and experts[0].score > 0.20:
-                return ContentClassification(
-                    topic=experts[0].topic,
-                    confidence=experts[0].score,
-                    method="semantic",
-                    matched_expertise=experts[0].matched_key,
-                    hashtags=hashtags,
-                    extracted_text=content[:200],
-                )
+            if ContentRouter._is_latin_script(content):
+                experts = self.sr.find_experts(content, top_k=1)
+                if experts and experts[0].score > 0.20:
+                    return ContentClassification(
+                        topic=experts[0].topic,
+                        confidence=experts[0].score,
+                        method="semantic",
+                        matched_expertise=experts[0].matched_key,
+                        hashtags=hashtags,
+                        extracted_text=content[:200],
+                    )
 
         # Стратегия 4: unknown
         return ContentClassification(
