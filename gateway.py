@@ -799,6 +799,10 @@ def _tool_dead_letter(args: dict) -> dict:
 # ─── Startup ───────────────────────────────────────────────────────
 _start_time = time.time()
 
+# ─── WSGI entry point for Gunicorn ──────────────────────────────────
+# gunicorn uses: gunicorn gateway:application --bind 0.0.0.0:9951
+application = app
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="SNIN MCP Gateway")

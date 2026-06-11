@@ -153,6 +153,50 @@ async def identity_attest(data: dict):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@app.get("/verify_relay")
+async def verify_relay_endpoint(relay_url: str = "", signature: str = "",
+                                  timestamp: int = 0, pubkey: str = "",
+                                  mesh_id: str = "snin-main-1"):
+    """
+    Верифицировать подпись релея.
+    Прокси на Relay Signing сервис (:9125).
+    
+    Параметры (query string):
+      relay_url — URL релея (wss://...)
+      signature — Ed25519 подпись (hex)
+      timestamp — время подписи (unix)
+      pubkey — публичный ключ релея (hex)
+      mesh_id — идентификатор mesh
+    """
+    if not relay_url or not signature:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "relay_url and signature required"}
+        )
+    
+    try:
+        import urllib.request
+        import urllib.parse
+        
+        params = urllib.parse.urlencode({
+            "relay_url": relay_url,
+            "signature": signature,
+            "timestamp": timestamp,
+            "pubkey": pubkey,
+            "mesh_id": mesh_id,
+        })
+        url = f"http://127.0.0.1:9125/verify?{params}"
+        
+        resp = urllib.request.urlopen(url, timeout=3)
+        result = json.loads(resp.read())
+        return result
+    except Exception as e:
+        return JSONResponse(
+            status_code=502,
+            content={"error": f"Relay Signing unavailable: {e}"}
+        )
+
+
 @app.get("/")
 async def root():
     return {
@@ -162,7 +206,8 @@ async def root():
         "paths": ["/health", "/identity/{name}", "/identity/did/{did}",
                   "/identity/top", "/identity/all",
                   "/trust-graph", "/trust/{agent}",
-                  "/did-document/{did}", "/vc/{agent}", "/identity/attest"],
+                  "/did-document/{did}", "/vc/{agent}", "/identity/attest",
+                  "/verify_relay"],
     }
 
 if __name__ == "__main__":

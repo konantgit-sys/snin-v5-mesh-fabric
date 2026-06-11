@@ -119,21 +119,21 @@ SERVICES = [
      "critical": False},
     
     # ─── V4 Phase 4 — DAO Mesh :9510 + Science Mesh :9650 ───
-    {"name": "science_mesh",      "port": 9650, "start": "/home/agent/data/sites/relay-mesh/science_mesh.sh", "critical": False},
+    # {"name": "science_mesh",      "port": 9650, "start": "/home/agent/data/sites/relay-mesh/science_mesh.sh", "critical": False},
     
     # ─── V4 Phase 6 — Smart City Mesh :9660 ───
-    {"name": "city_mesh",         "port": 9660, "start": "/home/agent/data/sites/relay-mesh/city_mesh.sh", "critical": False},
+    # {"name": "city_mesh",         "port": 9660, "start": "/home/agent/data/sites/relay-mesh/city_mesh.sh", "critical": False},
     
     # ─── V4 Phase 7 — Trading Signal Mesh :9670 ───
-    {"name": "trading_mesh",      "port": 9670, "start": "/home/agent/data/sites/relay-mesh/trading_mesh.sh", "critical": False},
+    # {"name": "trading_mesh",      "port": 9670, "start": "/home/agent/data/sites/relay-mesh/trading_mesh.sh", "critical": False},
     
     # ─── V4 Phase 8 — DeFi Oracle Mesh :9680 ───
-    {"name": "defi_mesh",         "port": 9680, "start": "/home/agent/data/sites/relay-mesh/defi_mesh.sh", "critical": False},
+    # {"name": "defi_mesh",         "port": 9680, "start": "/home/agent/data/sites/relay-mesh/defi_mesh.sh", "critical": False},
     
     # ─── V4 Phase 9 — Crowdfunding :9690, Supply Chain :9720, Energy Grid :9710 ───
-    {"name": "crowd_mesh",        "port": 9690, "start": "/home/agent/data/sites/relay-mesh/crowd_mesh.sh", "critical": False},
-    {"name": "chain_mesh",        "port": 9720, "start": "/home/agent/data/sites/relay-mesh/chain_mesh.sh", "critical": False},
-    {"name": "energy_mesh",       "port": 9710, "start": "/home/agent/data/sites/relay-mesh/energy_mesh.sh", "critical": False},
+    # {"name": "crowd_mesh",        "port": 9690, "start": "/home/agent/data/sites/relay-mesh/crowd_mesh.sh", "critical": False},
+    # {"name": "chain_mesh",        "port": 9720, "start": "/home/agent/data/sites/relay-mesh/chain_mesh.sh", "critical": False},
+    # {"name": "energy_mesh",       "port": 9710, "start": "/home/agent/data/sites/relay-mesh/energy_mesh.sh", "critical": False},
 
     # ─── AI Agents ───
     {"name": "identity_api",      "port": 9940, "start": "/home/agent/data/sites/identity-api/start.sh", "critical": False},
