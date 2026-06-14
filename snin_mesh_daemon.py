@@ -203,11 +203,26 @@ def _start_cheque_mesh():
     return ChequeMeshRouter()
 
 
+# Global reference to CronScheduler for shared access
+_cron_scheduler_instance = None
+
 def _start_cron_scheduler():
     """Initialize agent cron scheduler."""
+    global _cron_scheduler_instance
     from agent_cron import CronScheduler
     cs = CronScheduler()
-    threading.Thread(target=cs.run_forever, daemon=True, name="cron-scheduler").start()
+    _cron_scheduler_instance = cs
+
+    def _cron_loop():
+        while True:
+            try:
+                cs.tick_sync(max_iterations=10)
+                time.sleep(5)
+            except Exception as e:
+                logger.error(f"CronScheduler error: {e}")
+                time.sleep(10)
+
+    threading.Thread(target=_cron_loop, daemon=True, name="cron-scheduler").start()
     return cs
 
 
@@ -219,12 +234,15 @@ def _start_federation_discovery():
     )
     topo = create_local_topology("snin-v5-mesh-fabric")
     fd = FederationDiscovery(topo)
-    # Register cron handlers
-    cs = _start_cron_scheduler()
-    cs.register("federation", "announce", 600,
-                make_federation_announce_handler(fd))
-    cs.register("federation", "scan", 300,
-                make_federation_scan_handler(fd))
+    # Register cron handlers — use shared scheduler instance
+    cs = _cron_scheduler_instance
+    if cs:
+        cs.register("federation", "announce", 600,
+                    make_federation_announce_handler(fd))
+        cs.register("federation", "scan", 300,
+                    make_federation_scan_handler(fd))
+    else:
+        logger.warning("CronScheduler not available for federation")
     # Initial announce
     fd.announce()
     return fd
