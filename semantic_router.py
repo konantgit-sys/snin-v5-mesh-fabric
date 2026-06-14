@@ -175,6 +175,21 @@ class SemanticRouter:
                 online_experts.append(e)
 
         online_experts.sort(key=lambda e: -e.score)
+
+        # Fallback: keyword search для коротких запросов
+        if not online_experts:
+            keywords = [w.lower() for w in topic.split() if len(w) >= 2]
+            raw_results = self.gm.search_by_keywords(keywords, top_k=top_k)
+            for node_id, key, value, score in raw_results:
+                if "_tags:" in key:
+                    continue
+                clean_topic = key.replace(self.EXPERTISE_PREFIX, "").replace(f"{self.EXPERTISE_PREFIX}_tags:", "")
+                online_experts.append(TopicExpert(
+                    node_id=node_id, topic=clean_topic,
+                    score=float(score), description=value, matched_key=key,
+                ))
+            online_experts.sort(key=lambda e: -e.score)
+
         return online_experts[:top_k]
 
     # ─── Маршрутизация ─────────────────────────────────
@@ -316,7 +331,7 @@ class SemanticRouter:
         for node_id in self.gm._discover_nodes_from_redis():
             self.gm._ensure_loaded(node_id)
             for key, entry in self.gm._entries.get(node_id, {}).items():
-                if key.startswith(self.EXPERTISE_PREFIX) and not key.endswith("_tags"):
+                if key.startswith(self.EXPERTISE_PREFIX) and "_tags" not in key:
                     topic = key.replace(self.EXPERTISE_PREFIX, "")
                     coverage.setdefault(topic, []).append(node_id)
 
