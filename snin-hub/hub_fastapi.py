@@ -4,14 +4,33 @@ SNIN Hub API v2 — FastAPI + WebSocket.
 Все старые эндпоинты + /ws для WebSocket прокси в simple_agent.
 """
 
-import json, os, time, socket, subprocess, urllib.request, sys, sqlite3, threading, random, asyncio
+import json, os, time, socket, subprocess, sys, sqlite3, threading, random, asyncio, functools
+import httpx
+from httpx import AsyncClient, Limits
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import uvicorn
-from starlette.responses import FileResponse
+# import uvloop — patched 2026-06-13
+# uvloop.install() — patched
 
 PORT = 9950
+
+# ═══ Shared HTTP client — connection pooling, keep-alive, limits ═══
+_shared_client: AsyncClient | None = None
+_upstream_semaphore = asyncio.Semaphore(20)  # max 20 concurrent upstream calls
+_upstream_cache: dict[str, tuple[float, any]] = {}  # url → (timestamp, data)
+CACHE_TTL = 10.0  # cache relay stats for 10 seconds
+
+def _get_client() -> AsyncClient:
+    """Return shared httpx client with connection pooling. Created once, reused."""
+    global _shared_client
+    if _shared_client is None:
+        _shared_client = AsyncClient(
+            limits=Limits(max_keepalive_connections=20, max_connections=100),
+            timeout=httpx.Timeout(5.0, connect=3.0),
+        )
+    return _shared_client
 TCP_HOST = "127.0.0.1"
 TCP_PORT = 9908
 
@@ -142,7 +161,30 @@ async def tcp_send_recv(data: bytes) -> str | None:
 
 
 # ═══ HELPER: proxy HTTP → TCP ═══
+async def _fetch_json(url, timeout=3, cache=False):
+    """Async HTTP GET → JSON via SHARED client with semaphore + optional cache."""
+    # Check cache first
+    if cache:
+        now = time.time()
+        if url in _upstream_cache:
+            ts, data = _upstream_cache[url]
+            if now - ts < CACHE_TTL:
+                return data
+    
+    async with _upstream_semaphore:
+        try:
+            client = _get_client()
+            r = await client.get(url, timeout=timeout)
+            data = r.json()
+            if cache:
+                _upstream_cache[url] = (time.time(), data)
+            return data
+        except:
+            return {"error": "unavailable"}
+
 def proxy_url(url, timeout=3):
+    """Sync wrapper — used by sync code only (health probes)."""
+    import urllib.request
     try:
         r = urllib.request.urlopen(url, timeout=timeout)
         return json.loads(r.read())
@@ -151,7 +193,7 @@ def proxy_url(url, timeout=3):
 
 def server_stats():
     """Системная статистика — формат совместимый с dashboard frontend"""
-    result = {"cpu": "—", "mem_total": 17995, "mem_used": 10310, "mem_free": 1403, "disk_total": "197G", "disk_used": "65G", "disk_free": "132G", "uptime": 1086000}
+    result = {"cpu": "—", "mem_total": 8192, "mem_used": 0, "mem_free": 8192, "disk_total": "197G", "disk_used": "65G", "disk_free": "132G", "uptime": 1086000}
     try:
         with open("/proc/uptime") as f:
             result["uptime"] = int(float(f.read().split()[0]))
@@ -173,12 +215,22 @@ def server_stats():
             result["cpu"] = r.stdout.strip()
     except: pass
     try:
-        with open("/proc/meminfo") as f:
-            for line in f:
-                p = line.split()
-                if p[0] == "MemTotal:": result["mem_total"] = int(p[1]) // 1024
-                elif p[0] == "MemAvailable:": result["mem_free"] = int(p[1]) // 1024
-        result["mem_used"] = result["mem_total"] - result["mem_free"]
+        import os
+        # CGROUP — реальный лимит контейнера, не хост-машина
+        if os.path.exists("/sys/fs/cgroup/memory.max") and os.path.exists("/sys/fs/cgroup/memory.current"):
+            with open("/sys/fs/cgroup/memory.max") as f:
+                result["mem_total"] = int(f.read().strip()) // (1024*1024)
+            with open("/sys/fs/cgroup/memory.current") as f:
+                result["mem_used"] = int(f.read().strip()) // (1024*1024)
+            result["mem_free"] = max(0, result["mem_total"] - result["mem_used"])
+        else:
+            # Fallback: /proc/meminfo (только если cgroup недоступен)
+            with open("/proc/meminfo") as f:
+                for line in f:
+                    p = line.split()
+                    if p[0] == "MemTotal:": result["mem_total"] = int(p[1]) // 1024
+                    elif p[0] == "MemAvailable:": result["mem_free"] = int(p[1]) // 1024
+            result["mem_used"] = result["mem_total"] - result["mem_free"]
     except: pass
     try:
         import shutil
@@ -232,7 +284,7 @@ def dht_stats():
 
 # ═══ REST endpoints ═══
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     html_path = os.path.join(os.path.dirname(__file__), "index.html")
     if os.path.exists(html_path):
@@ -243,7 +295,6 @@ async def root():
         return resp
     return HTMLResponse("<h1>Not Found</h1>", status_code=404)
 
-@app.get("/health")
 @app.get("/api/health")
 async def health():
     return {"status":"ok","layer":"snin-hub-v2","port":PORT}
@@ -524,8 +575,9 @@ async def api_relay():
         
         # Реальные данные из трекера (relay на 8198)
         try:
-            r = urllib.request.urlopen("http://127.0.0.1:8086/api/stats", timeout=3)
-            tracker = json.loads(r.read())
+            data = await _fetch_json("http://127.0.0.1:8086/api/stats", timeout=3, cache=True)
+
+            tracker = data
             events = tracker.get("events", 2189)
             authors = tracker.get("authors", 126)
             fts_indexed = tracker.get("fts_indexed", 0)
@@ -555,8 +607,9 @@ async def api_relay():
 async def api_nip11():
     """NIP-11 метаданные релея"""
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:8198/", timeout=3)
-        nip = json.loads(r.read())
+        data = await _fetch_json("http://127.0.0.1:8198/", timeout=3, cache=True)
+
+        nip = data
         return nip
     except:
         return {"supported_nips":[1,4,9,11,12,13,20,26,29,33,40,42,45,50,56,71,86,89,94,96],"software":"snin-relay-v2","version":"3.1.0"}
@@ -603,8 +656,9 @@ async def api_p2p():
     """P2P/Mesh данные — живые источники (Smart Router + P2P деamon)"""
     wal_count = 0
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:8090/api/status", timeout=3)
-        p2p_data = json.loads(r.read()).get("data", {})
+        data = await _fetch_json("http://127.0.0.1:8090/api/status", timeout=3, cache=True)
+
+        p2p_data = data.get("data", {})
         wal_count = p2p_data.get("wal_count", 0)
     except: pass
     
@@ -614,8 +668,9 @@ async def api_p2p():
     sr_connections = 0
     agents_in_network = 0
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:9933/", timeout=3)
-        sr = json.loads(r.read())
+        data = await _fetch_json("http://127.0.0.1:9933/", timeout=3, cache=True)
+
+        sr = data
         channels = sr.get("channels", channels)
         st = sr.get("stats", {})
         sr_connections = st.get("connections", 0)
@@ -634,8 +689,9 @@ async def api_p2p():
     # Bridge
     bridge = {"name": "snin-network", "alive": True}
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:9946/health", timeout=2)
-        b = json.loads(r.read())
+        data = await _fetch_json("http://127.0.0.1:9946/health", timeout=2, cache=True)
+
+        b = data
         bridge = {"name": b.get("mesh_name", "snin-network"), "alive": True}
     except: pass
     
@@ -679,19 +735,20 @@ async def api_bridge():
     result = {"alive": False, "layer": "L1.5 Cross-Mesh Bridge", "channels": {}, "stats": {}}
     # Cross-Mesh Bridge на 9946
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:9946/health", timeout=3)
-        result.update(json.loads(r.read()))
+        data = await _fetch_json("http://127.0.0.1:9946/health", timeout=3, cache=True)
+
+        result.update(data)
         result["alive"] = True
     except: pass
     # L1.5 Bridge на 8202
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:8202/channels", timeout=3)
-        result["channels"] = json.loads(r.read()).get("channels", {})
+        data = await _fetch_json("http://127.0.0.1:8202/channels", timeout=3, cache=True)
+        result["channels"] = data.get("channels", {})
         if not result.get("alive"): result["alive"] = True
     except: pass
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:8202/stats", timeout=3)
-        result["stats"] = json.loads(r.read())
+        data = await _fetch_json("http://127.0.0.1:8202/stats", timeout=3, cache=True)
+        result["stats"] = data
     except: pass
     return result
 
@@ -829,12 +886,13 @@ async def api_ai_agents():
 async def api_network():
     network = {"layers":[],"channels":{},"dht":{"nodes":0,"agents":0},"supervisor":{"alive":0,"dead":0,"total":0}}
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:9900/layers", timeout=3)
-        network["layers"] = json.loads(r.read()).get("layers",[])
+        data = await _fetch_json("http://127.0.0.1:9900/layers", timeout=3, cache=True)
+        network["layers"] = data.get("layers",[])
     except: pass
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:9933/", timeout=3)
-        sr = json.loads(r.read())
+        data = await _fetch_json("http://127.0.0.1:9933/", timeout=3, cache=True)
+
+        sr = data
         network["channels"] = sr.get("channels",{})
         network["dht"]["nodes"] = sr.get("dht",{}).get("n_nodes",0)
         network["dht"]["agents"] = sr.get("dht",{}).get("n_agents",0)
@@ -867,8 +925,9 @@ async def api_dht_deep():
 async def api_topology():
     topo = {"nodes":[],"edges":[],"channels":{},"mesh":{},"bridge":{},"dht":{},"sr_stats":{},"timestamp":time.time()}
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:9933/", timeout=2)
-        sr = json.loads(r.read())
+        data = await _fetch_json("http://127.0.0.1:9933/", timeout=2, cache=True)
+
+        sr = data
         topo["channels"] = sr.get("channels",{})
         topo["dht"] = {"n_nodes":sr.get("dht",{}).get("n_nodes",0),"n_agents":sr.get("dht",{}).get("n_agents",0)}
         topo["sr_stats"] = sr.get("stats",{})
@@ -887,13 +946,15 @@ async def api_topology():
                 except: pass
     except: pass
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:9300/health", timeout=2)
-        m = json.loads(r.read())
+        data = await _fetch_json("http://127.0.0.1:9300/health", timeout=2, cache=True)
+
+        m = data
         topo["mesh"] = {"alive":True,"nodes":m.get("nodes_alive",0),"total":m.get("nodes_total",0),"edges":m.get("edges",0),"topology_version":m.get("topology_version",0)}
     except: topo["mesh"] = {"alive":False}
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:9945/health", timeout=2)
-        b = json.loads(r.read())
+        data = await _fetch_json("http://127.0.0.1:9945/health", timeout=2, cache=True)
+
+        b = data
         topo["bridge"] = {"alive":True,"mesh_name":b.get("mesh_name",""),"mesh_id":b.get("mesh_id","")[:24]}
     except: topo["bridge"] = {"alive":False}
     return topo
@@ -1279,10 +1340,8 @@ async def api_libraries():
             parts = line.strip().split(None, 1)
             if len(parts) == 2:
                 libs[parts[0]] = parts[1]
-        # Top RAM by library — quick estimate via importlib
-        top_ram = {}
-        lib_names = list(libs.keys())[:40]
-        return {"total": len(libs), "libs": dict(list(libs.items())[:50]), "top_ram_mb": top_ram}
+        # Все библиотеки, без обрезания
+        return {"total": len(libs), "libs": libs, "top_ram_mb": {}}
     except Exception as e:
         return {"total": 0, "error": str(e)[:60], "libs": {}}
 
@@ -1417,8 +1476,7 @@ async def dashboard_daemons():
 async def dashboard_relay():
     """Прокси на relay-dash /api/stats"""
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:8086/api/stats", timeout=3)
-        return json.loads(r.read())
+        return await _fetch_json("http://127.0.0.1:8086/api/stats", timeout=3, cache=True)
     except:
         return {"events": 0, "authors": 0, "connections": 0, "subscriptions": 0, "uptime": 0, "fts_indexed": 0, "newest_event": 0, "whitelist_count": 0}
 
@@ -1426,8 +1484,7 @@ async def dashboard_relay():
 async def dashboard_activity():
     """Прокси на relay-dash /api/activity24h"""
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:8086/api/activity24h", timeout=3)
-        return json.loads(r.read())
+        return await _fetch_json("http://127.0.0.1:8086/api/activity24h", timeout=3, cache=True)
     except:
         return {"hours": [0]*24, "total": 0}
 
@@ -1435,8 +1492,7 @@ async def dashboard_activity():
 async def dashboard_p2p():
     """Прокси на p2p-dash /api/status"""
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:8090/api/status", timeout=3)
-        return json.loads(r.read())
+        return await _fetch_json("http://127.0.0.1:8090/api/status", timeout=3, cache=True)
     except:
         return {"data": {"wal_count": 0}, "peers": 0}
 
@@ -1444,9 +1500,7 @@ async def dashboard_p2p():
 async def dashboard_nip11():
     """Прокси на relay-v2 NIP-11"""
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:8198/", timeout=3)
-        import json as jmod
-        return jmod.loads(r.read())
+        return await _fetch_json("http://127.0.0.1:8198/", timeout=3, cache=True)
     except:
         return {"supported_nips": []}
 
@@ -1626,19 +1680,19 @@ async def api_supervisor():
 @app.get("/bridge")
 async def fallback_bridge():
     """Cross-Mesh Bridge L1.5 — проверка реальных портов"""
-    import urllib.request, json
     result = {"alive": False, "layer": "L1.5 Cross-Mesh Bridge", "channels": {}, "stats": {}}
     # Пробуем cross_mesh_bridge (9946)
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:9946/health", timeout=2)
-        result.update(json.loads(r.read()))
+        data = await _fetch_json("http://127.0.0.1:9946/health", timeout=2, cache=True)
+
+        result.update(data)
         result["alive"] = True
     except:
         pass
     # Пробуем L1.5 bridge (8202)
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:8202/channels", timeout=2)
-        result["channels"] = json.loads(r.read()).get("channels", {})
+        data = await _fetch_json("http://127.0.0.1:8202/channels", timeout=2, cache=True)
+        result["channels"] = data.get("channels", {})
         result["alive"] = True
     except:
         pass
@@ -1742,8 +1796,9 @@ async def fallback_topology():
     except:
         pass
     try:
-        r = urllib.request.urlopen("http://127.0.0.1:9945/health", timeout=2)
-        b = json.loads(r.read())
+        data = await _fetch_json("http://127.0.0.1:9945/health", timeout=2, cache=True)
+
+        b = data
         topo["bridge"] = {"alive": True, "mesh_name": b.get("mesh_name",""), "mesh_id": b.get("mesh_id","")[:24]}
     except:
         topo["bridge"] = {"alive": False}
@@ -1758,174 +1813,13 @@ async def fallback_manifest():
 async def identity_proxy(path: str):
     """Прокси на локальный Identity API (порт 9940)"""
     try:
-        r = urllib.request.urlopen(f"http://127.0.0.1:9940/{path}", timeout=5)
-        return json.loads(r.read())
+        return await _fetch_json(f"http://127.0.0.1:9940/{path}", timeout=5, cache=True)
     except Exception as e:
         return {"error": str(e), "agents": [], "count": 0, "top": []}
 
 @app.api_route("/identity-proxy/", methods=["GET"])
 async def identity_proxy_root():
     return await identity_proxy("")
-
-
-@app.get("/fabric")
-async def fabric_dashboard():
-    """Mesh Fabric dashboard — L5T L13 L14 L15"""
-    return FileResponse(os.path.join(os.path.dirname(__file__), "fabric_dashboard.html"))
-
-
-# ═══ V5 Mesh Fabric API Proxies ═══
-HEALTH_ENGINE_URL = "http://127.0.0.1:9999"
-
-async def _proxy_to_health_engine(path: str, method: str = "GET", body: dict = None):
-    """Прокси на Health Engine (:9999)"""
-    try:
-        url = f"{HEALTH_ENGINE_URL}{path}"
-        req = urllib.request.Request(url, method=method)
-        if body:
-            import json as _json
-            req.data = _json.dumps(body).encode()
-            req.add_header("Content-Type", "application/json")
-        with urllib.request.urlopen(req, timeout=5) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        return {"ok": False, "error": f"HTTP {e.code}"}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-@app.get("/api/v5/health/dashboard")
-async def v5_health_dashboard():
-    return await _proxy_to_health_engine("/api/v1/health/dashboard")
-
-@app.get("/api/v5/health/services")
-async def v5_health_services():
-    r = await _proxy_to_health_engine("/api/v1/health/dashboard")
-    if isinstance(r, dict) and "summary" in r:
-        return {"ok": True, "services": r.get("services", {}), "summary": r["summary"], "layers": r.get("layers", {})}
-    return {"ok": False, "error": "health engine unreachable"}
-
-@app.get("/api/v5/alerts")
-async def v5_alerts(limit: int = 20, active: str = "false"):
-    return await _proxy_to_health_engine(f"/api/v1/alerts?limit={limit}&active={active}")
-
-@app.get("/api/v5/alerts/active")
-async def v5_alerts_active():
-    return await _proxy_to_health_engine("/api/v1/alerts/active")
-
-@app.post("/api/v5/alerts/ack/{alert_id}")
-async def v5_alerts_ack(alert_id: str):
-    return await _proxy_to_health_engine(f"/api/v1/alerts/ack/{alert_id}", method="POST")
-
-@app.get("/api/v5/recovery/stats")
-async def v5_recovery_stats():
-    return await _proxy_to_health_engine("/api/v1/recovery/stats")
-
-@app.get("/api/v5/recovery/events")
-async def v5_recovery_events(limit: int = 20, service: str = ""):
-    q = f"limit={limit}"
-    if service: q += f"&service={service}"
-    return await _proxy_to_health_engine(f"/api/v1/recovery/events?{q}")
-
-@app.get("/api/v5/recovery/analysis")
-async def v5_recovery_analysis():
-    return await _proxy_to_health_engine("/api/v1/recovery/analysis")
-
-@app.get("/api/v5/deadletter/stats")
-async def v5_dlq_stats():
-    return await _proxy_to_health_engine("/api/v1/deadletter/stats")
-
-
-# ═══ Event Log + Alert History — in-memory tracker ═══
-
-_event_log = []
-_alert_history = []
-_prev_services = {}
-_prev_alerts = {}  # rule_name → hash
-_startup_done = False
-
-async def _track_events():
-    """Background: poll health engine every 15s, track state changes"""
-    global _prev_services, _prev_alerts
-    while True:
-        try:
-            now = time.time()
-            # 1. Track service state changes
-            data = await _proxy_to_health_engine("/api/v1/health/dashboard")
-            if isinstance(data, dict) and "services" in data:
-                for name, svc in data["services"].items():
-                    curr = svc.get("is_alive", False)
-                    prev = _prev_services.get(name)
-                    if prev is not None and prev != curr:
-                        ev = {
-                            "ts": now, "type": "service",
-                            "service": name,
-                            "message": f"🟢 alive" if curr else "🔴 dead",
-                            "status": "alive" if curr else "dead",
-                            "port": svc.get("port", "—"),
-                            "ram_mb": svc.get("ram_mb", "—")
-                        }
-                        _event_log.append(ev)
-                    _prev_services[name] = curr
-
-            # 2. Track alert changes
-            alerts_resp = await _proxy_to_health_engine("/api/v1/alerts?active=true&limit=50")
-            if isinstance(alerts_resp, dict) and "alerts" in alerts_resp:
-                current_rules = {}
-                for a in alerts_resp["alerts"]:
-                    rn = a.get("rule_name", "?")
-                    current_rules[rn] = a.get("priority", "INFO")
-                
-                # Detect new alerts
-                for rn, pri in current_rules.items():
-                    if rn not in _prev_alerts:
-                        _alert_history.append({
-                            "ts": now, "rule": rn,
-                            "service": a.get("service_name", "?"),
-                            "priority": pri, "action": "FIRED"
-                        })
-                # Detect resolved alerts
-                for rn in _prev_alerts:
-                    if rn not in current_rules:
-                        _alert_history.append({
-                            "ts": now, "rule": rn,
-                            "service": "?", "priority": _prev_alerts[rn],
-                            "action": "RESOLVED"
-                        })
-                _prev_alerts = current_rules
-
-            # Trim
-            while len(_event_log) > 500:
-                _event_log.pop(0)
-            while len(_alert_history) > 200:
-                _alert_history.pop(0)
-        except Exception:
-            pass
-        await asyncio.sleep(15)
-
-@app.on_event("startup")
-async def _start_event_tracker():
-    global _startup_done
-    # Seed first event to show UI works
-    _event_log.append({
-        "ts": time.time(), "type": "system",
-        "service": "SNIN Hub",
-        "message": "🚀 Event tracker started",
-        "status": "info",
-        "port": "9950", "ram_mb": "—"
-    })
-    _startup_done = True
-    asyncio.create_task(_track_events())
-
-@app.get("/api/events")
-async def get_events(limit: int = 50):
-    items = _event_log[-limit:] if _event_log else []
-    return {"ok": True, "events": list(reversed(items))}
-
-@app.get("/api/alerts/history")
-async def get_alert_history(limit: int = 50):
-    items = _alert_history[-limit:] if _alert_history else []
-    return {"ok": True, "alerts": list(reversed(items))}
-
 
 if __name__ == "__main__":
     import argparse
