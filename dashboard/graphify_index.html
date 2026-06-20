@@ -1,0 +1,2968 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>SNIN Graph — Architecture Visualizer</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   DARK PREMIUM — Stripe/Vercel DNA
+   Glass morphism · Animated borders · Neon accents
+   ═══════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --space-deep: #020810;
+  --space-mid: #060e1f;
+  --glass-bg: rgba(255,255,255,0.025);
+  --glass-border: rgba(255,255,255,0.06);
+  --glass-hover: rgba(255,255,255,0.04);
+  --glass-active: rgba(255,255,255,0.06);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --accent-cyan: #00d4ff;
+  --accent-blue: #3b82f6;
+  --accent-purple: #a855f7;
+  --accent-gold: #f59e0b;
+  --accent-pink: #ec4899;
+  --accent-mint: #10b981;
+  --accent-rose: #f43f5e;
+  --gradient-1: linear-gradient(135deg, #00d4ff, #3b82f6);
+  --gradient-2: linear-gradient(135deg, #a855f7, #ec4899);
+  --gradient-3: linear-gradient(135deg, #10b981, #00d4ff);
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --transition-fast: 0.15s cubic-bezier(0.4,0,0.2,1);
+  --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+  --transition-slow: 0.4s cubic-bezier(0.4,0,0.2,1);
+  --shadow-glass: 0 4px 24px rgba(0,0,0,0.3), 0 1px 2px rgba(255,255,255,0.05) inset;
+  --shadow-elevated: 0 8px 40px rgba(0,0,0,0.4), 0 1px 3px rgba(255,255,255,0.04) inset;
+  --shadow-glow: 0 0 40px rgba(0,212,255,0.08), 0 0 80px rgba(0,212,255,0.03);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:14px; }
+
+body {
+  background: var(--space-deep);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  height: 100vh; overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══ COSMIC BACKGROUND ═══ */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 30%, rgba(0,212,255,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 55% at 80% 65%, rgba(168,85,247,0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 20%, rgba(59,130,246,0.04) 0%, transparent 55%),
+    radial-gradient(ellipse 35% 45% at 30% 80%, rgba(236,72,153,0.03) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 35% at 70% 10%, rgba(16,185,129,0.03) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+/* Mesh grid */
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: 0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.03) 0.5px, transparent 0.5px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 70%);
+}
+
+/* ═══ AMBIENT CANVAS (background particles) ═══ */
+#ambient-canvas {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+}
+
+/* ═══ APP SHELL ═══ */
+#app {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; height: 100vh;
+}
+
+/* ═══ HEADER — Glass bar ═══ */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 24px; gap: 16px;
+  background: var(--glass-bg);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  position: relative; z-index: 10;
+}
+/* ═══ Help button ═══ */
+#help-btn {
+  margin-left: auto; width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+  color: var(--text-tertiary); font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition-fast);
+  font-family: 'Inter', -apple-system, sans-serif; font-weight: 500;
+}
+#help-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-secondary); border-color: rgba(255,255,255,0.12); }
+
+/* ═══ Dev button ═══ */
+#dev-btn {
+  margin-left: 8px; width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.15);
+  color: var(--accent); font-size: 12px; cursor: pointer; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition-fast);
+  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+}
+#dev-btn:hover { background: rgba(0,212,255,0.15); color: #fff; border-color: rgba(0,212,255,0.3); box-shadow: 0 0 12px rgba(0,212,255,0.15); }
+
+/* ═══ Info button ═══ */
+#info-btn {
+  margin-left: 8px; width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.15);
+  color: #10b981; font-size: 14px; cursor: pointer; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition-fast);
+  font-family: 'Inter', -apple-system, sans-serif; font-style: italic;
+}
+#info-btn:hover { background: rgba(16,185,129,0.15); color: #fff; border-color: rgba(16,185,129,0.3); box-shadow: 0 0 12px rgba(16,185,129,0.15); }
+
+/* ═══ Help overlay ═══ */
+#help-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+#help-backdrop {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(5,5,15,0.88); backdrop-filter: blur(16px);
+  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+#help-overlay.visible { opacity: 1; pointer-events: auto; }
+#help-overlay.visible #help-backdrop { opacity: 1; pointer-events: auto; }
+#help-card {
+  position: relative; z-index: 1001;
+  max-width: 620px; width: 92%; max-height: 85vh; overflow-y: auto;
+  padding: 36px 32px 32px;
+  background: rgba(15,15,35,0.95); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 18px; backdrop-filter: blur(24px);
+  color: var(--text-secondary); font-size: 13px; line-height: 1.7;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
+}
+#help-card h2 { font-size: 20px; color: var(--text-primary); margin: 0 0 12px; font-weight: 600; }
+#help-card h3 { font-size: 13px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; margin: 24px 0 8px; }
+#help-card p { margin: 0 0 8px; }
+#help-card .key { color: var(--text-primary); font-weight: 600; }
+#help-card .close-help {
+  position: sticky; top: 0; float: right; z-index: 2;
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 50%; color: var(--text-tertiary);
+  font-size: 18px; cursor: pointer; transition: all 0.2s;
+  margin: -8px -4px 0 0;
+}
+#help-card .close-help:hover { 
+  background: rgba(255,255,255,0.12); color: var(--text-primary);
+  border-color: rgba(255,255,255,0.2);
+}
+#help-card .help-divider {
+  height: 1px; background: rgba(255,255,255,0.06);
+  margin: 20px 0;
+}
+
+/* ═══ Dev overlay (same structure as help, different accent) ═══ */
+#dev-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+#dev-backdrop {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(5,5,15,0.88); backdrop-filter: blur(16px);
+  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+#dev-overlay.visible { opacity: 1; pointer-events: auto; }
+#dev-overlay.visible #dev-backdrop { opacity: 1; pointer-events: auto; }
+#dev-card {
+  position: relative; z-index: 1001;
+  max-width: 640px; width: 92%; max-height: 85vh; overflow-y: auto;
+  padding: 36px 32px 32px;
+  background: rgba(15,20,40,0.95); border: 1px solid rgba(0,212,255,0.15);
+  border-radius: 18px; backdrop-filter: blur(24px);
+  color: var(--text-secondary); font-size: 13px; line-height: 1.7;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.05) inset;
+}
+#dev-card h2 { font-size: 20px; color: var(--text-primary); margin: 0 0 12px; font-weight: 600; }
+#dev-card h3 { font-size: 13px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; margin: 24px 0 8px; }
+#dev-card p { margin: 0 0 8px; }
+#dev-card .key { color: var(--accent); font-weight: 600; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; font-size: 12px; }
+#dev-card .close-dev {
+  position: sticky; top: 0; float: right; z-index: 2;
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.15);
+  border-radius: 50%; color: var(--accent);
+  font-size: 18px; cursor: pointer; transition: all 0.2s;
+  margin: -8px -4px 0 0;
+}
+#dev-card .close-dev:hover { 
+  background: rgba(0,212,255,0.2); color: #fff;
+  border-color: rgba(0,212,255,0.3);
+}
+#dev-card .dev-divider {
+  height: 1px; background: rgba(0,212,255,0.08);
+  margin: 20px 0;
+}
+#dev-card .stack-badge {
+  display: inline-block; padding: 3px 10px; margin: 2px 4px 2px 0;
+  background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.15);
+  border-radius: 12px; font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 11px; color: var(--accent);
+}
+#dev-card code {
+  background: rgba(0,212,255,0.06); padding: 1px 6px; border-radius: 4px;
+  font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px;
+  color: var(--accent);
+}
+#dev-card .arch-flow {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0;
+  font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px;
+}
+
+/* ═══ Info overlay (project overview, capabilities, features) ═══ */
+#info-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+#info-backdrop {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(5,5,15,0.88); backdrop-filter: blur(16px);
+  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+#info-overlay.visible { opacity: 1; pointer-events: auto; }
+#info-overlay.visible #info-backdrop { opacity: 1; pointer-events: auto; }
+#info-card {
+  position: relative; z-index: 1001;
+  max-width: 680px; width: 94%; max-height: 82vh; overflow-y: auto;
+  padding: 0;
+  background: linear-gradient(160deg, rgba(12,20,35,0.98) 0%, rgba(8,12,28,0.98) 100%);
+  border: 1px solid rgba(0,212,255,0.12);
+  border-radius: 20px;
+  color: rgba(240,240,248,0.82); font-size: 13.5px; line-height: 1.65;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 32px 96px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.04) inset, 0 1px 0 rgba(255,255,255,0.02) inset;
+}
+#info-card .card-header {
+  position: sticky; top: 0; z-index: 3;
+  padding: 28px 32px 20px;
+  background: linear-gradient(180deg, rgba(12,20,35,0.98) 60%, rgba(12,20,35,0) 100%);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,212,255,0.06);
+}
+#info-card .card-body { padding: 8px 32px 32px; }
+#info-card .card-title {
+  font-size: 22px; font-weight: 700; letter-spacing: -0.01em;
+  background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 6px;
+}
+#info-card .card-subtitle {
+  font-size: 12.5px; color: rgba(160,170,200,0.65);
+  letter-spacing: 0.02em;
+}
+#info-card .close-info {
+  position: absolute; top: 20px; right: 20px; z-index: 4;
+  width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 50%; color: rgba(255,255,255,0.5);
+  font-size: 17px; cursor: pointer; transition: all 0.25s;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+#info-card .close-info:hover {
+  background: rgba(255,255,255,0.08); color: #fff;
+  border-color: rgba(255,255,255,0.15);
+}
+
+/* ─── Metric pills ─── */
+#info-card .metric-row {
+  display: flex; gap: 10px; margin: 20px 0 0; flex-wrap: wrap;
+}
+#info-card .metric-pill {
+  background: linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(139,92,246,0.04) 100%);
+  border: 1px solid rgba(0,212,255,0.1);
+  border-radius: 12px; padding: 8px 14px;
+  text-align: center;
+}
+#info-card .metric-val {
+  font-size: 18px; font-weight: 700; color: #fff;
+  letter-spacing: -0.02em; line-height: 1.1;
+}
+#info-card .metric-label {
+  font-size: 10px; color: rgba(160,170,200,0.55);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px;
+}
+
+/* ─── Section headers ─── */
+#info-card .section-title {
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: rgba(0,212,255,0.6);
+  margin: 28px 0 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+#info-card .section-title::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, rgba(0,212,255,0.12), transparent);
+}
+
+/* ─── Layer rows (in the 9 layers table) ─── */
+#info-card .layer-row {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 12.5px;
+}
+#info-card .layer-row:last-child { border-bottom: none; }
+#info-card .layer-badge {
+  flex-shrink: 0; width: 38px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 11px; font-weight: 600;
+  color: #00d4ff;
+  text-align: center;
+}
+#info-card .layer-desc { color: rgba(200,205,225,0.7); }
+#info-card .layer-desc strong {
+  color: #fff; font-weight: 600;
+}
+#info-card .port-tag {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 10.5px; color: #8b5cf6;
+  background: rgba(139,92,246,0.1);
+  border-radius: 4px; padding: 1px 5px;
+  white-space: nowrap;
+}
+
+/* ─── Feature grid (components) ─── */
+#info-card .comp-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0;
+}
+#info-card .comp-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px; padding: 14px;
+  font-size: 12px; line-height: 1.55;
+  transition: border-color 0.2s;
+}
+#info-card .comp-card:hover { border-color: rgba(0,212,255,0.15); }
+#info-card .comp-name {
+  font-weight: 600; color: #fff;
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 4px;
+}
+#info-card .comp-port {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 10.5px; font-weight: 500;
+  color: #8b5cf6; background: rgba(139,92,246,0.08);
+  border-radius: 4px; padding: 1px 5px;
+}
+#info-card .comp-desc { color: rgba(170,180,200,0.7); }
+
+/* ─── ASCII tree ─── */
+#info-card .tree-block {
+  background: linear-gradient(135deg, rgba(0,212,255,0.03) 0%, rgba(139,92,246,0.02) 100%);
+  border: 1px solid rgba(0,212,255,0.08);
+  border-radius: 12px; padding: 16px 18px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 11px; line-height: 1.9;
+  color: rgba(200,210,235,0.75);
+  overflow-x: auto;
+}
+#info-card .tree-block .hl { color: #00d4ff; }
+#info-card .tree-block .hp { color: #8b5cf6; }
+
+/* ─── Extra services table ─── */
+#info-card .extra-row {
+  display: flex; gap: 12px; padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 12.5px;
+}
+#info-card .extra-row:last-child { border-bottom: none; }
+#info-card .extra-name {
+  flex-shrink: 0; width: 130px;
+  font-weight: 600; color: #fff; font-size: 12px;
+}
+#info-card .extra-desc { color: rgba(170,180,200,0.7); }
+
+/* ─── Footer ─── */
+#info-card .card-footer {
+  margin-top: 24px; font-size: 10.5px;
+  color: rgba(140,150,180,0.45);
+  text-align: right; letter-spacing: 0.03em;
+}
+#info-card .card-footer .ver {
+  color: #00d4ff; font-weight: 600;
+}
+
+@media (max-width: 500px) {
+  #info-card { max-width: 100%; width: 96%; max-height: 90vh; border-radius: 14px; }
+  #info-card .card-header { padding: 22px 18px 16px; }
+  #info-card .card-body { padding: 4px 18px 24px; }
+  #info-card .comp-grid { grid-template-columns: 1fr; }
+  #info-card .extra-name { width: 100px; }
+  #info-card .close-info { top: 14px; right: 14px; }
+}
+.ctx-pill { position: relative; cursor: default; }
+.ctx-pill .ctx-tip {
+  position: absolute; bottom: calc(100% + 8px); left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(10,10,20,0.95); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; padding: 8px 14px; font-size: 11px; color: var(--text-secondary);
+  white-space: nowrap; pointer-events: none; opacity: 0;
+  transition: all 0.2s ease; font-family: 'Inter', sans-serif;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  z-index: 10; line-height: 1.5;
+}
+.ctx-pill .ctx-tip::after {
+  content: ''; position: absolute; top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent; border-top-color: rgba(255,255,255,0.1);
+}
+.ctx-pill:hover .ctx-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* Mobile: tap to show tooltip */
+.ctx-pill.tip-visible .ctx-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ═══ Scroll hint for mobile ═══ */
+#scroll-hint {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px; padding: 8px 20px;
+  color: var(--text-tertiary); font-size: 11px; cursor: pointer;
+  backdrop-filter: blur(8px); transition: all 0.3s; z-index: 5;
+  animation: hintPulse 2s ease-in-out infinite;
+}
+#scroll-hint:hover { background: rgba(255,255,255,0.12); color: var(--text-secondary); }
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+@media (min-width: 768px) { #scroll-hint { display: none; } }
+
+/* ═══ About section ═══ */
+#about-section {
+  padding: 32px 24px; color: var(--text-secondary); font-size: 13px; line-height: 1.7;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  background: rgba(0,0,0,0.2); backdrop-filter: blur(8px);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 28px;
+}
+#about-section h3 {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-tertiary); margin: 0 0 10px; font-weight: 600;
+}
+#about-section p { margin: 0 0 6px; font-size: 12px; }
+#about-section .about-highlight { color: var(--text-primary); font-weight: 600; }
+
+header::after {
+  content: ''; position: absolute; bottom: -1px; left: 10%; right: 10%; height: 1px;
+  background: var(--gradient-1); opacity: 0.3;
+  filter: blur(2px);
+}
+
+header h1 {
+  font-size: 16px; font-weight: 700; letter-spacing: -0.02em;
+  background: var(--gradient-1);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: flex; align-items: center; gap: 8px;
+}
+header h1::before {
+  content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan), 0 0 16px var(--accent-cyan);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+@keyframes statusPulse {
+  0%,100% { box-shadow: 0 0 6px var(--accent-cyan), 0 0 12px var(--accent-cyan); }
+  50% { box-shadow: 0 0 12px var(--accent-cyan), 0 0 24px var(--accent-cyan); }
+}
+
+/* ═══ TABS — Glass pills ═══ */
+.tabs {
+  display: flex; gap: 4px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px; padding: 3px;
+  border: 1px solid var(--glass-border);
+}
+.tab-btn {
+  background: transparent; border: none; color: var(--text-secondary);
+  padding: 7px 18px; border-radius: 8px; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 500;
+  letter-spacing: -0.01em;
+  transition: all var(--transition);
+  position: relative; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+}
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.04);
+}
+.tab-btn.active {
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 8px rgba(0,212,255,0.08);
+}
+.tab-btn .count {
+  font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 10px;
+  background: rgba(255,255,255,0.08);
+  color: var(--text-secondary);
+}
+.tab-btn.active .count {
+  background: rgba(0,212,255,0.15);
+  color: var(--accent-cyan);
+}
+
+/* ═══ CONTEXT BAR — Clean metrics strip ═══ */
+#context-bar {
+  display: flex; gap: 0; padding: 0 24px;
+  background: rgba(255,255,255,0.015);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+  flex-wrap: wrap; align-items: stretch;
+}
+.ctx-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; 
+  border-right: 1px solid rgba(255,255,255,0.04);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  position: relative;
+}
+.ctx-pill:first-child {
+  padding-left: 0;
+}
+.ctx-pill:hover {
+  background: rgba(255,255,255,0.02);
+}
+.ctx-pill .ctx-label {
+  font-size: 10px; font-weight: 500; color: var(--text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.ctx-pill .ctx-dot {
+  width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+}
+.ctx-pill .ctx-value {
+  font-size: 11.5px; font-weight: 600; color: var(--text-secondary);
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  letter-spacing: -0.01em;
+}
+.ctx-pill .ctx-highlight {
+  color: var(--text-primary); font-weight: 700;
+}
+
+/* ═══ TOOLBAR — Minimal ═══ */
+.toolbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 24px;
+  background: rgba(255,255,255,0.015);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.toolbar input, .toolbar select {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-primary);
+  padding: 6px 12px; border-radius: 8px;
+  font-family: 'Inter', sans-serif; font-size: 11.5px;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+.toolbar input:focus, .toolbar select:focus {
+  border-color: rgba(0,212,255,0.3);
+  box-shadow: 0 0 0 3px rgba(0,212,255,0.06);
+}
+.toolbar input { width: 220px; }
+.toolbar select { min-width: 140px; }
+.toolbar input::placeholder { color: var(--text-tertiary); }
+.toolbar label {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--text-tertiary); font-size: 11px; cursor: pointer; white-space: nowrap;
+}
+.toolbar label input[type="checkbox"] { width: auto; accent-color: var(--accent-cyan); }
+.stats {
+  margin-left: auto; font-size: 10.5px; color: var(--text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ═══ LEGEND — Bottom bar ═══ */
+.legend {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 24px; font-size: 10px;
+  background: rgba(255,255,255,0.015);
+  border-top: 1px solid rgba(255,255,255,0.04);
+  color: var(--text-tertiary); flex-wrap: wrap;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 5px;
+  padding: 2px 6px; border-radius: 4px;
+  transition: background var(--transition-fast);
+}
+.legend-item:hover { background: rgba(255,255,255,0.03); }
+.legend-line {
+  width: 16px; height: 3px; border-radius: 2px;
+}
+.cat-badge {
+  padding: 2px 7px; border-radius: 4px;
+  font-weight: 500; font-size: 9.5px; letter-spacing: 0.02em;
+}
+.cat-badge.cat-agent   { background: rgba(245,158,11,0.12); color: var(--accent-gold); }
+.cat-badge.cat-test    { background: rgba(16,185,129,0.12); color: var(--accent-mint); }
+.cat-badge.cat-v2bot   { background: rgba(236,72,153,0.12); color: var(--accent-pink); }
+
+/* ═══ GRAPH CONTAINER ═══ */
+#graph-container {
+  flex: 1; position: relative; overflow: hidden;
+  background: transparent;
+}
+#graph-container canvas { display: block; }
+.loading {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  color: var(--text-tertiary); font-size: 13px; z-index: 20;
+}
+.loading::after {
+  content: ''; display: block; width: 24px; height: 24px;
+  margin: 12px auto 0;
+  border: 2px solid rgba(255,255,255,0.1);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══ INFO PANEL — Glass card ═══ */
+.info-panel {
+  position: absolute; right: 16px; top: 16px;
+  max-width: 340px; width: auto; z-index: 20;
+  background: var(--glass-bg);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated), var(--shadow-glow);
+  padding: 16px 20px;
+  font-size: 12px; line-height: 1.5;
+  color: var(--text-primary);
+  opacity: 0; transform: translateX(20px);
+  transition: opacity var(--transition), transform var(--transition);
+  pointer-events: none;
+}
+.info-panel.visible {
+  opacity: 1; transform: translateX(0);
+  pointer-events: auto;
+}
+.info-panel::before {
+  content: ''; position: absolute; inset: -1px; border-radius: var(--radius-lg);
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(168,85,247,0.2), rgba(0,212,255,0.1));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none;
+}
+.info-panel .close-btn {
+  position: absolute; right: 12px; top: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-secondary);
+  width: 26px; height: 26px; border-radius: 50%;
+  cursor: pointer; font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition-fast);
+}
+.info-panel .close-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-primary);
+}
+
+.info-panel h2 {
+  font-size: 15px; font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px; padding-right: 28px;
+  background: var(--gradient-1);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.info-panel .ctx-section {
+  margin-top: 6px; padding: 6px 10px;
+  background: rgba(255,255,255,0.025);
+  border-radius: 6px;
+  border-left: 2px solid rgba(0,212,255,0.2);
+  font-size: 10.5px; color: var(--text-secondary);
+}
+.info-panel .ctx-section b {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.info-panel .ctx-section span {
+  margin-right: 4px;
+}
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 768px) {
+  header { padding: 8px 12px; flex-wrap: wrap; }
+  .tab-btn { padding: 6px 12px; font-size: 11px; }
+  .tab-btn .count { font-size: 9px; padding: 1px 5px; }
+  .toolbar { padding: 6px 12px; flex-direction: column; align-items: stretch; }
+  .toolbar input, .toolbar select { width: 100% !important; }
+  .legend { padding: 4px 12px; gap: 6px; font-size: 9px; }
+  .info-panel { max-width: 260px; right: 8px; top: 8px; padding: 12px 16px; }
+  #context-bar { padding: 0 12px; }
+  .ctx-pill { padding: 5px 8px; }
+  .ctx-pill .ctx-label { font-size: 9px; }
+  .ctx-pill .ctx-value { font-size: 10px; }
+}
+@media (min-width: 1400px) {
+  header { padding: 14px 40px; }
+  .toolbar { padding: 10px 40px; }
+  .legend { padding: 8px 40px; }
+  .info-panel { max-width: 380px; }
+  .tab-btn { padding: 9px 22px; font-size: 13.5px; }
+}
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeInUp 0.35s ease-out; }
+
+@keyframes glowPulse {
+  0%,100% { box-shadow: 0 0 20px rgba(0,212,255,0.08), 0 0 40px rgba(0,212,255,0.03); }
+  50% { box-shadow: 0 0 30px rgba(0,212,255,0.15), 0 0 60px rgba(0,212,255,0.06); }
+}
+.fix-badge {
+  display: inline-block; background: #00ff8822; color: #00ff88;
+  padding: 1px 6px; border-radius: 4px; font-size: 9px;
+  font-weight: 600; border: 1px solid #00ff8844; vertical-align: middle;
+  margin-left: 4px;
+}
+.fix-note { color: #00ff88; font-size: 10px; display: block; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Ambient particle canvas (behind everything) -->
+<canvas id="ambient-canvas"></canvas>
+
+<div id="app">
+<header>
+  <h1>SNIN Graph</h1>
+  <nav class="tabs">
+    <button class="tab-btn active" id="tab-communities" onclick="switchTab('communities', this)">
+      Communities <span class="count" id="count-comm">534</span>
+    </button>
+    <button class="tab-btn" id="tab-modules" onclick="switchTab('modules', this)">
+      Modules <span class="count" id="count-mod">378</span>
+    </button>
+  </nav>
+  <button id="help-btn" onclick="toggleHelp()" title="About this graph">?</button>
+  <button id="dev-btn" onclick="toggleDev()" title="Tech stack &amp; architecture">&lt;/&gt;</button>
+  <button id="info-btn" onclick="toggleInfo()" title="Project overview &amp; capabilities">i</button>
+</header>
+
+<!-- CONTEXT BAR — Clean metrics -->
+<div id="context-bar">
+  <span class="ctx-pill">
+    <span class="ctx-dot" style="background:#38bdf8;box-shadow:0 0 4px #38bdf8"></span>
+    <span class="ctx-label">Git</span>
+    <span class="ctx-value" id="ctx-git">—</span>
+    <span class="ctx-tip">Repositories with commit history · scanned from all 4 project repos</span>
+  </span>
+  <span class="ctx-pill">
+    <span class="ctx-dot" style="background:#10b981;box-shadow:0 0 4px #10b981"></span>
+    <span class="ctx-label">Tests</span>
+    <span class="ctx-value" id="ctx-tests">—</span>
+    <span class="ctx-tip">Test files across entire codebase · Python, JS, shell tests</span>
+  </span>
+  <span class="ctx-pill">
+    <span class="ctx-dot" style="background:#f59e0b;box-shadow:0 0 4px #f59e0b"></span>
+    <span class="ctx-label">Agents</span>
+    <span class="ctx-value" id="ctx-agents">—</span>
+    <span class="ctx-tip">Active autonomous agents · Cryter daemons, V2Bot services, launcher scripts</span>
+  </span>
+  <span class="ctx-pill">
+    <span class="ctx-dot" style="background:#a855f7;box-shadow:0 0 4px #a855f7"></span>
+    <span class="ctx-label">Code</span>
+    <span class="ctx-value" id="ctx-code">—</span>
+    <span class="ctx-tip">Function definitions · cross-file calls · import links between modules</span>
+  </span>
+  <span class="ctx-pill">
+    <span class="ctx-dot" style="background:#ec4899;box-shadow:0 0 4px #ec4899"></span>
+    <span class="ctx-label">Docs</span>
+    <span class="ctx-value" id="ctx-docs">—</span>
+    <span class="ctx-tip">Spec documents · Markdown files · Google Drive docs</span>
+  </span>
+  <span class="ctx-pill" style="border-right:none">
+    <span class="ctx-dot" style="background:#a78bfa;box-shadow:0 0 4px #a78bfa"></span>
+    <span class="ctx-label">Timeline</span>
+    <span class="ctx-value" id="ctx-timeline">—</span>
+    <span class="ctx-tip">Projects tracked in chronology · start date → last activity</span>
+  </span>
+</div>
+
+<div class="toolbar" id="toolbar-communities">
+  <input type="text" id="search-comm" placeholder="Filter communities…" oninput="filterCommunities()">
+  <label>
+    <input type="checkbox" id="show-orphans-comm" checked onchange="toggleOrphansComm()"> Show all
+  </label>
+  <span class="stats" id="stats-comm"></span>
+</div>
+
+<div class="toolbar" id="toolbar-modules" style="display:none">
+  <input type="text" id="search-mod" placeholder="Filter files or paths…" oninput="filterModules()">
+  <select id="filter-comm" onchange="filterModules()"><option value="all">All communities</option></select>
+  <select id="filter-rel" onchange="filterModules()">
+    <option value="connected">Connected only</option>
+    <option value="all">All files</option>
+  </select>
+  <span class="stats" id="stats-mod"></span>
+</div>
+
+<div id="graph-container">
+  <div class="loading" id="loading">Loading graph structure…</div>
+  <div id="network-communities" style="position:absolute;top:0;left:0;right:0;bottom:0;"></div>
+  <div id="network-modules" style="position:absolute;top:0;left:0;right:0;bottom:0;display:none;"></div>
+  <!-- Scroll hint for mobile — tap-to-scroll-down -->
+  <div id="scroll-hint" onclick="document.getElementById('about-section').scrollIntoView({behavior:'smooth'})">
+    <span>About this graph ↓</span>
+  </div>
+  <div class="info-panel" id="info-panel">
+    <button class="close-btn" onclick="closeInfo()">✕</button>
+    <div id="info-content"></div>
+  </div>
+</div>
+
+<div class="legend" id="legend-communities">
+  <span class="legend-item"><span class="ctx-dot" style="background:#00d4ff;width:7px;height:7px"></span> Huge (50+)</span>
+  <span class="legend-item"><span class="ctx-dot" style="background:#3b82f6;width:6px;height:6px"></span> Big (20–49)</span>
+  <span class="legend-item"><span class="ctx-dot" style="background:#a855f7;width:5px;height:5px"></span> Mid (8–19)</span>
+  <span class="legend-item"><span class="ctx-dot" style="background:#64748b;width:4px;height:4px"></span> Small (&lt;8)</span>
+  <span style="color:rgba(255,255,255,0.08)">|</span>
+  <span class="cat-badge cat-agent">Agent</span>
+  <span class="cat-badge cat-test">Test</span>
+  <span class="cat-badge cat-v2bot">V2Bot</span>
+  <span style="margin-left:auto;color:var(--text-tertiary)">Drag · Scroll · Click</span>
+</div>
+
+<div class="legend" id="legend-modules" style="display:none;flex-wrap:wrap;gap:4px 12px;">
+  <div class="legend-item"><div class="legend-line" style="background:#54a0ff"></div> dev</div>
+  <div class="legend-item"><div class="legend-line" style="background:#10b981"></div> relay-mesh</div>
+  <div class="legend-item"><div class="legend-line" style="background:#a855f7"></div> relay</div>
+  <div class="legend-item"><div class="legend-line" style="background:#f97316"></div> hub</div>
+  <div class="legend-item"><div class="legend-line" style="background:#f43f5e"></div> cmd</div>
+  <span style="color:rgba(255,255,255,0.08)">|</span>
+  <span style="margin-left:auto;color:var(--text-tertiary)">Drag · Scroll · Click</span>
+</div>
+</div>
+
+</div>
+
+<!-- ═══ HELP OVERLAY ═══ -->
+<div id="help-overlay" onclick="if(event.target===this)toggleHelp()">
+  <div id="help-backdrop" onclick="toggleHelp()"></div>
+  <div id="help-card" style="position:relative">
+    <button class="close-help" onclick="toggleHelp()" aria-label="Close">×</button>
+    
+    <!-- ═══ SECTION 1: WHAT IS THIS? (newcomer-first) ═══ -->
+    <h2>🛰️ SNIN Architecture Graph</h2>
+    <p style="color:var(--text-secondary);font-size:14px;line-height:1.6">
+      <strong>SNIN (Sovereign Network of Intelligent Nodes)</strong> — это децентрализованная экосистема AI-агентов, сервисов и протоколов, 
+      построенная вокруг <span class="key">Nostr</span> как identity-слоя и <span class="key">Smart Router</span> как транспортного ядра.
+    </p>
+    <p style="color:var(--text-tertiary);font-size:12px">
+      Проще: это <strong>интернет-организм</strong> из 500+ автономных модулей — ботов, парсеров, нотифаеров, когнитивных ядер и графов знаний — 
+      которые общаются друг с другом, хранят память, принимают решения и публикуют контент. 
+      Ниже — карта их связей.
+    </p>
+
+    <div class="help-divider"></div>
+
+    <!-- ═══ SECTION 2: HOW TO EXPLORE (3 quick tips) ═══ -->
+    <h3>🔍 Три шага для новичка</h3>
+    <p><span class="key">1. Найди ядро.</span> Самые яркие/крупные узлы — архитектурные хабы (Nostr Core, Smart Router, Knowledge Graph). Кликни → увидишь все модули внутри.</p>
+    <p><span class="key">2. Проследи связи.</span> Рёбра = реальные вызовы функций между модулями. Чем толще ребро — тем сильнее связаны сообщества.</p>
+    <p><span class="key">3. Переключи вкладку.</span> Вкладка «Modules» покажет таблицу всех файлов с сортировкой по размеру, связям и сообществу.</p>
+
+    <div class="help-divider"></div>
+
+    <!-- ═══ SECTION 3: GRAPH LEGEND ═══ -->
+    <h3>🗺️ Как читать граф</h3>
+    <p><span class="key">Узлы</span> — сообщества файлов, сгруппированных по назначению. Размер = количество модулей. Цвет = категория (Agent, Test Suite, Core, Module).</p>
+    <p><span class="key">Рёбра</span> — вызовы функций и импорты между сообществами. Толстая линия = больше связей.</p>
+    <p><span class="key">Свечение</span> — топ-15 сообществ по centrality. Самые яркие узлы = архитектурные хабы.</p>
+
+    <div class="help-divider"></div>
+
+    <!-- ═══ SECTION 4: INTERACTION ═══ -->
+    <h3>🎮 Управление</h3>
+    <p><span class="key">Клик</span> по узлу → панель с деталями: список модулей, связи, метрики.</p>
+    <p><span class="key">Драг</span> — переместить узел · <span class="key">Скролл</span> — зум · <span class="key">Клик по фону</span> — закрыть панель.</p>
+    <p><span class="key">Вкладки</span> — Communities (граф) ↔ Modules (таблица файлов).</p>
+    <p><span class="key">Поиск</span> — фильтр по названию сообщества или файла.</p>
+
+    <div class="help-divider"></div>
+
+    <!-- ═══ SECTION 5: DATA ═══ -->
+    <h3>📊 Источники данных</h3>
+    <p>Сканировано из <span class="key">4 репозиториев</span>: relay-mesh (187), cryter (91), snin-command (33), v2bot-daemon (18).</p>
+    <p style="color:var(--text-tertiary);font-size:11px"><span class="key">3 780</span> функций · <span class="key">22 683</span> вызовов между файлами · <span class="key">534</span> сообщества · автообновление при каждом запуске.</p>
+  </div>
+</div>
+
+<!-- ═══ DEV OVERLAY — for developers ═══ -->
+<div id="dev-overlay">
+  <div id="dev-backdrop" onclick="toggleDev()"></div>
+  <div id="dev-card" style="position:relative">
+    <button class="close-dev" onclick="toggleDev()" aria-label="Close">×</button>
+    
+    <h2>🛠️ Dev Info: Stack &amp; Architecture</h2>
+    <p style="color:var(--text-tertiary);font-size:12px">Для разработчиков и архитекторов — как построен граф, какой стек, как расширять.</p>
+
+    <div class="dev-divider"></div>
+
+    <h3>📦 Tech Stack</h3>
+    <p>
+      <span class="stack-badge">Python 3.11</span>
+      <span class="stack-badge">vis-network 9.1</span>
+      <span class="stack-badge">vanilla JS</span>
+      <span class="stack-badge">HTML5 Canvas</span>
+      <span class="stack-badge">CSS3</span>
+      <span class="stack-badge">SQLite 3</span>
+      <span class="stack-badge">Nostr</span>
+      <span class="stack-badge">Nginx</span>
+    </p>
+    <p style="color:var(--text-tertiary);font-size:11px;margin-top:6px">
+      Без фреймворков. Без React/Vue. Без сборщиков. Vanilla HTML/CSS/JS + vis-network.js. 
+      Вся логика — один файл <code>index.html</code> (~2400 строк), все данные — пререндеренный JSON.
+    </p>
+
+    <div class="dev-divider"></div>
+
+    <h3>📐 Data Pipeline</h3>
+    <div class="arch-flow" style="color:var(--text-tertiary)">
+      <span style="color:#10b981">●</span> Source repos 
+      → <span style="color:#38bdf8">●</span> ast.parse() 
+      → <span style="color:#f59e0b">●</span> import graph 
+      → <span style="color:#a855f7">●</span> community detection 
+      → <span style="color:#ec4899">●</span> JSON 
+      → <span style="color:#00d4ff">●</span> vis-network render
+    </div>
+    <p style="margin-top:10px">
+      <span class="key">Static analysis</span> — Python <code>ast</code> парсит 329 .py-файлов, извлекает <code>import</code>, <code>from X import</code>, вызовы функций. Без исполнения кода.
+    </p>
+    <p>
+      <span class="key">Community detection</span> — иерархическая кластеризация: файлы → директории → сообщества (Louvain-like жадный алгоритм). 534 сообщества из 329 файлов.
+    </p>
+    <p>
+      <span class="key">Centrality scoring</span> — weighted betweenness centrality на графе сообществ. Топ-15 узлов получают glow-эффект.
+    </p>
+
+    <div class="dev-divider"></div>
+
+    <h3>🏗️ Architecture</h3>
+    <table style="width:100%;font-size:11px;border-collapse:collapse;color:var(--text-tertiary)">
+      <tr style="border-bottom:1px solid rgba(0,212,255,0.08)">
+        <td style="padding:6px 8px;color:var(--accent);white-space:nowrap">vis-network</td>
+        <td style="padding:6px 8px">Рендеринг графа: ноды, рёбра, физика, зум, клики. Кастомные afterDrawing-хуки для edge waves, 3D-нод, ambient particles.</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(0,212,255,0.08)">
+        <td style="padding:6px 8px;color:var(--accent);white-space:nowrap">Canvas 2D</td>
+        <td style="padding:6px 8px">Ambient-частицы (80 шт.), edge waves, glow-эффекты, mesh grid — отдельный canvas-слой под vis-network.</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(0,212,255,0.08)">
+        <td style="padding:6px 8px;color:var(--accent);white-space:nowrap">JSON data</td>
+        <td style="padding:6px 8px">Пререндеренный <code>graph_data_v3.json</code> (~2MB). Два графа в одном файле: communities + modules. Загружается через <code>fetch()</code> при старте.</td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(0,212,255,0.08)">
+        <td style="padding:6px 8px;color:var(--accent);white-space:nowrap">Nostr</td>
+        <td style="padding:6px 8px">Identity-слой: все агенты SNIN идентифицируются через Nostr-ключи (npub). NIP-05 verified имена.</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 8px;color:var(--accent);white-space:nowrap">Nginx</td>
+        <td style="padding:6px 8px">Раздача статики с *.v2.site, HTTPS автоматический, gzip, кеширование.</td>
+      </tr>
+    </table>
+
+    <div class="dev-divider"></div>
+
+    <h3>🔧 Как расширить</h3>
+    <p><span class="key">Добавить репозиторий:</span> запустить скрипт сканирования с новым путём → перегенерировать <code>graph_data_v3.json</code> → деплой.</p>
+    <p><span class="key">Добавить слой визуализации:</span> использовать <code>afterDrawing</code>-хук vis-network. Текущие слои: 3D-ноды, edge waves, ambient particles, mesh grid.</p>
+    <p><span class="key">Интеграция с Portal Hub:</span> экспорт графа как iframe/widget в <code>snin-command.v2.site</code> (Phase 8 в плане).</p>
+    <p><span class="key">API:</span> <code>graph_data_v3.json</code> доступен напрямую — любой сервис может читать структуру графа без рендеринга.</p>
+
+    <div class="dev-divider"></div>
+
+    <h3>📏 Performance</h3>
+    <p><span class="key">534 ноды</span> · <span class="key">~1000 рёбер</span> · <span class="key">~2MB JSON</span> — всё рендерится на клиенте, сервер отдаёт только статику.</p>
+    <p style="color:var(--text-tertiary);font-size:11px">Загрузка: ~1.2с (холодный кеш), ~0.3с (тёплый). Физика: 500 итераций за ~800мс. FPS: 60 на десктопе, 45-60 на мобильном.</p>
+  </div>
+</div>
+
+<!-- ═══ INFO OVERLAY — SNIN: полная инфраструктура ═══ -->
+<div id="info-overlay">
+  <div id="info-backdrop" onclick="toggleInfo()"></div>
+  <div id="info-card">
+    <button class="close-info" onclick="toggleInfo()" aria-label="Close">&times;</button>
+
+    <div class="card-header">
+      <div class="card-title">SNIN &middot; Sovereign Network</div>
+      <div class="card-subtitle">Multi-layer decentralized platform &middot; 9 layers &middot; 62 processes &middot; 28 services</div>
+      <div class="metric-row">
+        <div class="metric-pill"><div class="metric-val">62</div><div class="metric-label">Processes</div></div>
+        <div class="metric-pill"><div class="metric-val">28</div><div class="metric-label">Subdomains</div></div>
+        <div class="metric-pill"><div class="metric-val">9</div><div class="metric-label">Layers</div></div>
+        <div class="metric-pill"><div class="metric-val">30</div><div class="metric-label">Relays</div></div>
+      </div>
+    </div>
+
+    <div class="card-body">
+
+      <!-- 9 layers -->
+      <div class="section-title">Architecture Layers</div>
+      <div class="layer-row">
+        <span class="layer-badge">L0</span>
+        <span class="layer-desc"><strong>Nostr Relays</strong> &mdash; 30 relays, 23-25 active. Gossip protocol, NIP-65, NIP-01.</span>
+      </div>
+      <div class="layer-row">
+        <span class="layer-badge">L1.5</span>
+        <span class="layer-desc"><strong>Bridge</strong> <span class="port-tag">:8202</span> &mdash; proxies events between Nostr and internal mesh network.</span>
+      </div>
+      <div class="layer-row">
+        <span class="layer-badge">L2</span>
+        <span class="layer-desc"><strong>Transport</strong> <span class="port-tag">:9500</span> &mdash; TCP/UDP channels, keepalive. <strong>Encryption</strong> <span class="port-tag">:9600</span> &mdash; E2E NIP-44 / secp256k1.</span>
+      </div>
+      <div class="layer-row">
+        <span class="layer-badge">L3</span>
+        <span class="layer-desc"><strong>Mesh Core</strong> <span class="port-tag">:9300</span> &mdash; peering, routing, 9 nodes / 36 edges, DHT 35 nodes. <strong>ZK</strong> <span class="port-tag">:9250</span> &mdash; zero-knowledge proofs.</span>
+      </div>
+      <div class="layer-row">
+        <span class="layer-badge">L4</span>
+        <span class="layer-desc"><strong>Payment</strong> <span class="port-tag">:9200</span> &mdash; payment channels, balances. <strong>Privacy</strong> <span class="port-tag">:9700</span> &mdash; onion routing.</span>
+      </div>
+      <div class="layer-row">
+        <span class="layer-badge">L6</span>
+        <span class="layer-desc"><strong>Agent Network</strong> <span class="port-tag">:9400</span> &mdash; registration, discovery, inter-agent messaging.</span>
+      </div>
+      <div class="layer-row">
+        <span class="layer-badge">L8</span>
+        <span class="layer-desc"><strong>App Layer</strong> <span class="port-tag">:9800</span> &mdash; chat, dashboards, notifications, publishing.</span>
+      </div>
+      <div class="layer-row">
+        <span class="layer-badge">L9</span>
+        <span class="layer-desc"><strong>Orchestration</strong> &mdash; lifecycle management, health monitoring, auto-recovery, pipeline.</span>
+      </div>
+
+      <!-- Routing -->
+      <div class="section-title">Routing</div>
+      <div class="comp-grid">
+        <div class="comp-card">
+          <div class="comp-name">Smart Router <span class="comp-port">:9932</span></div>
+          <div class="comp-desc">Core message router. Distributes across 4 channels: Direct, Gossip, Mesh, Nostr-transport.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">Content Router <span class="comp-port">:9920</span></div>
+          <div class="comp-desc">Content routing by type and priority.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">Route Engine <span class="comp-port">:9910</span></div>
+          <div class="comp-desc">Dynamic route selection based on metrics and topology.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">External Gateway <span class="comp-port">:9931</span></div>
+          <div class="comp-desc">Entry point for external services into the mesh.</div>
+        </div>
+      </div>
+
+      <!-- Nostr communication -->
+      <div class="section-title">Nostr Layer</div>
+      <div class="comp-grid">
+        <div class="comp-card">
+          <div class="comp-name">Nostr Bridge &times;5</div>
+          <div class="comp-desc"><span class="comp-port">:9941-45</span> REST + <span class="comp-port">:9961-65</span> mesh. 5 shards, each with its own relay pool.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">Cross-Mesh Bridge <span class="comp-port">:9946</span></div>
+          <div class="comp-desc">Connects this mesh to other mesh networks.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">Relay Server</div>
+          <div class="comp-desc"><span class="comp-port">:8198</span> + <span class="comp-port">:8443</span> SSE. Own Nostr relay: NIP-01, NIP-11, NIP-65.</div>
+        </div>
+      </div>
+
+      <!-- Core -->
+      <div class="section-title">Core Services</div>
+      <div class="comp-grid">
+        <div class="comp-card">
+          <div class="comp-name">SNIN Hub <span class="comp-port">:9950</span></div>
+          <div class="comp-desc">FastAPI REST API for agents, WebSocket proxy, SQLite logging, 9-tab dashboard.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">Identity API <span class="comp-port">:9940</span></div>
+          <div class="comp-desc">Agent verification via secp256k1 keys. Key + identity.json.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">MCP Gateway <span class="comp-port">:9951</span> <span class="fix-badge">v2026-06-20</span></div>
+          <div class="comp-desc">7 tools, REST interface for external service integration. <span class="fix-note">✅ Heartbeat auto-reg: ext agents → SmartRouter → Redis graph:nodes instantly</span></div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">Simple Agent <span class="comp-port">:9908</span></div>
+          <div class="comp-desc">Hub for remote agent connections (HELLO / PING / ECHO).</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">DAO Mesh <span class="comp-port">:9510</span></div>
+          <div class="comp-desc">Decentralized governance, agent voting.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">ChequeBook + Verifier</div>
+          <div class="comp-desc"><span class="comp-port">:9916</span> + <span class="comp-port">:9915</span>. Payment cheques and transaction verification.</div>
+        </div>
+      </div>
+
+      <!-- Infrastructure -->
+      <div class="section-title">Infrastructure</div>
+      <div class="comp-grid">
+        <div class="comp-card">
+          <div class="comp-name">Supervisor</div>
+          <div class="comp-desc">Monitors 62 processes, auto-restart on failure.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">Watchdog</div>
+          <div class="comp-desc">Freeze detection, memory leak detection, anomaly alerts.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">Anti-DDoS <span class="comp-port">:9970</span></div>
+          <div class="comp-desc">Mesh port flood protection.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">Health Check</div>
+          <div class="comp-desc"><span class="comp-port">:9999</span> + <span class="comp-port">:8085</span>. All-layer health monitoring, alerts.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">Circuit Breaker</div>
+          <div class="comp-desc">Automatic isolation of failing components.</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-name">Redis <span class="comp-port">:6379</span></div>
+          <div class="comp-desc">Cache, pub/sub, message queues for mesh layers.</div>
+        </div>
+      </div>
+
+      <!-- Communication tree -->
+      <div class="section-title">Communication Flow</div>
+      <div class="tree-block">
+<span class="hl">L9</span> Orchestration<br>
+&nbsp;&#x2195;<br>
+<span class="hl">L8</span> App Layer <span class="hp">:9800</span> &larr; Hub <span class="hp">:9950</span> &larr; Dashboard<br>
+&nbsp;&#x2195;<br>
+<span class="hl">L6</span> Agent Network <span class="hp">:9400</span> &larr; SimpleAgent <span class="hp">:9908</span> &larr; Remote Agents<br>
+&nbsp;&#x2195;<br>
+<span class="hl">L4</span> Payment <span class="hp">:9200</span> + Privacy <span class="hp">:9700</span> &larr; ChequeBook <span class="hp">:9916</span> + Verifier <span class="hp">:9915</span><br>
+&nbsp;&#x2195;<br>
+<span class="hl">L3</span> Mesh <span class="hp">:9300</span> + ZK <span class="hp">:9250</span> &larr; DAO <span class="hp">:9510</span><br>
+&nbsp;&#x2195;<br>
+<span class="hl">L2</span> Transport <span class="hp">:9500</span> + Encryption <span class="hp">:9600</span><br>
+&nbsp;&#x2195;<br>
+<span class="hl">L1.5</span> Bridge <span class="hp">:8202</span> &larr; SmartRouter <span class="hp">:9932</span> &rarr; ContentRouter <span class="hp">:9920</span> + RouteEngine <span class="hp">:9910</span><br>
+&nbsp;&#x2195;<br>
+<span class="hl">L0</span> Nostr Relays &larr; Bridge &times;5 <span class="hp">:9941-45</span> + CrossMesh <span class="hp">:9946</span> + Relay <span class="hp">:8198</span>
+      </div>
+
+      <!-- Extra services -->
+      <div class="section-title">Additional Services</div>
+      <div class="extra-row">
+        <span class="extra-name">Mesh Agent Lite</span>
+        <span class="extra-desc">Docker image for launching an agent on any machine. Connects to Hub via HTTPS.</span>
+      </div>
+      <div class="extra-row">
+        <span class="extra-name">NIP-80</span>
+        <span class="extra-desc">Hardware / IoT protocol. ESP32 + DHT22 sensors, Ed25519 keys, bridge on RPi.</span>
+      </div>
+      <div class="extra-row">
+        <span class="extra-name">P2P Agent Mesh</span>
+        <span class="extra-desc">Direct A2A communication. v0.2.0 &mdash; custom TCP transport (no IPFS).</span>
+      </div>
+
+      <div class="card-footer">Graph version <span class="ver">K.19</span> &middot; +ext-agent heartbeat fix &middot; 2026-06-20 15:29 YEKT</div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ABOUT SECTION ═══ -->
+<div id="about-section">
+  <div>
+    <h3>🛰️ Что такое SNIN?</h3>
+    <p><strong>SNIN (Sovereign Network of Intelligent Nodes)</strong> — децентрализованная экосистема: AI-агенты, когнитивные ядра, графы знаний, нотифаеры и парсеры, связанные через <span class="about-highlight">Nostr</span> как identity-слой и <span class="about-highlight">Smart Router</span> как транспорт.</p>
+    <p>Этот граф — <span class="about-highlight">живая карта</span> всей кодовой базы SNIN. Каждый узел = сообщество связанных файлов. Каждое ребро = реальный вызов функции или импорт. Граф перестраивается при каждом запуске из актуального кода.</p>
+  </div>
+  <div>
+    <h3>Масштаб</h3>
+    <p><span class="about-highlight">329</span> Python-файлов<br><span class="about-highlight">3 780</span> определений функций<br><span class="about-highlight">22 683</span> вызовов между файлами<br><span class="about-highlight">534</span> сообщества в 4 репозиториях</p>
+  </div>
+  <div>
+    <h3>Для кого</h3>
+    <p>Для разработчиков и архитекторов SNIN — найти хабы, отследить зависимости, понять структуру проекта с одного взгляда. Для новичков — увидеть масштаб и архитектуру системы, не читая код.</p>
+  </div>
+</div>
+
+<script src="vis-network.min.js"></script>
+
+<!-- Ambient particle system (premium background effect) -->
+<script>
+(function(){
+  const canvas = document.getElementById('ambient-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let particlesInitialized = false;
+  const PARTICLE_COUNT = 80;
+  
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  
+  // Initialize particles (orbit graph nodes after load)
+  class AmbientParticle {
+    constructor() {
+      this.orbitCenter = null;
+      this.orbitAngle = Math.random() * Math.PI * 2;
+      this.orbitRadius = 20 + Math.random() * 180;
+      this.orbitSpeed = (0.0003 + Math.random() * 0.0012) * (Math.random() < 0.5 ? 1 : -1);
+      this.size = 0.3 + Math.random() * 1.2;
+      this.opacity = 0.12 + Math.random() * 0.25;
+      this.pulseSpeed = 0.005 + Math.random() * 0.015;
+      this.pulseOffset = Math.random() * Math.PI * 2;
+      this.hue = Math.random() < 0.5 ? 195 : (Math.random() < 0.5 ? 220 : 270);
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+    }
+    update(dt) {
+      if (this.orbitCenter) {
+        this.orbitAngle += this.orbitSpeed * dt * 60;
+        this.x = this.orbitCenter.x + Math.cos(this.orbitAngle) * this.orbitRadius;
+        this.y = this.orbitCenter.y + Math.sin(this.orbitAngle) * this.orbitRadius * 0.6;
+        this.x = Math.max(0, Math.min(canvas.width, this.x));
+        this.y = Math.max(0, Math.min(canvas.height, this.y));
+      } else {
+        this.x += (Math.random() - 0.5) * 0.3 * dt * 60;
+        this.y += (Math.random() - 0.5) * 0.2 * dt * 60;
+        if (this.x < -20 || this.x > canvas.width + 20 || this.y < -20 || this.y > canvas.height + 20) {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+        }
+      }
+    }
+    draw(ctx, t) {
+      const pulse = 1 + Math.sin(t * this.pulseSpeed + this.pulseOffset) * 0.4;
+      const alpha = this.opacity * pulse;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${this.hue}, 80%, 70%, ${alpha})`;
+      ctx.fill();
+      
+      // Subtle glow on larger particles
+      if (this.size > 0.8) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * pulse * 3, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue}, 80%, 70%, ${alpha * 0.12})`;
+        ctx.fill();
+      }
+    }
+  }
+  
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particles.push(new AmbientParticle());
+  }
+  
+  // Called once graph stabilizes — snap particles into orbit around nodes
+  window._bindParticlesToGraph = function(nodeCanvasPositions) {
+    if (particlesInitialized) return;
+    var ids = Object.keys(nodeCanvasPositions);
+    if (ids.length < 10) return;
+    var centers = ids.map(function(k) { return nodeCanvasPositions[k]; });
+    for (var i = 0; i < particles.length; i++) {
+      var c = centers[i % centers.length];
+      particles[i].orbitCenter = { x: c.x, y: c.y };
+      particles[i].orbitAngle = (i / particles.length) * Math.PI * 2;
+    }
+    particlesInitialized = true;
+  };
+  
+  let lastTime = performance.now();
+  function animate(now) {
+    const dt = Math.min((now - lastTime) / 1000, 0.05);
+    lastTime = now;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    for (const p of particles) {
+      p.update(dt);
+      p.draw(ctx, now * 0.001);
+    }
+    
+    // No inter-particle connections — particles orbit nodes now
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+})();
+</script>
+
+<script>
+let commData = null, modData = null, commNetwork = null, modNetwork = null, ctxData = null;
+let currentTab = 'communities', commNodesDataset = null, modNodesDataset = null;
+
+const COMM_COLORS = [
+  '#00d4ff','#ff6b6b','#feca57','#48dbfb','#ff9ff3','#54a0ff',
+  '#5f27cd','#01a3a4','#f368e0','#ff6348','#7bed9f','#70a1ff',
+  '#5352ed','#ffa502','#2ed573','#1e90ff','#e056a0','#3ae374',
+  '#17c0eb','#ffdd59','#0abde3','#ee5a24','#009432','#c44569',
+  '#e77f67','#786fa6','#f8a5c2','#63cdda','#cf6a87','#546de5',
+  '#3dc1d3','#e66767','#574b90','#f78fb3',
+  '#00ff88','#ff4500','#da70d6','#8b5cf6',
+  '#ff2d95','#7b68ee','#00e5ff','#39ff14',
+];
+
+function getCommColor(cid) { 
+  const n = typeof cid === 'number' ? cid : parseInt((String(cid).match(/\d+/) || ['0'])[0], 10);
+  return COMM_COLORS[Math.abs(n || 0) % COMM_COLORS.length]; 
+}
+
+const edgeColors = {
+  'calls': '#48dbfb', 'uses': '#ff9ff3', 'imports': '#54a0ff',
+  'rationale_for': '#ff6b6b', 'deploys_as': '#feca57', 'semantic': '#2ed573'
+};
+
+// ===== CONVEX HULL (Monotone Chain) =====
+function cross(o, a, b) { return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x); }
+function convexHull(points) {
+  if (points.length < 3) return points;
+  const sorted = [...new Map(points.map(p => [p.x.toFixed(1) + ',' + p.y.toFixed(1), p])).values()]
+    .sort((a, b) => a.x === b.x ? a.y - b.y : a.x - b.x);
+  const lower = [];
+  for (const p of sorted) {
+    while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper = [];
+  for (const p of sorted.reverse()) {
+    while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  return lower.concat(upper.slice(1, -1));
+}
+
+// ===== CLUSTER HUES =====
+const CLUSTER_HUES = [
+  'rgba(0,229,255,0.06)', 'rgba(255,71,126,0.06)', 'rgba(255,209,102,0.06)',
+  'rgba(0,245,212,0.06)', 'rgba(224,64,251,0.06)', 'rgba(255,107,53,0.06)',
+  'rgba(199,244,100,0.06)', 'rgba(255,45,149,0.06)', 'rgba(123,104,238,0.06)'
+];
+function drawClusterHulls(ctx, network, nodesDataset) {
+  // Get connected components
+  const allNodes = nodesDataset.get();
+  const nodeIds = new Set(allNodes.map(n => n.id));
+  const visited = new Set();
+  const clusters = [];
+  
+  // Build adjacency from network edges
+  for (const nodeId of nodeIds) {
+    if (visited.has(nodeId)) continue;
+    const component = [];
+    const stack = [nodeId];
+    while (stack.length > 0) {
+      const id = stack.pop();
+      if (visited.has(id) || !nodeIds.has(id)) continue;
+      visited.add(id);
+      component.push(id);
+      const connected = network.getConnectedNodes(id);
+      connected.forEach(cid => { if (!visited.has(cid)) stack.push(cid); });
+    }
+    if (component.length >= 3) clusters.push(component);
+  }
+  
+  if (clusters.length === 0) return;
+  
+  // Sort clusters by size (largest first)
+  clusters.sort((a, b) => b.length - a.length);
+  
+  // Draw hull for each cluster (up to 9)
+  const maxClusters = Math.min(9, clusters.length);
+  for (let ci = 0; ci < maxClusters; ci++) {
+    const comp = clusters[ci];
+    const positions = [];
+    for (const id of comp) {
+      const pos = network.getPosition(id);
+      if (pos) positions.push(pos);
+    }
+    if (positions.length < 3) continue;
+    
+    const hull = convexHull(positions);
+    if (hull.length < 3) continue;
+    
+    // Convert to canvas coordinates (accounting for zoom/pan)
+    const scale = network.getScale();
+    const viewPos = network.getViewPosition();
+    const canvas = ctx.canvas;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    
+    ctx.beginPath();
+    for (let i = 0; i < hull.length; i++) {
+      const sx = (hull[i].x - viewPos.x) * scale + cx;
+      const sy = (hull[i].y - viewPos.y) * scale + cy;
+      if (i === 0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    }
+    ctx.closePath();
+    ctx.fillStyle = CLUSTER_HUES[ci % CLUSTER_HUES.length];
+    ctx.fill();
+    ctx.strokeStyle = CLUSTER_HUES[ci % CLUSTER_HUES.length].replace('0.06', '0.15');
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
+// ===== GRADIENT EDGES =====
+function drawGradientEdges(ctx, network, edges, topEdgeKeys) {
+  if (topEdgeKeys.size === 0) return;
+  
+  const scale = network.getScale();
+  const viewPos = network.getViewPosition();
+  const canvas = ctx.canvas;
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  
+  edges.forEach(edge => {
+    const key = edge.from + '|||' + edge.to;
+    if (!topEdgeKeys.has(key)) return;
+    
+    const fromPos = network.getPosition(edge.from);
+    const toPos = network.getPosition(edge.to);
+    if (!fromPos || !toPos) return;
+    
+    const sx = (fromPos.x - viewPos.x) * scale + cx;
+    const sy = (fromPos.y - viewPos.y) * scale + cy;
+    const ex = (toPos.x - viewPos.x) * scale + cx;
+    const ey = (toPos.y - viewPos.y) * scale + cy;
+    
+    // Viewport culling — skip edges completely off-screen
+    const margin = 50;
+    const bothOffLeft = sx < -margin && ex < -margin;
+    const bothOffRight = sx > canvas.width + margin && ex > canvas.width + margin;
+    const bothOffTop = sy < -margin && ey < -margin;
+    const bothOffBottom = sy > canvas.height + margin && ey > canvas.height + margin;
+    if (bothOffLeft || bothOffRight || bothOffTop || bothOffBottom) return;
+    
+    const grad = ctx.createLinearGradient(sx, sy, ex, ey);
+    grad.addColorStop(0, (edge._srcColor || '#00d4ff') + 'cc');
+    grad.addColorStop(0.5, (edge._srcColor || '#00d4ff') + '66');
+    grad.addColorStop(1, (edge._tgtColor || '#00d4ff') + '44');
+    
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(ex, ey);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = edge.width * 1.8;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  });
+}
+
+// ===== PARTICLE SYSTEM — flowing dots on top edges =====
+let commParticles = [];
+let modParticles = [];
+let lastParticleTime = 0;
+
+function initParticles(network, edges, topEdgeKeys, colorKey) {
+  const p = [];
+  edges.forEach(edge => {
+    const key = edge.from + '|||' + edge.to;
+    if (!topEdgeKeys.has(key)) return;
+    const count = 2 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < count; i++) {
+      p.push({
+        from: edge.from,
+        to: edge.to,
+        t: Math.random(),
+        speed: 0.003 + Math.random() * 0.008,
+        color: edge[colorKey] || '#00d4ff',
+        size: 1.2 + Math.random() * 2
+      });
+    }
+  });
+  return p;
+}
+
+function drawParticles(ctx, network, particles) {
+  if (particles.length === 0) return;
+  
+  const scale = network.getScale();
+  // At very low zoom, particles are visual noise
+  if (scale < 0.08) return;
+  const viewPos = network.getViewPosition();
+  const canvas = ctx.canvas;
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const now = performance.now();
+  const dt = lastParticleTime ? Math.min((now - lastParticleTime) / 1000, 0.05) : 0.016;
+  lastParticleTime = now;
+  // Scale particle visible size with zoom
+  const zoomFactor = Math.min(1.0, Math.max(0.15, scale));
+  
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    const fromPos = network.getPosition(p.from);
+    const toPos = network.getPosition(p.to);
+    if (!fromPos || !toPos) continue;
+    
+    // Update position
+    p.t += p.speed * dt * 60;
+    if (p.t > 1) p.t -= 1;
+    if (p.t < 0) p.t += 1;
+    
+    // Interpolate position
+    const sx = (fromPos.x - viewPos.x) * scale + cx;
+    const sy = (fromPos.y - viewPos.y) * scale + cy;
+    const ex = (toPos.x - viewPos.x) * scale + cx;
+    const ey = (toPos.y - viewPos.y) * scale + cy;
+    
+    const px = sx + (ex - sx) * p.t;
+    const py = sy + (ey - sy) * p.t;
+    
+    // Viewport culling for particles
+    const margin = 15;
+    if (px < -margin || px > canvas.width + margin || py < -margin || py > canvas.height + margin) continue;
+    
+    const ps = p.size * zoomFactor;
+    
+    // Glow
+    ctx.beginPath();
+    ctx.arc(px, py, ps * 3, 0, Math.PI * 2);
+    ctx.fillStyle = p.color + '22';
+    ctx.fill();
+    
+    // Core dot
+    ctx.beginPath();
+    ctx.arc(px, py, ps, 0, Math.PI * 2);
+    ctx.fillStyle = p.color + 'dd';
+    ctx.fill();
+    
+    // White hot center
+    ctx.beginPath();
+    ctx.arc(px, py, ps * 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+  }
+}
+
+let commAfterDrawingHandler = null;
+let modAfterDrawingHandler = null;
+let commEdgesGlobal = [];
+let modEdgesGlobal = [];
+let edgeWaveOffset = 0;
+let edgeWavePhases = {};
+
+function drawEdgeWaves(ctx, network, edges) {
+  edgeWaveOffset = (edgeWaveOffset + 0.012) % 1;
+  const scale = network.getScale();
+  // Skip edge waves at very low zoom — they dominate over nodes
+  if (scale < 0.08) return;
+  const viewPos = network.getViewPosition();
+  const cx = ctx.canvas.width / 2;
+  const cy = ctx.canvas.height / 2;
+  // Scale wave dot size with zoom: tiny at low zoom, normal at 1.0
+  const waveSize = 0.6 + scale * 3.0; // 0.6px at zoom 0, 3.6px at zoom 1.0
+  const glowSize = waveSize * 0.5;
+  
+  for (let i = 0; i < edges.length; i++) {
+    const edge = edges[i];
+    const key = edge.from + '|||' + edge.to;
+    if (edgeWavePhases[key] === undefined) edgeWavePhases[key] = Math.random();
+    
+    const fromPos = network.getPosition(edge.from);
+    const toPos = network.getPosition(edge.to);
+    if (!fromPos || !toPos) continue;
+    
+    const sx = (fromPos.x - viewPos.x) * scale + cx;
+    const sy = (fromPos.y - viewPos.y) * scale + cy;
+    const ex = (toPos.x - viewPos.x) * scale + cx;
+    const ey = (toPos.y - viewPos.y) * scale + cy;
+    
+    // Viewport culling — skip edges completely off-screen
+    const margin = 30;
+    if ((sx < -margin && ex < -margin) || (sx > ctx.canvas.width + margin && ex > ctx.canvas.width + margin) ||
+        (sy < -margin && ey < -margin) || (sy > ctx.canvas.height + margin && ey > ctx.canvas.height + margin)) continue;
+    
+    const phase = (edgeWaveOffset + edgeWavePhases[key]) % 1;
+    
+    // Draw 3 traveling spots at different positions
+    for (let w = 0; w < 3; w++) {
+      const t = (phase + w / 3) % 1;
+      const px = sx + (ex - sx) * t;
+      const py = sy + (ey - sy) * t;
+      
+      // Bright outer glow
+      ctx.beginPath();
+      ctx.arc(px, py, glowSize, 0, Math.PI * 2);
+      ctx.fillStyle = (edge._srcColor || '#00d4ff') + '55';
+      ctx.fill();
+      
+      // Core flash
+      ctx.beginPath();
+      ctx.arc(px, py, waveSize * 0.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff99';
+      ctx.fill();
+    }
+  }
+}
+
+function draw3DNodes(ctx, network, nodesDataset) {
+  const nodes = nodesDataset.get();
+  const scale = network.getScale();
+  const viewPos = network.getViewPosition();
+  const cx = ctx.canvas.width / 2;
+  const cy = ctx.canvas.height / 2;
+  const t = Date.now() * 0.001; // For subtle pulse animation
+  
+  for (const node of nodes) {
+    if (node.hidden || node.opacity < 0.3) continue;
+    const pos = network.getPosition(node.id);
+    if (!pos) continue;
+    
+    const x = (pos.x - viewPos.x) * scale + cx;
+    const y = (pos.y - viewPos.y) * scale + cy;
+    const isOrphan = node._isOrphan || false;
+    const category = node._category || 'production';
+    const rawSize = Math.max(Math.min(node._size || 15, 60), 6);
+    // Agent/test/v2bot nodes are ALWAYS fully visible — category is more important than orphan status
+    const size = (isOrphan && category === 'production') ? rawSize * 0.55 : rawSize;
+    const color = (node._original && node._original.border) || node.color.border || '#00d4ff';
+    const alpha = (isOrphan && category === 'production') ? 0.45 : 1.0;
+    const shape = node.shape || 'dot';
+    
+    // ═══ Viewport culling — skip off-screen nodes ═══
+    const margin = size * 4;
+    if (x < -margin || x > ctx.canvas.width + margin || y < -margin || y > ctx.canvas.height + margin) continue;
+    
+    // ═══ LOD: reduce detail when zoomed out ═══
+    const lod = scale < 0.35 ? 1 : scale < 0.7 ? 2 : 3;
+    
+    // Base size for all drawing (defined BEFORE category effects which reference 's')
+    const pulse = 1 + Math.sin(t * 1.5 + node.id.toString().charCodeAt(0) * 0.1) * 0.03;
+    // Minimum screen-space size: never smaller than 2.5px on screen
+    const minScreen = 2.5;
+    const s = Math.max(size * pulse, minScreen / Math.max(scale, 0.01));
+    
+    // ── Agent pulsing ring (gold glow, draws BEFORE body, always visible) ──
+    if (category === 'agent') {
+      const p2 = 1 + Math.sin(t * 3.0 + node.id.toString().charCodeAt(0) * 0.05) * 0.25;
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.7;
+      ctx.beginPath();
+      ctx.arc(x, y, s * (1.5 + p2 * 0.2), 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffd166';
+      ctx.lineWidth = Math.max(1.5, 2.5 + p2 * 1.5);
+      ctx.shadowColor = '#ffd166';
+      ctx.shadowBlur = Math.max(6, 12 + p2 * 8);
+      ctx.stroke();
+      ctx.restore();
+    }
+    
+    // ── Test node subtle green corona (always visible) ──
+    if (category === 'test') {
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.5;
+      ctx.beginPath();
+      ctx.arc(x, y, s * 1.65, 0, Math.PI * 2);
+      const testGlow = ctx.createRadialGradient(x, y, s * 0.8, x, y, s * 1.65);
+      testGlow.addColorStop(0, '#00f5d466');
+      testGlow.addColorStop(1, 'transparent');
+      ctx.fillStyle = testGlow;
+      ctx.fill();
+      ctx.restore();
+    }
+    
+    // ── V2Bot node — pink pulse ring (always visible) ──
+    if (category === 'v2bot') {
+      const vp = 1 + Math.sin(t * 2.5 + 1.5) * 0.2;
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.65;
+      ctx.beginPath();
+      ctx.arc(x, y, s * (1.4 + vp * 0.15), 0, Math.PI * 2);
+      ctx.strokeStyle = '#ff477e';
+      ctx.lineWidth = Math.max(1.5, 2 + vp);
+      ctx.shadowColor = '#ff477e';
+      ctx.shadowBlur = Math.max(6, 8 + vp * 6);
+      ctx.stroke();
+      ctx.restore();
+    }
+    
+    // ── Glow layers (LOD-adaptive) ──
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    
+    // Layer 1: Wide soft outer glow (always shown)
+    const glowFar = ctx.createRadialGradient(x, y, s * 0.6, x, y, s * 3.0);
+    glowFar.addColorStop(0, color + '18');
+    glowFar.addColorStop(0.5, color + '08');
+    glowFar.addColorStop(1, 'transparent');
+    ctx.fillStyle = glowFar;
+    ctx.beginPath();
+    ctx.arc(x, y, s * 3.0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Layer 2: Medium neon halo (skip when zoomed far out)
+    if (lod >= 2) {
+      const glowMid = ctx.createRadialGradient(x, y, s * 0.45, x, y, s * 1.8);
+      glowMid.addColorStop(0, color + '44');
+      glowMid.addColorStop(0.6, color + '14');
+      glowMid.addColorStop(1, 'transparent');
+      ctx.fillStyle = glowMid;
+      ctx.beginPath();
+      ctx.arc(x, y, s * 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Layer 3: Tight bright corona (only when zoomed in)
+    if (lod >= 3) {
+      const glowNear = ctx.createRadialGradient(x, y, s * 0.8, x, y, s * 1.25);
+      glowNear.addColorStop(0, color + '66');
+      glowNear.addColorStop(1, 'transparent');
+      ctx.fillStyle = glowNear;
+      ctx.beginPath();
+      ctx.arc(x, y, s * 1.25, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    
+    // ── 3D Body ──
+    if (shape === 'diamond') {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.moveTo(x, y - s);
+      ctx.lineTo(x + s * 0.65, y);
+      ctx.lineTo(x, y + s);
+      ctx.lineTo(x - s * 0.65, y);
+      ctx.closePath();
+      
+      // Multi-stop gradient for faceted 3D look
+      const grad = ctx.createLinearGradient(x - s * 0.7, y - s * 0.6, x + s * 0.5, y + s * 0.5);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.08, color + 'ff');
+      grad.addColorStop(0.35, color + 'dd');
+      grad.addColorStop(0.65, color + '77');
+      grad.addColorStop(0.88, color + '33');
+      grad.addColorStop(1, '#00000022');
+      ctx.fillStyle = grad;
+      ctx.fill();
+      
+      // Inner edge highlight
+      ctx.strokeStyle = color + 'aa';
+      ctx.lineWidth = Math.max(0.6, s * 0.04);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = s * 0.3;
+      ctx.stroke();
+      
+      // Bright specular dot
+      ctx.beginPath();
+      ctx.arc(x - s * 0.1, y - s * 0.3, s * 0.12, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffffee';
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = s * 0.25;
+      ctx.fill();
+      ctx.restore();
+      
+    } else if (shape === 'square') {
+      // 3D cube — front face + top face illusion
+      const hs = s * 0.75;
+      const depth = hs * 0.2;
+      
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      
+      // Front face
+      const frontGrad = ctx.createLinearGradient(x - hs, y - hs, x + hs * 0.5, y + hs * 0.5);
+      frontGrad.addColorStop(0, '#ffffff');
+      frontGrad.addColorStop(0.1, color + 'ff');
+      frontGrad.addColorStop(0.45, color + 'dd');
+      frontGrad.addColorStop(0.8, color + '55');
+      frontGrad.addColorStop(1, '#00000033');
+      ctx.fillStyle = frontGrad;
+      ctx.beginPath();
+      ctx.rect(x - hs, y - hs, hs * 2, hs * 2);
+      ctx.fill();
+      
+      // Top face (3D illusion)
+      ctx.beginPath();
+      ctx.moveTo(x - hs, y - hs);
+      ctx.lineTo(x - hs + depth, y - hs - depth);
+      ctx.lineTo(x + hs + depth, y - hs - depth);
+      ctx.lineTo(x + hs, y - hs);
+      ctx.closePath();
+      const topGrad = ctx.createLinearGradient(x - hs, y - hs - depth, x + hs, y - hs);
+      topGrad.addColorStop(0, '#ffffff');
+      topGrad.addColorStop(1, color + 'cc');
+      ctx.fillStyle = topGrad;
+      ctx.fill();
+      
+      // Right face (3D illusion)
+      ctx.beginPath();
+      ctx.moveTo(x + hs, y - hs);
+      ctx.lineTo(x + hs + depth, y - hs - depth);
+      ctx.lineTo(x + hs + depth, y + hs - depth);
+      ctx.lineTo(x + hs, y + hs);
+      ctx.closePath();
+      const rightGrad = ctx.createLinearGradient(x + hs, y - hs, x + hs + depth, y + hs);
+      rightGrad.addColorStop(0, color + 'bb');
+      rightGrad.addColorStop(1, '#00000033');
+      ctx.fillStyle = rightGrad;
+      ctx.fill();
+      
+      // Front face stroke with glow
+      ctx.beginPath();
+      ctx.rect(x - hs, y - hs, hs * 2, hs * 2);
+      ctx.strokeStyle = color + 'aa';
+      ctx.lineWidth = Math.max(0.6, hs * 0.05);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = s * 0.35;
+      ctx.stroke();
+      
+      // Specular highlight on front face
+      ctx.beginPath();
+      ctx.arc(x - hs * 0.4, y - hs * 0.35, hs * 0.16, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffffee';
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = hs * 0.2;
+      ctx.fill();
+      
+      ctx.restore();
+      
+    } else {
+      // ═══ Circle — 3D Sphere ═══
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      
+      // Main sphere — deep radial gradient
+      const grad = ctx.createRadialGradient(
+        x - s * 0.3, y - s * 0.35, s * 0.03,
+        x, y, s
+      );
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.06, color + 'ff');
+      grad.addColorStop(0.25, color + 'ee');
+      grad.addColorStop(0.55, color + 'aa');
+      grad.addColorStop(0.8, color + '44');
+      grad.addColorStop(0.95, '#00000033');
+      grad.addColorStop(1, '#00000044');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(x, y, s, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Edge stroke with glow
+      ctx.strokeStyle = color + '88';
+      ctx.lineWidth = Math.max(0.5, s * 0.03);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = s * 0.4;
+      ctx.stroke();
+      
+      // Main specular highlight (upper-left) — only when zoomed in
+      if (lod >= 2) {
+        ctx.beginPath();
+        ctx.arc(x - s * 0.22, y - s * 0.28, s * 0.18, 0, Math.PI * 2);
+        const specGrad = ctx.createRadialGradient(
+          x - s * 0.22, y - s * 0.28, 0,
+          x - s * 0.22, y - s * 0.28, s * 0.18
+        );
+        specGrad.addColorStop(0, '#ffffff');
+        specGrad.addColorStop(0.4, '#ffffffdd');
+        specGrad.addColorStop(1, '#ffffff00');
+        ctx.fillStyle = specGrad;
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = s * 0.3;
+        ctx.fill();
+      }
+      
+      // Secondary rim light (bottom-right edge)
+      ctx.beginPath();
+      ctx.arc(x + s * 0.7, y + s * 0.65, s * 0.08, 0, Math.PI * 2);
+      ctx.fillStyle = color + 'aa';
+      ctx.shadowColor = color;
+      ctx.shadowBlur = s * 0.15;
+      ctx.fill();
+      
+      ctx.restore();
+    }
+  }
+}
+
+async function loadData() {
+  const [commResp, modResp] = await Promise.all([
+    fetch('data.json'), fetch('module_graph_data.json')
+  ]);
+  commData = await commResp.json();
+  modData = await modResp.json();
+  
+  const commSet = new Set();
+  const nodesArr = Array.isArray(modData.nodes) ? modData.nodes : Object.values(modData.nodes);
+  nodesArr.forEach(n => { if (n.community_name) commSet.add(n.community_name); });
+  const sel = document.getElementById('filter-comm');
+  [...commSet].sort().forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  
+  document.getElementById('count-comm').textContent = commData.communities.length;
+  document.getElementById('count-mod').textContent = Array.isArray(modData.nodes) ? modData.nodes.length : Object.keys(modData.nodes).length;
+  
+  // Load context enrichment package
+  try {
+    const ctxResp = await fetch('context_enrichment.json');
+    ctxData = await ctxResp.json();
+    updateContextBar();
+  } catch(e) {
+    console.log('Context enrichment not loaded:', e.message);
+  }
+  
+  requestAnimationFrame(() => {
+    // Hide loading immediately — graph will render behind it
+    const loadingEl = document.getElementById('loading');
+    if (loadingEl) loadingEl.style.display = 'none';
+    
+    try { buildCommunities(); } catch(e) { console.error('buildCommunities error:', e); }
+    try { buildModules(); } catch(e) { console.error('buildModules error:', e); }
+    currentTab = 'communities';
+    updateCommStats();
+  });
+  
+  // Fallback: if loading overlay still visible after 8s, hide it
+  setTimeout(() => {
+    const loadingEl = document.getElementById('loading');
+    if (loadingEl && loadingEl.style.display !== 'none') {
+      console.warn('Loading timeout — forcing hide');
+      loadingEl.style.display = 'none';
+    }
+    // Also force graph container to be visible
+    const commDiv = document.getElementById('network-communities');
+    if (commDiv && commDiv.offsetHeight === 0) {
+      commDiv.style.height = window.innerHeight * 0.6 + 'px';
+    }
+  }, 8000);
+}
+
+// ===== COMMUNITIES =====
+function buildCommunities() {
+  const comms = commData.communities;
+  const nodes = [];
+  const edges = [];
+  
+  const maxMods = Math.max(...comms.map(c => c.moduleCount));
+  
+  // Identify top-15 communities for glow effect
+  const sortedBySize = [...comms].sort((a, b) => b.moduleCount - a.moduleCount);
+  const topGlowIds = new Set(sortedBySize.slice(0, 15).map(c => c.community));
+
+  comms.forEach(c => {
+    const mc = c.moduleCount;
+    const pc = mc / maxMods;
+    const commColor = getCommColor(c.community);
+    const isTop = topGlowIds.has(c.community);
+    
+    // Shape by size tier: ◆huge(50+) ⬡big(20-49) ●mid(8-19) △small(<8)
+    let shape;
+    if (mc >= 50) shape = 'diamond';
+    else if (mc >= 20) shape = 'hexagon';
+    else if (mc >= 8) shape = 'dot';
+    else shape = 'triangle';
+
+    nodes.push({
+      id: c.id,
+      _numId: c.community,
+      label: c.label,
+      value: mc,
+      shape: shape,
+      color: {
+        background: commColor + '30',
+        border: commColor + '50',
+        highlight: { background: commColor + 'cc', border: '#ffffff' }
+      },
+      font: { color: '#e2e8f0', size: Math.max(18, Math.round(18 + pc * 24)), face: 'Inter, sans-serif', strokeWidth: 3, strokeColor: '#0f172a' },
+      borderWidth: isTop ? 3 : 1.5,
+      shadow: isTop ? { enabled: true, color: commColor + '66', size: 18, x: 0, y: 0 } : { enabled: false },
+      community: c.community,
+      moduleCount: mc,
+      _topGlow: isTop,
+      _original: { color: commColor + '30', border: commColor, label: c.label, _glow: commColor }
+    });
+  });
+  
+  // Compute centrality (degree) for each community
+  const commDegree = {};
+  nodes.forEach(n => { commDegree[n.id] = 0; });
+  (commData.edges || []).forEach(e => {
+    commDegree[e.source] = (commDegree[e.source] || 0) + 1;
+    commDegree[e.target] = (commDegree[e.target] || 0) + 1;
+  });
+  const maxCommDegree = Math.max(2, ...Object.values(commDegree));
+  
+  // Apply centrality-based sizing: blend moduleCount (size) + connections (reach)
+  nodes.forEach(n => {
+    const d = commDegree[n.id] || 0;
+    const centralityRatio = d / maxCommDegree;
+    // value drives physical size: 30% moduleCount + 70% connections
+    n.value = Math.round(n.moduleCount * 0.3 + d * 3.5);
+    n._degree = d;
+    n._centrality = centralityRatio;
+    n._isOrphan = (d === 0);
+  });
+  
+  // ═══ CATEGORIZATION: agent, test, v2bot, production ═══
+  const AGENT_IDS = new Set([9,12,18,19,35,37,81,86,92,133,150,164,171,198,202,248,254,258,260,272,303,310,315,522,528,532]);
+  const TEST_IDS = new Set([79,85,89,107,116,136,141,145,149,157,161,168,176,183,184,191,192,207,222,227,232,238,239,240,249,250,251,262,263,264,265,266,274,275,276,277,278,282,286,287,293,298,299,304,306,307,308,316,318,319,320,329,332,333,334,336,337,346,349,351,353,354,376,383,398,404,409,423,432,444,466,467,468,476,519,523,524,527,531]);
+  const V2BOT_IDS = new Set([2,3,32,33,106,182,187,205,224,372,385,431]);
+  
+  nodes.forEach(n => {
+    if (AGENT_IDS.has(n.community)) n._category = 'agent';
+    else if (TEST_IDS.has(n.community)) n._category = 'test';
+    else if (V2BOT_IDS.has(n.community)) n._category = 'v2bot';
+    else n._category = 'production';
+  });
+  
+  // Apply category-based OVERLAY (ring/glow only — NOT overriding community color)
+  nodes.forEach(n => {
+    if (n._category === 'agent') {
+      n._original._glow = '#ffd166';  // gold ring overlay
+      n.shadow = { enabled: true, color: '#ffd16666', size: 20, x: 0, y: 0 };
+      n.borderWidth = Math.max(n.borderWidth || 2, 2.5);
+    } else if (n._category === 'test') {
+      n._original._glow = '#00f5d4';  // green corona overlay
+    } else if (n._category === 'v2bot') {
+      n._original._glow = '#ff477e';  // pink ring overlay
+    }
+    // Do NOT override n._original.color or n._original.border — keep community colors
+    // Do NOT override vis-network node.color — keep community palette
+  });
+  
+  // Build community map for edge coloring
+  const commMap = {};
+  comms.forEach(c => { commMap[c.community] = c; });
+  
+  let topEdgeKeys = new Set();
+  
+  if (commData.edges) {
+    // Identify top-10% edges (connecting largest communities) for dynamic animation
+    const edgeWeights = commData.edges.map(e => {
+      const srcMc = (commMap[e.source] || {}).moduleCount || 0;
+      const tgtMc = (commMap[e.target] || {}).moduleCount || 0;
+      return { edge: e, weight: srcMc + tgtMc };
+    });
+    edgeWeights.sort((a, b) => b.weight - a.weight);
+    const topN = Math.max(5, Math.floor(edgeWeights.length * 0.1));
+    topEdgeKeys = new Set(edgeWeights.slice(0, topN).map(ew => ew.edge.source + '|||' + ew.edge.target));
+    
+    commData.edges.forEach(e => {
+      const srcColor = getCommColor(e.source);
+      const tgtMc = (commMap[e.target] || {}).moduleCount || 0;
+      const tgtColor = getCommColor(e.target);
+      const width = 0.5 + (tgtMc / maxMods) * 2.5;
+      const isTop = topEdgeKeys.has(e.source + '|||' + e.target);
+      edges.push({
+        from: e.source, to: e.target,
+        color: { color: srcColor + '55', highlight: srcColor, hover: srcColor + 'cc' },
+        width: width,
+        smooth: { type: isTop ? 'dynamic' : 'curvedCW', roundness: 0.2 },
+        hoverWidth: width * 2.5,
+        arrows: { to: { enabled: isTop, scaleFactor: 0.5 } },
+        _srcColor: srcColor, _tgtColor: tgtColor, _isTop: isTop
+      });
+    });
+  }
+  
+  commNodesDataset = new vis.DataSet(nodes);
+  commEdgesGlobal = edges;
+  const container = document.getElementById('network-communities');
+  container.style.display = 'block';
+  if (container.offsetHeight === 0) container.style.height = '500px';
+  
+  const isMobile = window.innerWidth < 768;
+  
+  commNetwork = new vis.Network(container, {
+    nodes: commNodesDataset, edges: new vis.DataSet(edges)
+  }, {
+    physics: {
+      enabled: true,
+      solver: 'barnesHut',
+      stabilization: { 
+        enabled: true,
+        iterations: 2000,
+        updateInterval: 25,
+        fit: true
+      },
+      barnesHut: { 
+        gravitationalConstant: -3000, 
+        centralGravity: 0.02, 
+        springLength: 200, 
+        springConstant: 0.4,
+        damping: 0.15,
+        avoidOverlap: 0.8
+      }
+    },
+    layout: {
+      randomSeed: 17,
+      improvedLayout: true
+    },
+    nodes: { scaling: { min: isMobile ? 6 : 10, max: isMobile ? 45 : 60, label: { enabled: true, min: 10, max: 28 } } },
+    edges: { smooth: { type: 'continuous' }, width: 2, scaling: { min: 1, max: 8 } },
+    interaction: { hover: true, zoomView: true, dragView: true, tooltipDelay: 150, zoomSpeed: isMobile ? 0.5 : 1, zoomMin: 0.05, zoomMax: 2.5 },
+  });
+
+  // Track stabilization completion
+  window._stabilizationFired = false;
+  commNetwork.once('stabilizationIterationsDone', function() {
+    window._stabilizationFired = true;
+    var positions = commNetwork.getPositions();
+    if (positions && Object.keys(positions).length > 400) {
+      // Bind ambient particles to graph nodes (convert physics → canvas coords)
+      var canvasPositions = {};
+      Object.keys(positions).forEach(function(k) {
+        var cp = commNetwork.canvasToDOM({ x: positions[k].x, y: positions[k].y });
+        canvasPositions[k] = { x: cp.x, y: cp.y };
+      });
+      window._bindParticlesToGraph(canvasPositions);
+      
+      setTimeout(function() {
+        commNetwork.setOptions({ physics: { enabled: false } });
+        commNetwork.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+      }, 2500);
+    }
+  });
+
+  // Freeze physics on drag for smooth panning
+  commNetwork.on('dragStart', function() {
+    commNetwork.setOptions({ physics: { enabled: false } });
+  });
+  
+  // Initialize particles on top edges
+  commParticles = initParticles(commNetwork, edges, topEdgeKeys, '_srcColor');
+  
+  commNetwork.on('click', function(p) {
+    if (p.nodes.length) showCommInfo(commNodesDataset.get(p.nodes[0]));
+  });
+  
+  // Hover: highlight neighbors, dim rest (THROTTLED for mobile perf)
+  let hoverTimeout = null;
+  let lastHoverId = null;
+  commNetwork.on('hoverNode', function(params) {
+    const hoveredId = params.node;
+    if (hoveredId === lastHoverId) return; // same node, skip
+    lastHoverId = hoveredId;
+    
+    if (hoverTimeout) clearTimeout(hoverTimeout);
+    hoverTimeout = setTimeout(() => {
+      if (!hoveredId) {
+        commNodesDataset.update(commNodesDataset.get().map(n => ({
+          id: n.id, opacity: 1,
+          color: { background: n._original.color, border: n._original.border },
+          font: { size: n.font.size, color: '#e2e8f0' },
+          borderWidth: n._topGlow ? 3 : 1.5
+        })));
+        return;
+      }
+      const neighbors = new Set(commNetwork.getConnectedNodes(hoveredId));
+      neighbors.add(hoveredId);
+      // Only update changed nodes — batch in groups of 100
+      const allNodes = commNodesDataset.get();
+      const updates = [];
+      for (let i = 0; i < allNodes.length; i += 100) {
+        updates.push(allNodes.slice(i, i + 100).map(n => {
+          const isNeighbor = neighbors.has(n.id);
+          return {
+            id: n.id,
+            opacity: isNeighbor ? 1 : 0.15,
+            color: isNeighbor ? {
+              background: n._original.border + '88',
+              border: n._original.border,
+              highlight: { background: n._original.border + 'cc', border: '#ffffff' }
+            } : {
+              background: n._original.color,
+              border: n._original.border
+            },
+            font: { 
+              size: isNeighbor ? n.font.size + 2 : n.font.size - 2, 
+              color: isNeighbor ? n._original.border : '#1a2233' 
+            },
+            borderWidth: isNeighbor ? 3 : (n._topGlow ? 2 : 1),
+            shadow: isNeighbor && n._topGlow ? n.shadow : { enabled: false }
+          };
+        }));
+      }
+      updates.forEach(batch => commNodesDataset.update(batch));
+    }, 80); // 80ms debounce — responsive but not janky
+  });
+  
+  // Reset on blur (debounced)
+  commNetwork.on('blurNode', function() {
+    if (hoverTimeout) clearTimeout(hoverTimeout);
+    hoverTimeout = setTimeout(() => {
+      lastHoverId = null;
+      const allNodes = commNodesDataset.get();
+      const updates = [];
+      for (let i = 0; i < allNodes.length; i += 100) {
+        updates.push(allNodes.slice(i, i + 100).map(n => ({
+          id: n.id, opacity: 1,
+          color: { background: n._original.color, border: n._original.border },
+          font: { size: n.font.size, color: '#e2e8f0' },
+          borderWidth: n._topGlow ? 3 : 1.5
+        })));
+      }
+      updates.forEach(batch => commNodesDataset.update(batch));
+    }, 80);
+  });
+  
+  // After drawing: lightweight effects only (skip clusterHulls + 3DNodes on mobile)
+  window._lastDrawTime = window._lastDrawTime || 0;
+  window.MIN_FRAME_MS = isMobile ? 66 : 33; // 15fps mobile, 30fps desktop
+  
+  if (commAfterDrawingHandler) commNetwork.off('afterDrawing', commAfterDrawingHandler);
+  commAfterDrawingHandler = function(ctx) {
+    const now = performance.now();
+    if (now - window._lastDrawTime < window.MIN_FRAME_MS) return;
+    window._lastDrawTime = now;
+    
+    // Edge waves — cheapest, always on
+    drawEdgeWaves(ctx, commNetwork, commEdgesGlobal);
+    
+    if (!isMobile) {
+      // Desktop only: gradient edges + particles + hulls + 3D
+      drawGradientEdges(ctx, commNetwork, commEdgesGlobal, topEdgeKeys);
+      drawClusterHulls(ctx, commNetwork, commNodesDataset);
+      drawParticles(ctx, commNetwork, commParticles);
+      draw3DNodes(ctx, commNetwork, commNodesDataset);
+    }
+  };
+  commNetwork.on('afterDrawing', commAfterDrawingHandler);
+}
+
+function showCommInfo(node) {
+  const connectedNodes = commNetwork.getConnectedNodes(node.id);
+  let tier = '△ Small (<8 modules)';
+  if (node.moduleCount >= 50) tier = '◆ Huge (50+ modules)';
+  else if (node.moduleCount >= 20) tier = '⬡ Big (20–49 modules)';
+  else if (node.moduleCount >= 8) tier = '● Mid (8–19 modules)';
+  
+  // Category info
+  const cat = node._category || 'production';
+  const catLabels = { agent: 'Agent', test: 'Test Suite', v2bot: 'V2Bot Core', production: 'Module' };
+  const catClasses = { agent: 'cat-agent', test: 'cat-test', v2bot: 'cat-v2bot', production: 'cat-prod' };
+  
+  // Related stats from data
+  const connectedEdges = commNetwork.getConnectedEdges ? commNetwork.getConnectedEdges(node.id) : [];
+  const edgeCount = connectedEdges ? connectedEdges.length : 0;
+  
+  const content = document.getElementById('info-content');
+  content.innerHTML = `
+    <h3>${node.label}</h3>
+    <div class="sub">Community #${node._numId} · ${tier}</div>
+    <span class="cat-badge ${catClasses[cat]}">${catLabels[cat]}</span>
+    <div class="stat-row"><span class="stat-label">Modules</span><span class="stat-value" style="color:var(--accent)">${node.moduleCount}</span></div>
+    <div class="stat-row"><span class="stat-label">Connections</span><span class="stat-value">${connectedNodes.length} communities · ${edgeCount} edges</span></div>
+    <div class="stat-row"><span class="stat-label">Centrality</span><span class="stat-value" style="color:var(--accent4)">${Math.round(node._centrality * 100)}%</span></div>
+    ${node._topGlow ? '<div class="stat-row"><span class="stat-label">Top-15</span><span class="stat-value" style="color:var(--accent3)">★ Glowing</span></div>' : ''}
+    ${cat === 'agent' ? '<div class="cat-section">Autonomous agent with independent lifecycle and adaptive scheduling</div>' : ''}
+    ${cat === 'test' ? '<div class="cat-section">Test suite — validates project functionality across 532 test files</div>' : ''}
+    ${cat === 'v2bot' ? '<div class="cat-section">V2Bot infrastructure — relay servers, identity APIs, broadcast fanout</div>' : ''}
+    ${getContextSection(node)}
+  `;
+  document.getElementById('info-panel').classList.add('visible');
+}
+
+function getContextSection(node) {
+  if (!ctxData) return '';
+  const label = (node.label || '').toLowerCase();
+  const cron = ctxData.chronology || [];
+  const git = ctxData.git_history || {};
+  const tests = ctxData.tests || {};
+  const agents = ctxData.agents || {};
+  
+  let sections = [];
+  
+  // Find matching git repo
+  for (const [repo, info] of Object.entries(git)) {
+    if (label.includes(repo.replace(/-/g, ' ')) || (repo.includes('relay') && label.includes('relay')) || (repo.includes('snin') && label.includes('snin'))) {
+      if (info.commits) {
+        sections.push('<div class="ctx-section"><span>📊</span> Git: <b>' + repo + '</b> — ' + info.commits + ' commits</div>');
+      }
+      break;
+    }
+  }
+  
+  // Find matching test info
+  for (const [cat, info] of Object.entries(tests)) {
+    if (label.includes(cat.replace(/-/g, ' ')) || (cat === 'relay-mesh' && label.includes('relay')) || (cat === 'cryter' && label.includes('cryter'))) {
+      sections.push('<div class="ctx-section"><span>🧪</span> Tests: <b>' + info.count + '</b> files in ' + cat + '</div>');
+      break;
+    }
+  }
+  
+  // Agent status
+  if (label.includes('cryter') && agents.cryter_active) {
+    sections.push('<div class="ctx-section"><span>⚡</span> <b>' + agents.cryter_active + '</b> Cryter daemons running</div>');
+  }
+  if (label.includes('v2bot') && agents.v2bot_active) {
+    sections.push('<div class="ctx-section"><span>🔴</span> <b>' + agents.v2bot_active + '</b> V2Bot daemons running</div>');
+  }
+  
+      // Function-level Code Graph for relevant communities
+  if (ctxData.code_graph && ctxData.code_graph.summary) {
+    const cg = ctxData.code_graph.summary;
+    // Match by repo name in label
+    let matchedRepo = null;
+    if (ctxData.code_graph.repos) {
+      for (const [repo, info] of Object.entries(ctxData.code_graph.repos)) {
+        if (label.includes(repo.replace(/-/g, ' ')) || (repo === 'relay-mesh' && label.includes('relay')) || (repo === 'cryter' && label.includes('cryter')) || (repo === 'snin-command' && label.includes('snin')) || (repo === 'v2bot-daemon' && label.includes('v2bot'))) {
+          matchedRepo = {repo, info};
+          break;
+        }
+      }
+    }
+    if (matchedRepo) {
+      const r = matchedRepo.info;
+      sections.push('<div class="ctx-section"><span>🔗</span> Code: <b>' + r.files + '</b> files · <b>' + r.functions + '</b> defs · <b>' + r.outgoing_calls + '</b> cross-calls</div>');
+      // Показать топ-хабы если репо relay-mesh
+      if (matchedRepo.repo === 'relay-mesh' && ctxData.code_graph.top_hub_files) {
+        const hubs = ctxData.code_graph.top_hub_files.filter(h => h.file.startsWith('relay-mesh/')).slice(0, 3);
+        if (hubs.length > 0) {
+          sections.push('<div class="ctx-section"><span>📡</span> Top hubs: ' + hubs.map(h => '<b>' + h.file.split('/').pop() + '</b> (' + h.incoming_calls + ' calls)').join(', ') + '</div>');
+        }
+      }
+    }
+    // Топ-функции для любых community
+    if (ctxData.code_graph.top_called_functions && (label.includes('function') || label.includes('code') || label.includes('module') || label.includes('api') || label.includes('core') || label.includes('hub') || label.includes('router'))) {
+      const top3 = ctxData.code_graph.top_called_functions.slice(0, 5).map(f => '<b>' + f.function + '()</b>→' + f.call_sites).join(' · ');
+      sections.push('<div class="ctx-section"><span>⚡</span> Top: ' + top3 + '</div>');
+    }
+  }
+  
+  // Google Drive docs for relevant communities
+  if (ctxData.google_drive && ctxData.google_drive.uploaded_docs_count) {
+    const driveDocs = ctxData.google_drive.documents || [];
+    const matchingDocs = driveDocs.filter(d => {
+      const dn = d.name.toLowerCase();
+      return label.includes('mesh') || label.includes('relay') || label.includes('p2p') || label.includes('architecture');
+    });
+    if (matchingDocs.length > 0) {
+      sections.push('<div class="ctx-section"><span>📁</span> Google Drive: <b>' + matchingDocs.length + '</b> related docs</div>');
+    }
+  }
+  
+  if (sections.length === 0) return '';
+  return '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">' + sections.join('') + '</div>';
+}
+
+function filterCommunities() {
+  const q = document.getElementById('search-comm').value.toLowerCase().trim();
+  const allNodes = commNodesDataset.get();
+  
+  if (!q) {
+    commNodesDataset.update(allNodes.map(n => ({
+      id: n.id, hidden: false,
+      shape: n.shape,
+      color: { background: n._original.color, border: n._original.border },
+      font: { size: n.font.size, color: '#e2e8f0' },
+      shadow: n.shadow,
+      borderWidth: n._topGlow ? 3 : 1.5
+    })));
+  } else {
+    commNodesDataset.update(allNodes.map(n => {
+      const match = n.label.toLowerCase().includes(q);
+      return {
+        id: n.id,
+        hidden: false,
+        shape: n.shape,
+        opacity: match ? 1 : 0.15,
+        color: match ? { 
+          background: n._original.border + '88', 
+          border: n._original.border,
+          highlight: { background: n._original.border + 'cc', border: '#ffffff' }
+        } : {
+          background: n._original.color,
+          border: n._original.border
+        },
+        font: { 
+          size: match ? n.font.size + 2 : n.font.size - 2, 
+          color: match ? n._original.border : '#2a3344' 
+        },
+        borderWidth: match ? 3 : (n._topGlow ? 2 : 1),
+        shadow: match && n._topGlow ? n.shadow : { enabled: false }
+      };
+    }));
+  }
+  updateCommStats();
+}
+
+function updateCommStats() {
+  const q = document.getElementById('search-comm').value.toLowerCase().trim();
+  const total = commData.communities.length;
+  const orphanCount = commNodesDataset.get({ filter: n => n._isOrphan }).length;
+  const showOrphansComm = document.getElementById('show-orphans-comm')?.checked ?? true;
+  if (q) {
+    const matching = commNodesDataset.get({ filter: n => n.label.toLowerCase().includes(q) }).length;
+    document.getElementById('stats-comm').textContent = `Found ${matching} / ${total}`;
+  } else {
+    const visible = showOrphansComm ? total : total - orphanCount;
+    const orphanStr = orphanCount > 0 ? ` · ${orphanCount} orphans ${showOrphansComm ? 'shown' : 'hidden'}` : '';
+    document.getElementById('stats-comm').textContent = `${visible} / ${total} communities · ${commData.edges?.length || 0} edges${orphanStr}`;
+  }
+}
+
+function toggleOrphansComm() {
+  const show = document.getElementById('show-orphans-comm').checked;
+  commNodesDataset.forEach(n => {
+    if (n._isOrphan) {
+      n.hidden = !show;
+      n.physics = show;
+    }
+  });
+  updateCommStats();
+}
+
+// ===== MODULES =====
+let allModFiles = {};
+let connectedFiles = new Set();
+let showOrphans = false;
+
+function buildModules() {
+  let rawNodes = modData.nodes;
+  if (!Array.isArray(rawNodes)) {
+    rawNodes = Object.values(rawNodes);
+  }
+  const allNodes = rawNodes;
+  const allEdges = modData.edges;
+  const isMobile = window.innerWidth < 768;
+  
+  connectedFiles = new Set();
+  allEdges.forEach(e => { connectedFiles.add(e.source); connectedFiles.add(e.target); });
+  
+  const degree = {};
+  allEdges.forEach(e => { degree[e.source] = (degree[e.source]||0) + 1; degree[e.target] = (degree[e.target]||0) + 1; });
+  const maxDeg = Math.max(2, ...Object.values(degree));
+  
+  // Directory-based style map: color, shape, emoji
+  const DIR_STYLES = {
+    'dev':        { color: '#54a0ff', shape: 'square', emoji: '⚙️' },
+    'relay-mesh': { color: '#2ed573', shape: 'dot',    emoji: '🌐' },
+    'relay':      { color: '#a855f7', shape: 'triangle', emoji: '📡' },
+    'hub':        { color: '#f97316', shape: 'hexagon', emoji: '🏛️' },
+    'command':    { color: '#ff4757', shape: 'star',   emoji: '🎮' },
+    'portal':     { color: '#ff9ff3', shape: 'diamond', emoji: '🌀' },
+    'bot':        { color: '#feca57', shape: 'triangleDown', emoji: '🤖' },
+    'root':       { color: '#94a3b8', shape: 'dot',    emoji: '📄' }
+  };
+  function getDirStyle(fullPath) {
+    const dir = (fullPath || '').split('/')[0] || 'root';
+    return DIR_STYLES[dir] || DIR_STYLES['root'];
+  }
+  
+  allModFiles = {};
+  allNodes.forEach(n => {
+    const dir = (n.full_path || '').split('/')[0] || 'root';
+    const ds = DIR_STYLES[dir] || DIR_STYLES['root'];
+    allModFiles[n.full_path] = {
+      community: n.community, community_name: n.community_name || '',
+      entry_count: n.entry_count || 0,
+      isConnected: false,
+      _dirColor: ds.color
+    };
+  });
+  
+
+  const nodes = allNodes.map(n => {
+    const d = degree[n.full_path] || 0;
+    const isConnected = d > 0;
+    if (allModFiles[n.full_path]) allModFiles[n.full_path].isConnected = isConnected;
+    if (allModFiles[n.full_path]) allModFiles[n.full_path].degree = d;
+    const pc = isConnected ? d / maxDeg : 0;
+    const ds = getDirStyle(n.full_path);
+    return {
+      id: n.full_path,
+      label: ds.emoji + ' ' + n.label,
+      value: Math.max(1, d),
+      shape: ds.shape,
+      color: isConnected ? {
+        background: ds.color + '30',
+        border: ds.color + '50',
+        highlight: { background: ds.color + 'cc', border: '#ffffff' }
+      } : {
+        background: 'rgba(100,116,139,0.04)',
+        border: 'rgba(100,116,139,0.08)',
+        highlight: { background: 'rgba(100,116,139,0.35)', border: ds.color + '50' }
+      },
+      font: isConnected ? 
+        { color: '#e2e8f0', size: Math.max(12, Math.round(12 + pc * 12)), face: 'Inter, sans-serif', strokeWidth: 2, strokeColor: '#0f172a' } :
+        { color: '#64748b', size: 11, face: 'Inter, sans-serif' },
+      borderWidth: isConnected ? 1.5 : 0.5,
+      community_name: n.community_name,
+      full_path: n.full_path,
+      isConnected: isConnected,
+      _dirColor: ds.color,
+      _original: { 
+        color: isConnected ? ds.color + '30' : 'rgba(100,116,139,0.25)', 
+        border: isConnected ? ds.color : ds.color + '50',
+        _glow: isConnected ? ds.color : '#94a3b8',
+        isConnected: isConnected
+      }
+    };
+  });
+  
+  // Identify top-5% edges for dynamic animation
+  const edgeWeights = allEdges.map(e => ({ edge: e, w: (degree[e.source] || 0) + (degree[e.target] || 0) }));
+  edgeWeights.sort((a, b) => b.w - a.w);
+  const topM = Math.max(3, Math.floor(allEdges.length * 0.05));
+  const topModEdgeKeys = new Set(edgeWeights.slice(0, topM).map(ew => ew.edge.source + '|||' + ew.edge.target));
+
+  const edges = allEdges.map(e => {
+    const rel = e.relations[0] || 'uses';
+    const ec = edgeColors[rel] || '#ffffff30';
+    const isSemantic = rel === 'semantic';
+    const isDeploy = rel === 'deploys_as';
+    const srcDeg = degree[e.source] || 0;
+    const width = 0.8 + (srcDeg / maxDeg) * 3;
+    const isTop = topModEdgeKeys.has(e.source + '|||' + e.target);
+    // Get source/target directory colors for gradient
+    const srcDirColor = (allModFiles[e.source] && allModFiles[e.source]._dirColor) || '#94a3b8';
+    const tgtDirColor = (allModFiles[e.target] && allModFiles[e.target]._dirColor) || '#94a3b8';
+    return {
+      from: e.source, to: e.target,
+      color: { color: ec + 'aa', highlight: ec, hover: ec },
+      width: width,
+      arrows: { to: { enabled: rel === 'calls' || rel === 'imports', scaleFactor: 0.6 } },
+      dashes: (isDeploy || isSemantic) ? [5, 4] : false,
+      smooth: { type: isTop ? 'dynamic' : 'curvedCW', roundness: 0.2 },
+      hoverWidth: width * 2.5,
+      title: `<b>${e.relations.join(', ')}</b>${e.description ? '\\n' + e.description : ''}`,
+      _srcColor: srcDirColor, _tgtColor: tgtDirColor, _isTop: isTop
+    };
+  });
+  
+  modNodesDataset = new vis.DataSet(nodes);
+  modEdgesGlobal = edges;  // Store globally
+  const container = document.getElementById('network-modules');
+  if (!container) { console.error('buildModules: container #network-modules not found!'); return; }
+  container.style.display = 'none';
+  if (container.offsetHeight === 0) container.style.height = '500px';
+  
+  console.log('buildModules: creating modNetwork with', nodes.length, 'nodes,', edges.length, 'edges');
+  try {
+    modNetwork = new vis.Network(container, {
+    nodes: modNodesDataset, edges: new vis.DataSet(edges)
+  }, {
+    physics: {
+      enabled: true,
+      solver: 'barnesHut',
+      stabilization: { 
+        enabled: true,
+        iterations: 2000,
+        updateInterval: 25,
+        fit: true
+      },
+      barnesHut: { 
+        gravitationalConstant: -3000, 
+        centralGravity: 0.02, 
+        springLength: 200, 
+        springConstant: 0.4,
+        damping: 0.3,
+        avoidOverlap: 0.8
+      }
+    },
+    layout: {
+      randomSeed: 17,
+      improvedLayout: true
+    },
+    nodes: { scaling: { min: isMobile ? 4 : 7, max: isMobile ? 35 : 50, label: { enabled: true, min: 9, max: 22 } } },
+    interaction: { hover: true, zoomView: true, dragView: true, tooltipDelay: 100, zoomSpeed: isMobile ? 0.5 : 1, zoomMin: 0.05, zoomMax: 2.5 },
+  });
+  } catch(e) {
+    console.error('buildModules: vis.Network creation failed:', e.message, e.stack);
+    return;
+  }
+  console.log('buildModules: modNetwork created successfully, nodes:', modNodesDataset.length);
+  
+  // Disable physics after stabilization
+  window._modStabilizationFired = false;
+  modNetwork.once('stabilizationIterationsDone', function() {
+    window._modStabilizationFired = true;
+    var positions = modNetwork.getPositions();
+    if (positions && Object.keys(positions).length > 200) {
+      setTimeout(function() {
+        modNetwork.setOptions({ physics: { enabled: false } });
+        modNetwork.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+      }, 1000);
+    }
+  });
+  modNetwork.on('dragStart', function() {
+    modNetwork.setOptions({ physics: { enabled: false } });
+  });
+  
+  // Initialize particles on top edges
+  modParticles = initParticles(modNetwork, edges, topModEdgeKeys, '_srcColor');
+  
+  modNetwork.on('click', function(p) {
+    if (p.nodes.length) showModInfo(modNodesDataset.get(p.nodes[0]));
+  });
+  
+  // Hover: highlight neighbors, dim rest
+  modNetwork.on('hoverNode', function(params) {
+    const hoveredId = params.node;
+    if (!hoveredId) {
+      modNodesDataset.update(modNodesDataset.get().map(n => ({
+        id: n.id, opacity: 1,
+        color: { background: n._original.color, border: n._original.border },
+        font: { size: n.font.size, color: n._original.isConnected ? '#e2e8f0' : '#0d1420' },
+        borderWidth: n._original.isConnected ? 1.5 : 0.5
+      })));
+      return;
+    }
+    const neighbors = new Set(modNetwork.getConnectedNodes(hoveredId));
+    neighbors.add(hoveredId);
+    modNodesDataset.update(modNodesDataset.get().map(n => {
+      const isNeighbor = neighbors.has(n.id);
+      return {
+        id: n.id,
+        opacity: isNeighbor ? 1 : 0.08,
+        color: isNeighbor && n._original.isConnected ? {
+          background: n._original.border + '88',
+          border: n._original.border,
+          highlight: { background: n._original.border + 'cc', border: '#ffffff' }
+        } : {
+          background: n._original.color,
+          border: n._original.border
+        },
+        font: { 
+          size: isNeighbor ? n.font.size + 2 : (n._original.isConnected ? n.font.size - 2 : 0), 
+          color: isNeighbor ? n._original.border : (n._original.isConnected ? '#2a3344' : '#0d1420') 
+        },
+        borderWidth: isNeighbor ? 3 : (n._original.isConnected ? 1 : 0.3),
+        shadow: isNeighbor ? { enabled: true, color: n._original.border + '66', size: 12 } : { enabled: false }
+      };
+    }));
+  });
+  
+  modNetwork.on('blurNode', function() {
+    modNodesDataset.update(modNodesDataset.get().map(n => ({
+      id: n.id, opacity: 1,
+      color: { background: n._original.color, border: n._original.border },
+      font: { size: n.font.size, color: n._original.isConnected ? '#e2e8f0' : '#0d1420' },
+      borderWidth: n._original.isConnected ? 1.5 : 0.5
+    })));
+  });
+  
+  // After drawing: gradient edges + cluster hulls
+  if (modAfterDrawingHandler) modNetwork.off('afterDrawing', modAfterDrawingHandler);
+  modAfterDrawingHandler = function(ctx) {
+    const now = performance.now();
+    if (now - window._lastDrawTime < window.MIN_FRAME_MS) return;
+    window._lastDrawTime = now;
+    
+    drawEdgeWaves(ctx, modNetwork, edges);
+    if (!isMobile) {
+      drawGradientEdges(ctx, modNetwork, edges, topModEdgeKeys);
+      drawClusterHulls(ctx, modNetwork, modNodesDataset);
+      drawParticles(ctx, modNetwork, modParticles);
+      draw3DNodes(ctx, modNetwork, modNodesDataset);
+    }
+  };
+  modNetwork.on('afterDrawing', modAfterDrawingHandler);
+  
+  showOrphans = false;
+  applyOrphanFilter(true);
+  document.getElementById('filter-rel').value = 'connected';
+  updateModStats();
+}
+
+function showModInfo(node) {
+  const connectedEdges = modNetwork.getConnectedEdges(node.id);
+  const connCount = connectedEdges ? connectedEdges.length : 0;
+  const dir = (node.full_path || '').split('/')[0] || 'root';
+  
+  let edgeTypes = {};
+  if (connectedEdges) {
+    const edgeItems = modNetwork.body.data.edges;
+    connectedEdges.forEach(eid => {
+      const edge = edgeItems.get(eid);
+      if (edge && edge.title) {
+        const parts = edge.title.split('\\n')[0].replace('<b>','').replace('</b>','');
+        parts.split(', ').forEach(r => { 
+          const t = r.trim();
+          edgeTypes[t] = (edgeTypes[t] || 0) + 1; 
+        });
+      }
+    });
+  }
+  
+  let chipsHTML = Object.entries(edgeTypes).map(([r, c]) => {
+    const ec = edgeColors[r] || '#ffffff30';
+    return `<span class="edge-chip" style="color:${ec};border-color:${ec}33;background:${ec}11">${r}: ${c}</span>`;
+  }).join('');
+  
+  const content = document.getElementById('info-content');
+  content.innerHTML = `
+    <h3>${node.label}</h3>
+    <div class="sub">${node.full_path} · ${dir}/</div>
+    <div class="stat-row"><span class="stat-label">Community</span><span class="stat-value" style="color:var(--accent4)">${node.community_name}</span></div>
+    <div class="stat-row"><span class="stat-label">Connections</span><span class="stat-value" style="color:var(--accent)">${connCount}</span></div>
+    ${chipsHTML ? '<div class="edge-chips">' + chipsHTML + '</div>' : ''}
+  `;
+  document.getElementById('info-panel').classList.add('visible');
+}
+
+function applyOrphanFilter(hideOrphans) {
+  const allNodes = modNodesDataset.get();
+  modNodesDataset.update(allNodes.map(n => {
+    if (hideOrphans && !n.isConnected) {
+      return { id: n.id, hidden: true };
+    }
+    return { id: n.id, hidden: false };
+  }));
+}
+
+function filterModules() {
+  const q = document.getElementById('search-mod').value.toLowerCase().trim();
+  const commFilter = document.getElementById('filter-comm').value;
+  const relFilter = document.getElementById('filter-rel').value;
+  
+  if (relFilter === 'all') {
+    showOrphans = true;
+    applyOrphanFilter(false);
+  } else {
+    showOrphans = false;
+    applyOrphanFilter(true);
+  }
+  
+  const allNodes = modNodesDataset.get();
+  
+  let anyFilter = q || commFilter !== 'all';
+  
+  modNodesDataset.update(allNodes.map(n => {
+    let hidden = n.hidden;
+    if (q && !n.label.toLowerCase().includes(q) && !n.full_path.toLowerCase().includes(q)) hidden = true;
+    if (commFilter !== 'all' && n.community_name !== commFilter) hidden = true;
+    
+    const match = !hidden;
+    return {
+      id: n.id, hidden,
+      shape: n.shape,
+      opacity: (anyFilter && !match) ? 0.06 : 1,
+      font: { 
+        size: match ? (n._original.isConnected ? n.font.size : 10) : 0, 
+        color: match ? (n._original.isConnected ? '#e2e8f0' : '#4a5568') : '#0a1018' 
+      },
+      borderWidth: match && n._original.isConnected ? 1.5 : 0.3
+    };
+  }));
+  updateModStats();
+}
+
+function updateModStats() {
+  const total = modNodesDataset.length;
+  const visible = modNodesDataset.get({ filter: n => !n.hidden }).length;
+  const orphans = total - connectedFiles.size;
+  const connStr = showOrphans ? `(incl. ${orphans} orphans)` : `(hiding ${orphans} orphans)`;
+  document.getElementById('stats-mod').textContent = 
+    `Showing ${visible} / ${total} files · ${modData.edges.length} edges ${connStr}`;
+}
+
+// ===== TAB SWITCHING =====
+function switchTab(tab, btn) {
+  if (currentTab === tab) return;
+  currentTab = tab;
+  
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  
+  document.getElementById('toolbar-communities').style.display = tab === 'communities' ? 'flex' : 'none';
+  document.getElementById('toolbar-modules').style.display = tab === 'modules' ? 'flex' : 'none';
+  document.getElementById('legend-communities').style.display = tab === 'communities' ? 'flex' : 'none';
+  document.getElementById('legend-modules').style.display = tab === 'modules' ? 'flex' : 'none';
+  document.getElementById('info-panel').classList.remove('visible');
+  
+  const gc = document.getElementById('graph-container');
+  gc.classList.add('fade-out');
+  
+  setTimeout(() => {
+    const commDiv = document.getElementById('network-communities');
+    const modDiv = document.getElementById('network-modules');
+    
+    if (tab === 'communities' && commNetwork) {
+      commDiv.style.display = 'block';
+      modDiv.style.display = 'none';
+      commNetwork.setData({ nodes: commNodesDataset, edges: commNetwork.body.data.edges });
+      commNetwork.fit({ animation: { duration: 600, easingFunction: 'easeInOutQuad' } });
+      updateCommStats();
+    } else if (tab === 'modules' && modNetwork) {
+      commDiv.style.display = 'none';
+      modDiv.style.display = 'block';
+      modNetwork.setData({ nodes: modNodesDataset, edges: modNetwork.body.data.edges });
+      modNetwork.fit({ animation: { duration: 600, easingFunction: 'easeInOutQuad' } });
+      updateModStats();
+    }
+    gc.classList.remove('fade-out');
+    gc.classList.add('fade-in');
+    setTimeout(() => gc.classList.remove('fade-in'), 350);
+  }, 180);
+}
+
+
+function updateContextBar() {
+  if (!ctxData || !ctxData.summary) return;
+  const s = ctxData.summary;
+  document.getElementById('ctx-git').textContent = s.total_repos_with_history + ' repos · ' + s.total_commits + ' commits';
+  document.getElementById('ctx-git').title = Object.keys(ctxData.git_history || {}).join(', ');
+  document.getElementById('ctx-tests').textContent = s.total_test_files + ' files';
+  document.getElementById('ctx-tests').title = Object.entries(ctxData.tests || {}).map(([k,v]) => k + ': ' + v.count).join('\n');
+  document.getElementById('ctx-agents').textContent = s.active_cryter_daemons + ' Cryter · ' + s.active_v2bot_daemons + ' V2Bot · ' + s.active_agent_launchers + ' launchers';
+  document.getElementById('ctx-timeline').textContent = s.projects_with_timeline + ' projects';
+  const codeEl = document.getElementById('ctx-code'); if (codeEl && s.total_function_calls) { codeEl.textContent = s.total_function_defs + ' defs · ' + s.total_function_calls + ' calls · ' + s.total_file_to_file_edges + ' links'; }
+  const docsEl = document.getElementById('ctx-docs'); if (docsEl && s.total_spec_documents) { docsEl.textContent = s.total_spec_documents + ' specs · ' + s.total_markdown_docs + ' MD'; if (s.google_drive_docs) docsEl.textContent += ' · ' + s.google_drive_docs + ' Drive'; }
+  document.getElementById('ctx-timeline').title = (ctxData.chronology || []).map(t => t.label + ': ' + t.started + ' → ' + t.last_active).join('\n');
+}
+
+function closeInfo() { document.getElementById('info-panel').classList.remove('visible'); }
+
+function toggleHelp() {
+  const overlay = document.getElementById('help-overlay');
+  overlay.classList.toggle('visible');
+  // Lock body scroll when overlay is open
+  if (overlay.classList.contains('visible')) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+}
+
+// Click backdrop to close (works on mobile and desktop)
+document.getElementById('help-backdrop').addEventListener('click', function(e) {
+  e.stopPropagation();
+  toggleHelp();
+});
+
+// Esc key to close any overlay
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const helpOverlay = document.getElementById('help-overlay');
+    const devOverlay = document.getElementById('dev-overlay');
+    const infoOverlay = document.getElementById('info-overlay');
+    if (infoOverlay.classList.contains('visible')) toggleInfo();
+    else if (devOverlay.classList.contains('visible')) toggleDev();
+    else if (helpOverlay.classList.contains('visible')) toggleHelp();
+  }
+});
+
+// ═══ Dev overlay ═══
+function toggleDev() {
+  const overlay = document.getElementById('dev-overlay');
+  overlay.classList.toggle('visible');
+  if (overlay.classList.contains('visible')) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+}
+
+function toggleInfo() {
+  const overlay = document.getElementById('info-overlay');
+  overlay.classList.toggle('visible');
+  if (overlay.classList.contains('visible')) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+}
+
+// Mobile: tap context-bar pills to show tooltip
+document.querySelectorAll('.ctx-pill').forEach(pill => {
+  pill.addEventListener('click', function(e) {
+    e.stopPropagation();
+    // Close all others
+    document.querySelectorAll('.ctx-pill.tip-visible').forEach(p => {
+      if (p !== pill) p.classList.remove('tip-visible');
+    });
+    pill.classList.toggle('tip-visible');
+  });
+});
+// Tap anywhere to close tooltips
+document.addEventListener('click', function() {
+  document.querySelectorAll('.ctx-pill.tip-visible').forEach(p => p.classList.remove('tip-visible'));
+});
+
+// ── Parallax Engine ──
+(function(){
+  const orbs = document.querySelectorAll('.orb');
+  const eye = document.querySelector('.orb-eye');
+  const spikes = document.querySelectorAll('.spike');
+  let mx = 0, my = 0, tx = 0, ty = 0;
+  
+  document.addEventListener('mousemove', function(e) {
+    mx = (e.clientX / window.innerWidth - 0.5) * 2;
+    my = (e.clientY / window.innerHeight - 0.5) * 2;
+  });
+  
+  function animate() {
+    tx += (mx - tx) * 0.05;
+    ty += (my - ty) * 0.05;
+    
+    if (orbs[0]) orbs[0].style.transform = 'translate('+(tx*14)+'px, '+(ty*14)+'px)';
+    if (orbs[1]) orbs[1].style.transform = 'translate('+(tx*-11)+'px, '+(ty*-11)+'px)';
+    if (orbs[2]) orbs[2].style.transform = 'translate('+(tx*8)+'px, '+(ty*-9)+'px)';
+    if (orbs[3]) orbs[3].style.transform = 'translate('+(tx*-7)+'px, '+(ty*6)+'px)';
+    if (eye) eye.style.transform = 'translate('+(tx*20)+'px, '+(ty*18)+'px)';
+    if (spikes[0]) spikes[0].style.transform = 'translate('+(tx*5)+'px, '+(ty*5)+'px)';
+    if (spikes[1]) spikes[1].style.transform = 'translate('+(tx*-6)+'px, '+(ty*-6)+'px)';
+    if (spikes[2]) spikes[2].style.transform = 'translate('+(tx*-4)+'px, '+(ty*3)+'px)';
+    
+    document.body.style.setProperty('--px', tx * 6 + 'px');
+    document.body.style.setProperty('--py', ty * 6 + 'px');
+    document.body.style.setProperty('--gx', tx * 3 + 'px');
+    document.body.style.setProperty('--gy', ty * 3 + 'px');
+    
+    requestAnimationFrame(animate);
+  }
+  
+  var style = document.createElement('style');
+  style.textContent = 'body::before{transform:translate(var(--px,0px),var(--py,0px))}body::after{transform:translate(var(--gx,0px),var(--gy,0px))}';
+  document.head.appendChild(style);
+  
+  requestAnimationFrame(animate);
+})();
+
+loadData();
+</script>
+</body>
+
+</body>
+</html>
