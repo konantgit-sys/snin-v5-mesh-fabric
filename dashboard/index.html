@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNIN Knowledge Graph — Live Visualization</title>
+<script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.6/dist/vis-network.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/vis-network@9.1.6/dist/vis-network.min.css" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0f; color: #e0e0e0; font-family: 'Courier New', monospace; height: 100vh; display: flex; flex-direction: column; }
+header { background: #111118; padding: 12px 20px; border-bottom: 1px solid #1e1e2e; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+header h1 { font-size: 16px; color: #00d4ff; letter-spacing: 2px; }
+header .stats { font-size: 12px; color: #888; }
+header .stats span { color: #00ff88; font-weight: bold; }
+#graph { flex: 1; min-height: 0; }
+.panel { position: absolute; top: 70px; right: 15px; background: rgba(17,17,24,0.95); border: 1px solid #1e1e2e; border-radius: 8px; padding: 15px; width: 280px; z-index: 10; font-size: 12px; }
+.panel h3 { color: #00d4ff; margin-bottom: 10px; font-size: 13px; }
+.panel .fix-badge { background: #00ff88; color: #0a0a0f; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 10px; display: inline-block; margin-bottom: 8px; }
+.panel .flow { margin: 8px 0; }
+.panel .flow-step { display: flex; align-items: flex-start; gap: 6px; margin: 6px 0; }
+.panel .flow-step .num { background: #1e1e2e; color: #00d4ff; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+.panel .flow-step .num.done { background: #00ff88; color: #0a0a0f; }
+.legend { position: absolute; bottom: 20px; left: 20px; background: rgba(17,17,24,0.9); border: 1px solid #1e1e2e; border-radius: 8px; padding: 10px 14px; font-size: 11px; z-index: 10; }
+.legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+.loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #888; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>◈ SNIN KNOWLEDGE GRAPH</h1>
+  <div class="stats">
+    Nodes: <span id="nodeCount">—</span> &nbsp;|&nbsp;
+    Edges: <span id="edgeCount">—</span> &nbsp;|&nbsp;
+    Updated: <span id="lastUpdate">—</span>
+  </div>
+</header>
+
+<div id="graph">
+  <div class="loading" id="loading">Loading graph data...</div>
+</div>
+
+<div class="panel" id="fixPanel">
+  <span class="fix-badge">✅ FIX ACTIVE v2026-06-20</span>
+  <h3>External Agent Auto-Registration</h3>
+  <div class="flow">
+    <div class="flow-step">
+      <span class="num done">1</span>
+      <span>Agent calls <b>snin_register_agent</b> via MCP Gateway (:9951)</span>
+    </div>
+    <div class="flow-step">
+      <span class="num done">2</span>
+      <span>Gateway writes to <b>KNOWN_AGENTS</b> + <b>relay_v2.db</b></span>
+    </div>
+    <div class="flow-step">
+      <span class="num done">3</span>
+      <span>Gateway sends <b>heartbeat (kind:39000)</b> to SmartRouter (:9932)</span>
+    </div>
+    <div class="flow-step">
+      <span class="num done">4</span>
+      <span>SmartRouter calls <b>upsert_node()</b> → agent in Redis graph:nodes</span>
+    </div>
+    <div class="flow-step">
+      <span class="num done">5</span>
+      <span>Edge <b>agent → smart_router</b> created, Dijkstra sees agent</span>
+    </div>
+  </div>
+  <div style="margin-top:10px; padding:6px 8px; background:#0a2a0a; border-radius:4px; font-size:10px; color:#00ff88;">
+    Before: agent existed only in KNOWN_AGENTS, invisible to routing.<br>
+    After: instant Knowledge Graph participation.
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:#00d4ff;"></span> Relay Agent (mesh)</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#ffaa00;"></span> Seed Agent</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#00ff88;"></span> SmartRouter</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#ff4488;"></span> External Agent (new)</div>
+  <div class="legend-item" style="color:#666;">— Edge: message channel</div>
+</div>
+
+<script>
+const API_URL = '/api/graph';
+let network = null;
+
+function shortId(id) {
+  if (!id) return '?';
+  if (id.startsWith('ext_')) return 'EXT:' + id.slice(4, 12);
+  return id.slice(0, 10);
+}
+
+function nodeLabel(node) {
+  const name = (node.position && node.position.name) || '';
+  const role = (node.position && node.position.role) || '';
+  if (name) return name + (role ? '\n[' + role + ']' : '');
+  return shortId(node.node_id);
+}
+
+function nodeColor(node) {
+  const nid = node.node_id || '';
+  const ntype = node.node_type || '';
+  if (nid === 'smart_router') return '#00ff88';
+  if (nid.startsWith('ext_')) return '#ff4488';
+  if (ntype === 'seed') return '#ffaa00';
+  return '#00d4ff';
+}
+
+function nodeSize(node) {
+  const nid = node.node_id || '';
+  if (nid === 'smart_router') return 30;
+  if (nid.startsWith('ext_')) return 22;
+  return 16;
+}
+
+async function loadGraph() {
+  document.getElementById('loading').style.display = 'block';
+  try {
+    const resp = await fetch(API_URL);
+    const data = await resp.json();
+
+    document.getElementById('nodeCount').textContent = data.total_nodes;
+    document.getElementById('edgeCount').textContent = data.total_edges;
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+    document.getElementById('loading').style.display = 'none';
+
+    const nodes = new vis.DataSet(
+      data.nodes.map(n => ({
+        id: n.node_id,
+        label: nodeLabel(n),
+        color: { background: nodeColor(n), border: '#1e1e2e' },
+        size: nodeSize(n),
+        font: { color: '#e0e0e0', size: 9, face: 'Courier New' },
+        shape: n.node_id === 'smart_router' ? 'star' : 'dot',
+        borderWidth: n.node_id.startsWith('ext_') ? 3 : 1,
+        title: `<b>${nodeLabel(n)}</b><br>ID: ${shortId(n.node_id)}<br>Status: ${n.status || '?'}<br>Seen: ${n.last_seen ? new Date(n.last_seen*1000).toLocaleString() : 'never'}`,
+      }))
+    );
+
+    const edges = new vis.DataSet(
+      data.edges.map((e, i) => ({
+        id: i,
+        from: e.source,
+        to: e.target,
+        color: { color: e.source.startsWith('ext_') || e.target.startsWith('ext_') ? '#ff448844' : '#ffffff10', highlight: '#00d4ff' },
+        width: e.source.startsWith('ext_') || e.target.startsWith('ext_') ? 2 : 0.5,
+        arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+        title: `${shortId(e.source)} → ${shortId(e.target)}<br>Transport: ${e.transport || '?'}<br>Weight: ${e.weight || '?'}`,
+      }))
+    );
+
+    const container = document.getElementById('graph');
+    const options = {
+      physics: {
+        solver: 'forceAtlas2Based',
+        forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 120, springConstant: 0.02 },
+        stabilization: { iterations: 200 },
+      },
+      interaction: { hover: true, tooltipDelay: 200, zoomView: true, dragView: true },
+      layout: { improvedLayout: true },
+    };
+
+    if (network) network.destroy();
+    network = new vis.Network(container, { nodes, edges }, options);
+
+    // Фокус на smart_router после стабилизации
+    network.once('stabilizationIterationsDone', () => {
+      network.focus('smart_router', { scale: 1.2, animation: true });
+    });
+
+  } catch (err) {
+    document.getElementById('loading').textContent = 'Error: ' + err.message;
+    console.error(err);
+  }
+}
+
+// Auto-refresh every 30 seconds
+loadGraph();
+setInterval(loadGraph, 30000);
+</script>
+</body>
+</html>
