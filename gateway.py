@@ -17,6 +17,7 @@ Port: 9950 (configurable via --port)
 import asyncio
 import hashlib
 import json
+import socket
 import logging
 import os
 import resource
@@ -158,6 +159,38 @@ TOOLS = {
             "required": ["offers"]
         }
     },
+    "snin_register_agent": {
+        "name": "snin_register_agent",
+        "description": "Register a new external agent on the SNIN Mesh. Publishes to Nostr relay for auto-discovery by all other agents. After registration, the agent becomes searchable via snin_agent_search within 5 minutes.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Human-readable agent name (e.g. 'PriceOracle AI')"
+                },
+                "pubkey": {
+                    "type": "string",
+                    "description": "Agent's Nostr pubkey (hex, 64 chars) or platform-specific ID"
+                },
+                "offers": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of capabilities this agent offers (e.g. ['price_prediction', 'market_analysis'])"
+                },
+                "wants": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of capabilities this agent wants from others"
+                },
+                "platform": {
+                    "type": "string",
+                    "description": "Origin platform (e.g. 'google_a2a', 'aws_bedrock', 'openai', 'custom')"
+                }
+            },
+            "required": ["name", "pubkey", "offers"]
+        }
+    },
     "snin_mesh_status": {
         "name": "snin_mesh_status",
         "description": "Get current status of the SNIN Mesh Fabric: active agents, relay health, message throughput.",
@@ -218,7 +251,7 @@ _agent_cache: dict = {}         # pubkey -> profile
 _cache_updated = 0.0
 CACHE_TTL = 60                  # refresh every 60s
 
-# Known agents registry (filled from Nostr relay and mesh discovery)
+# Known agents registry — seed with 4 core agents, auto-populated from Nostr relay at startup
 KNOWN_AGENTS = {
     "forecaster_ai": {
         "pubkey": "5106c0aa993f6ac17c2942a773366f4add82ebccf8b6ac70c6bf8d06c55788b0",
@@ -250,6 +283,137 @@ KNOWN_AGENTS = {
     },
 }
 
+# Role → default offers/wants mapping for auto-discovered agents
+_ROLE_CAPABILITIES = {
+    "forecaster":       {"offers": ["market_forecast", "price_prediction", "trend_analysis"], "wants": ["market_data", "news_events"]},
+    "prediction":       {"offers": ["market_forecast", "price_prediction", "trend_analysis"], "wants": ["market_data", "news_events"]},
+    "archivist":        {"offers": ["data_storage", "knowledge_retrieval", "semantic_search"], "wants": ["documents", "research_papers"]},
+    "historian":        {"offers": ["data_storage", "knowledge_retrieval", "semantic_search"], "wants": ["documents", "research_papers"]},
+    "sentinel":         {"offers": ["market_signal", "risk_assessment", "sentiment_analysis"], "wants": ["market_data", "news_events"]},
+    "pulse broadcaster":{"offers": ["market_signal", "risk_assessment", "sentiment_analysis"], "wants": ["market_data", "news_events"]},
+    "analyst":          {"offers": ["data_analysis", "statistical_modeling", "hypothesis_testing"], "wants": ["datasets", "hypotheses"]},
+    "market analyst":   {"offers": ["data_analysis", "statistical_modeling", "hypothesis_testing"], "wants": ["datasets", "hypotheses"]},
+    "strategist":       {"offers": ["strategy_planning", "game_theory", "consensus_proposals"], "wants": ["market_data", "agent_reports"]},
+    "game theory":      {"offers": ["strategy_planning", "game_theory", "consensus_proposals"], "wants": ["market_data", "agent_reports"]},
+    "philosopher":      {"offers": ["philosophical_analysis", "conceptual_frameworks"], "wants": ["research_papers", "arguments"]},
+    "social pulse":     {"offers": ["social_analysis", "sentiment_tracking"], "wants": ["news_feed", "social_data"]},
+    "marketing":        {"offers": ["growth_hacking", "content_strategy", "brand_positioning"], "wants": ["analytics", "market_data"]},
+    "growth":           {"offers": ["growth_hacking", "content_strategy", "brand_positioning"], "wants": ["analytics", "market_data"]},
+    "security":         {"offers": ["security_audit", "vulnerability_assessment"], "wants": ["code", "contracts", "configs"]},
+    "security auditor": {"offers": ["security_audit", "vulnerability_assessment"], "wants": ["code", "contracts", "configs"]},
+    "research & dev":   {"offers": ["code_generation", "architecture_design", "code_review"], "wants": ["specs", "requirements"]},
+    "ops executor":     {"offers": ["deployment", "monitoring", "infrastructure"], "wants": ["deployment_specs", "configs"]},
+    "director":         {"offers": ["strategy_oversight", "resource_allocation", "consensus_proposals"], "wants": ["agent_reports", "metrics"]},
+    "CEO / strategist": {"offers": ["strategy_oversight", "resource_allocation", "consensus_proposals"], "wants": ["agent_reports", "metrics"]},
+    "support":          {"offers": ["user_support", "troubleshooting"], "wants": ["user_questions", "incident_reports"]},
+    "user support":     {"offers": ["user_support", "troubleshooting"], "wants": ["user_questions", "incident_reports"]},
+    "agent manager":    {"offers": ["agent_coordination", "task_queue"], "wants": ["agent_status", "task_requests"]},
+    "ontology":         {"offers": ["semantic_analysis", "knowledge_graph"], "wants": ["text_corpus", "structured_data"]},
+    "V2Bot assistant":  {"offers": ["task_automation", "integration_proxy"], "wants": ["api_keys", "user_instructions"]},
+    "market agent":     {"offers": ["market_signal", "order_execution", "risk_assessment"], "wants": ["market_data", "news_events"]},
+}
+
+# ─── Auto-Discovery: Sync agents from Nostr Relay ─────────────────────
+_RELAY_API_URL = os.environ.get("SNIN_RELAY_API", "http://127.0.0.1:8198")
+_LAST_SYNC = 0
+_SYNC_LOCK = threading.Lock()
+
+def _sync_agents_from_relay() -> int:
+    """Fetch agents from Nostr relay /api/agents and merge into KNOWN_AGENTS.
+    Returns count of new agents discovered."""
+    global _LAST_SYNC
+    import urllib.request as _urllib
+
+    with _SYNC_LOCK:
+        # Don't sync more than once per 60 seconds
+        if time.time() - _LAST_SYNC < 60:
+            return 0
+
+        new_count = 0
+        try:
+            resp = _urllib.urlopen(f"{_RELAY_API_URL}/api/agents", timeout=10)
+            data = json.loads(resp.read())
+            agents_list = data.get("agents", [])
+
+            for agent in agents_list:
+                pubkey = agent.get("pubkey", "")
+                if not pubkey or len(pubkey) < 20:
+                    continue
+
+                name = agent.get("name", "unknown")
+                role = agent.get("role", "unknown")
+                nip05 = agent.get("nip05", "")
+                status = agent.get("status", "unknown")
+
+                # Use pubkey as agent_id (stable across restarts)
+                agent_id = f"nostr_{pubkey[:12]}"
+
+                # Skip already known agents (by pubkey match)
+                already_known = any(
+                    a.get("pubkey", "") == pubkey
+                    for a in KNOWN_AGENTS.values()
+                )
+                if already_known:
+                    continue
+
+                # Determine capabilities from relay_list (for external agents) or role
+                relay_list_raw = agent.get("relay_list", "[]")
+                caps = None
+                if isinstance(relay_list_raw, str) and relay_list_raw.startswith('{'):
+                    try:
+                        caps_data = json.loads(relay_list_raw)
+                        if "offers" in caps_data or "wants" in caps_data:
+                            caps = {
+                                "offers": caps_data.get("offers", []),
+                                "wants": caps_data.get("wants", []),
+                            }
+                    except json.JSONDecodeError:
+                        pass
+                if caps is None:
+                    caps = _ROLE_CAPABILITIES.get(role, {
+                        "offers": ["network_participation"],
+                        "wants": []
+                    })
+
+                KNOWN_AGENTS[agent_id] = {
+                    "pubkey": pubkey,
+                    "name": name,
+                    "role": role,
+                    "offers": caps["offers"],
+                    "wants": caps["wants"],
+                    "nip05": nip05,
+                    "status": status,
+                    "source": "nostr_relay",
+                }
+                new_count += 1
+
+            _LAST_SYNC = time.time()
+            if new_count > 0:
+                print(f"[Gateway] 🔄 Auto-discovered {new_count} agents from relay (total: {len(KNOWN_AGENTS)})")
+            else:
+                print(f"[Gateway] ✓ Agent sync OK — {len(KNOWN_AGENTS)} agents, no new")
+
+        except Exception as e:
+            print(f"[Gateway] ⚠️ Agent sync failed: {e}")
+
+        return new_count
+
+
+def _start_agent_sync_daemon():
+    """Background thread: periodic agent sync from Nostr relay."""
+    def _loop():
+        time.sleep(15)  # initial delay — let everything start
+        while True:
+            try:
+                _sync_agents_from_relay()
+            except Exception as e:
+                print(f"[Gateway] Agent sync daemon error: {e}")
+            time.sleep(300)  # every 5 minutes
+
+    t = threading.Thread(target=_loop, daemon=True, name="agent-sync")
+    t.start()
+    print("[Gateway] 🟢 Agent sync daemon started (every 5 min from Nostr relay)")
+
 
 # ─── Mesh Client ───────────────────────────────────────────────────
 def get_mesh():
@@ -265,10 +429,34 @@ def get_mesh():
                 mesh_port=9932,
                 api_url="http://127.0.0.1:9907"
             )
+            # Connect to Smart Router
+            connected = asyncio.run(_mesh_agent.connect())
+            if connected:
+                _mesh_connected = True
+                print(f"[Gateway] ✅ Connected to Smart Router (127.0.0.1:9932)")
+            else:
+                print(f"[Gateway] ⚠️ Smart Router connect() returned False")
         except Exception as e:
             print(f"⚠️ Mesh init failed: {e}")
             _mesh_agent = None
     return _mesh_agent
+
+
+# ─── Smart Router direct health check ─────────────────────────────
+def _check_smart_router() -> bool:
+    """Check if Smart Router is alive via direct TCP connection."""
+    import socket
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2)
+        sock.connect(("127.0.0.1", 9932))
+        sock.sendall(b'{"from":"mcp_healthcheck","to":"_","kind":0,"payload":"ping","meta":{"channel":"mesh","priority":"low","agent":"mcp_gateway"}}\n')
+        data = sock.recv(1024)
+        sock.close()
+        resp = json.loads(data.decode())
+        return resp.get("ok") is True
+    except Exception:
+        return False
 
 
 # ─── Agent Discovery via External Gateway ──────────────────────────
@@ -619,6 +807,8 @@ def _handle_tools_call(params: dict) -> dict:
             result = _tool_marketplace_search(arguments)
         elif tool_name == "snin_register_capability":
             result = _tool_register_capability(arguments)
+        elif tool_name == "snin_register_agent":
+            result = _tool_register_agent(arguments)
         elif tool_name == "snin_mesh_status":
             result = _tool_mesh_status(arguments)
         elif tool_name == "snin_dao_propose":
@@ -732,6 +922,92 @@ def _tool_register_capability(args: dict) -> dict:
     }
 
 
+def _insert_agent_to_relay(pubkey: str, name: str, role: str, offers: list, wants: list) -> bool:
+    """Insert agent into relay database for auto-discovery."""
+    import sqlite3
+    import time as _time
+    try:
+        db = sqlite3.connect("/home/agent/data/sites/relay/relay_v2.db")
+        now = int(_time.time())
+        caps = json.dumps({"offers": offers, "wants": wants})
+        db.execute("""
+            INSERT OR REPLACE INTO agents (pubkey, name, role, nip05, status, last_seen, first_seen, relay_list)
+            VALUES (?, ?, ?, '', 'online', ?, ?, ?)
+        """, (pubkey, name, role, now, now, caps))
+        db.commit()
+        db.close()
+        print(f"[Gateway] 🆕 Agent '{name}' inserted into relay DB (pubkey={pubkey[:12]}...)")
+        return True
+    except Exception as e:
+        print(f"[Gateway] ⚠️ Failed to insert agent into relay: {e}")
+        return False
+
+
+def _tool_register_agent(args: dict) -> dict:
+    name = args.get("name", "").strip()
+    pubkey = args.get("pubkey", "").strip()
+    offers = args.get("offers", [])
+    wants = args.get("wants", [])
+    platform = args.get("platform", "external")
+
+    if not name:
+        return {"content": [{"type": "text", "text": "Error: 'name' is required"}], "isError": True}
+    if not pubkey:
+        return {"content": [{"type": "text", "text": "Error: 'pubkey' is required"}], "isError": True}
+
+    # Generate stable agent_id from pubkey
+    agent_id = f"ext_{pubkey[:16]}"
+    if len(pubkey) < 20:
+        agent_id = f"ext_{hashlib.sha256(pubkey.encode()).hexdigest()[:12]}"
+
+    # 1. Add to in-memory KNOWN_AGENTS (immediate searchability)
+    KNOWN_AGENTS[agent_id] = {
+        "pubkey": pubkey,
+        "name": name,
+        "role": f"external_{platform}",
+        "offers": offers,
+        "wants": wants,
+        "status": "online",
+        "source": "mcp_registration",
+        "platform": platform,
+        "registered_at": datetime.utcnow().isoformat() + "Z",
+    }
+
+    # 2. Insert into relay database (auto-discovery within 5 min)
+    relay_ok = _insert_agent_to_relay(pubkey, name, f"external_{platform}", offers, wants)
+
+    # 3. Push to Knowledge Graph via SmartRouter heartbeat (kind=39000)
+    #    _update_graph_from_msg() → upsert_node() + update_node_status("online")
+    graph_ok = False
+    try:
+        sock = socket.create_connection(("127.0.0.1", 9932), timeout=2)
+        heartbeat = json.dumps({
+            "from": agent_id,
+            "to": "smart_router",
+            "kind": 39000,
+            "meta": {"transport": "mesh"},
+        }) + "\n"
+        sock.send(heartbeat.encode())
+        sock.close()
+        graph_ok = True
+    except Exception:
+        pass  # не критично — агент попадёт в граф при первом реальном сообщении
+
+    return {
+        "status": "registered",
+        "agent_id": agent_id,
+        "name": name,
+        "pubkey": pubkey[:16] + "...",
+        "offers": offers,
+        "wants": wants,
+        "platform": platform,
+        "relay_published": relay_ok,
+        "graph_registered": graph_ok,
+        "discovery_eta": "within 5 minutes (next Gateway sync cycle)",
+        "searchable_via": "snin_agent_search",
+    }
+
+
 def _tool_mesh_status(args: dict) -> dict:
     # Check core services
     import urllib.request as _urllib
@@ -752,7 +1028,7 @@ def _tool_mesh_status(args: dict) -> dict:
     return {
         "gateway": {"name": GATEWAY_NAME, "version": GATEWAY_VERSION, "did": DID},
         "mesh": {
-            "smart_router": "online" if _mesh_connected else "offline",
+            "smart_router": "online" if (_mesh_connected or _check_smart_router()) else "offline",
             "agents_known": len(KNOWN_AGENTS),
             "tools_available": len(TOOLS),
         },
@@ -798,6 +1074,29 @@ def _tool_dead_letter(args: dict) -> dict:
 
 # ─── Startup ───────────────────────────────────────────────────────
 _start_time = time.time()
+
+# ─── Step 1: Sync agents from Nostr Relay ──────────────────────────
+_sync_agents_from_relay()
+
+# ─── Step 2: Start background sync daemon ──────────────────────────
+_start_agent_sync_daemon()
+
+# ─── Step 3: Init Smart Router connection ──────────────────────────
+def _init_mesh_connection():
+    """Try to connect to Smart Router at startup."""
+    global _mesh_connected
+    mesh = get_mesh()
+    if mesh is not None and _mesh_connected:
+        print(f"[Gateway] 🟢 SNIN Mesh Fabric connected — {len(KNOWN_AGENTS)} agents, {len(TOOLS)} tools")
+    else:
+        # Fallback: direct TCP check
+        if _check_smart_router():
+            _mesh_connected = True
+            print(f"[Gateway] 🟢 Smart Router reachable via direct TCP (127.0.0.1:9932)")
+        else:
+            print(f"[Gateway] ⚠️ Smart Router not reachable — running in offline mode")
+
+_init_mesh_connection()
 
 # ─── WSGI entry point for Gunicorn ──────────────────────────────────
 # gunicorn uses: gunicorn gateway:application --bind 0.0.0.0:9951
