@@ -74,6 +74,7 @@ EXEMPT_NAMES = ["engine_c.py", "api_server_v2.py", "memory_guard", "redis-server
 SERVICES = [
     # ─── Mesh Core (открытый стек) ───
     {"name": "mesh_simple_agent", "port": 9908, "start": "/home/agent/data/sites/mesh-agent-lite/start.sh", "critical": True},
+    {"name": "mesh_api",          "port": 9907, "start": "/home/agent/data/sites/relay-mesh/start_mesh_api.sh", "critical": True},
     {"name": "mesh_relay",        "port": 8443, "start": None, "critical": True},  # часть start.sh
 
     # ─── Relay V2 (Nostr) ───
@@ -148,6 +149,7 @@ SERVICES = [
     # ─── Gateway ───
     {"name": "api_gateway",       "port": 8083, "start": "/home/agent/data/sites/api-gateway/start.sh", "critical": True},
     {"name": "hub_api",           "port": 9950, "start": "/home/agent/data/sites/snin-hub/start.sh", "critical": True},
+    {"name": "snin_health",       "port": 9650, "start": "/home/agent/data/sites/snin-health/start.sh", "critical": False},
 
     # ─── L2.5 Encryption Layer ───
     {"name": "encryption_layer",   "port": 9600, "start": "/home/agent/data/sites/encryption-layer/start.sh", "critical": True},
