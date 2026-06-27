@@ -21,7 +21,7 @@ import sys, os, json, time, hashlib, struct, sqlite3
 # ─── Crypto helpers (minimal, no nostr-sdk dependency) ───
 RELAY_WS = os.environ.get("SNIN_RELAY", "ws://127.0.0.1:8198")
 DB_PATH = "/home/agent/data/sites/relay/relay_v2.db"
-KEYSTORE = "/home/agent/data/chrono/keystore/agents"
+KEYSTORE = "/home/agent/data/sites/chrono/keystore"
 
 def load_keystore():
     """Load all agent keys from keystore."""
@@ -84,17 +84,59 @@ def cmd_feed(show_all=False, limit=10):
             break
 
 def cmd_agents():
-    agents = db_query(
-        "SELECT pubkey, content, created_at FROM events WHERE kind=39000 ORDER BY created_at DESC LIMIT 20"
-    )
-    print(f"🤖 Registered Agents: {len(agents)}")
-    for a in agents:
-        try:
-            profile = json.loads(a["content"])
-            name = profile.get("name", "Unknown")
-        except:
-            name = "Unknown"
-        print(f"   {name:20s} {a['pubkey'][:16]}...")
+    # Build pubkey→name map from keystore
+    name_map = {}
+    try:
+        sys.path.insert(0, "/home/agent/data/sites/chrono")
+        os.chdir("/home/agent/data/sites/chrono")
+        from keystore.keyring import Keyring
+        kr = Keyring()
+        for kp in kr.get_all_keypairs():
+            pubhex = kp.get("pubhex", "")
+            if len(pubhex) == 66 and pubhex[:2] in ('02','03'):
+                pubhex = pubhex[2:]  # x-only
+            name_map[pubhex] = kp.get("agent_id", "Unknown")
+    except:
+        pass
+    
+    # Get keystore agents with DB activity
+    keystore_pubkeys = list(name_map.keys())
+    if keystore_pubkeys:
+        placeholders = ','.join('?' * len(keystore_pubkeys))
+        active_agents = db_query(
+            f"SELECT DISTINCT pubkey, MAX(created_at) as last_seen FROM events WHERE kind=39000 AND pubkey IN ({placeholders}) GROUP BY pubkey ORDER BY last_seen DESC",
+            keystore_pubkeys
+        )
+    else:
+        active_agents = []
+    
+    # Get other kind:39000 publishers (non-keystore)
+    if keystore_pubkeys:
+        placeholders = ','.join('?' * len(keystore_pubkeys))
+        other_agents = db_query(
+            f"SELECT DISTINCT pubkey, MAX(created_at) as last_seen FROM events WHERE kind=39000 AND pubkey NOT IN ({placeholders}) GROUP BY pubkey ORDER BY last_seen DESC LIMIT 10",
+            keystore_pubkeys
+        )
+    else:
+        other_agents = db_query(
+            "SELECT DISTINCT pubkey, MAX(created_at) as last_seen FROM events WHERE kind=39000 GROUP BY pubkey ORDER BY last_seen DESC LIMIT 10"
+        )
+    
+    total = len(active_agents) + len(other_agents)
+    print(f"🤖 Registered Agents: {total} ({len(active_agents)} keystore, {len(other_agents)} other)")
+    
+    # Show keystore agents first
+    if active_agents:
+        print(f"\n  ── SNIN Keystore Agents ──")
+        for a in active_agents:
+            name = name_map.get(a["pubkey"], "Unknown")
+            print(f"     {name:20s} {a['pubkey'][:16]}...")
+    
+    # Show other kind:39000 publishers
+    if other_agents:
+        print(f"\n  ── Other Publishers (kind:39000) ──")
+        for a in other_agents:
+            print(f"     {'Unknown':20s} {a['pubkey'][:16]}...")
 
 def cmd_profile(pubkey: str):
     profile = db_query("SELECT * FROM events WHERE pubkey=? AND kind=39000 ORDER BY created_at DESC LIMIT 1", (pubkey,))
