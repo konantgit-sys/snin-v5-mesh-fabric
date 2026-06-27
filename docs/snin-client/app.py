@@ -300,7 +300,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 async def index():
     return FileResponse(os.path.join(BASE_DIR, "static/index.html"))
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 if __name__ == "__main__":
     import uvicorn
