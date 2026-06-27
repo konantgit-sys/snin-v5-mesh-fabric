@@ -293,9 +293,9 @@ async def ws_endpoint(client: WebSocket):
 
 # ─── Static files ───
 
-@app.get("/")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+@app.get("/")
 async def index():
     return FileResponse(os.path.join(BASE_DIR, "static/index.html"))
 
