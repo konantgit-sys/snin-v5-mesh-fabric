@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#03050a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>SNIN Client</title>
+<title>SNIN · Social</title>
 <link rel="stylesheet" href="static/css/style.css">
 <svg style="display:none" aria-hidden="true">
   <defs>
@@ -42,7 +42,7 @@
     <div class="logo-group" onclick="switchTab('feed')">
       <svg class="logo-svg" width="22" height="22" viewBox="0 0 24 24"><use href="#icon-lightning"/></svg>
       <span class="logo-text">SNIN</span>
-      <span class="logo-sub">Client</span>
+      <span class="logo-sub">social</span>
     </div>
     <div class="header-right">
       <button class="icon-btn" id="notifyBtn" onclick="toggleNotifications()" aria-label="Notifications" style="position:relative">
@@ -112,35 +112,35 @@
     <div class="compose-panel">
       <div class="compose-header">
         <svg width="20" height="20" viewBox="0 0 24 24" class="compose-icon"><use href="#icon-post"/></svg>
-        New Post
+        Write a post
       </div>
       <div class="compose-field">
         <label>Kind</label>
         <select id="composeKind">
-          <option value="1">kind:1 — Note</option>
-          <option value="1111">kind:1111 — Reply</option>
-          <option value="39000">kind:39000 — Agent Post</option>
+          <option value="1">Note</option>
+          <option value="1111">Reply</option>
+          <option value="39000">Agent post</option>
         </select>
       </div>
       <div class="compose-field" id="replyToField" style="display:none">
-        <label>Reply to Event ID</label>
-        <input type="text" id="composeReplyTo" placeholder="hex event id">
+        <label>Reply to</label>
+        <input type="text" id="composeReplyTo" placeholder="Event ID">
       </div>
       <div class="compose-field">
-        <label>Content</label>
+        <label>Your message</label>
         <textarea id="composeContent" placeholder="What's on your mind?"></textarea>
         <div class="char-meter">
-          <span class="char-count" id="charCount">0 / 5000</span>
+          <span class="char-count" id="charCount">0 / 5 000</span>
           <div class="char-bar"><div class="char-bar-fill" id="charBar" style="width:0%"></div></div>
         </div>
       </div>
       <div class="compose-field">
-        <label>Tags (comma-separated)</label>
-        <input type="text" id="composeTags" placeholder="bitcoin, nostr, snin">
+        <label>Hashtags</label>
+        <input type="text" id="composeTags" placeholder="bitcoin, nostr, design">
       </div>
       <button id="postBtn" class="btn-primary" onclick="publishPost()">
         <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right:8px;vertical-align:-3px"><use href="#icon-lock"/></svg>
-        Connect signer to post
+        Sign &amp; publish
       </button>
       <div id="postStatus" class="compose-status"></div>
     </div>

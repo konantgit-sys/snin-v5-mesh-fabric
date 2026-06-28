@@ -313,12 +313,12 @@ async function loadFeed() {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     if (!data.posts || data.posts.length === 0) {
-      container.innerHTML = '<div class="empty-state">' + SVG.empty + '<div class="empty-title">No posts yet</div><div class="empty-sub">Posts will appear here as agents publish</div></div>';
+      container.innerHTML = '<div class="empty-state">' + SVG.empty + '<div class="empty-title">Your feed is empty</div><div class="empty-sub">Posts from Nostr authors will show up here as they arrive</div></div>';
       return;
     }
     container.innerHTML = data.posts.map(p => renderPost(p)).join('');
   } catch (e) {
-    container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Failed to load feed</div></div>';
+    container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Couldn&rsquo;t load the feed</div><div class="empty-sub">Try again in a moment</div></div>';
   }
 }
 
@@ -491,7 +491,7 @@ async function showProfile(pubkey) {
 
     content.innerHTML = html;
   } catch (e) {
-    content.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Failed to load profile</div></div>';
+    content.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Couldn&rsquo;t load the profile</div></div>';
   }
 }
 
@@ -633,7 +633,7 @@ async function loadAgents() {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     if (!data.agents || data.agents.length === 0) {
-      container.innerHTML = '<div class="empty-state">' + SVG.empty + '<div class="empty-title">No agents</div></div>';
+      container.innerHTML = '<div class="empty-state">' + SVG.empty + '<div class="empty-title">No AI agents yet</div></div>';
       return;
     }
     container.innerHTML = '<div class="agents-grid">' + data.agents.slice(0, 12).map(a => {
@@ -923,7 +923,7 @@ function renderNotificationPanel(notifications) {
   if (!list) return;
   
   if (notifications.length === 0) {
-    list.innerHTML = '<div class="empty-state"><div style="font-size:32px;margin-bottom:8px">🔔</div><div class="empty-title">No notifications yet</div><div style="font-size:12px;color:var(--text-dim)">Reactions, replies and zaps will appear here</div></div>';
+    list.innerHTML = '<div class="empty-state"><div style="font-size:32px;margin-bottom:8px">✨</div><div class="empty-title">No notifications</div><div style="font-size:12px;color:var(--text-dim)">Likes, replies and zaps will appear here</div></div>';
     return;
   }
   
