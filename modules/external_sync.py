@@ -223,7 +223,7 @@ def store_event(db_path: str, event: dict) -> bool:
 
 
 async def query_relay_reactions(relay_url: str, event_ids: list[str]) -> list[dict]:
-    """Query a relay for reactions/comments on Cryter's events."""
+    """Query a relay for reactions/comments/zaps on Cryter's events."""
     ws = None
     try:
         ws = await asyncio.wait_for(
@@ -238,7 +238,7 @@ async def query_relay_reactions(relay_url: str, event_ids: list[str]) -> list[di
     try:
         sub_id = f"sync_{int(time.time())}"
         sub = json.dumps(["REQ", sub_id, {
-            "kinds": [7, 1111, 1],
+            "kinds": [7, 1111, 6, 9735],
             "#e": event_ids[:20],
             "limit": 50,
         }])
