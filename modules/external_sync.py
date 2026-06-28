@@ -43,6 +43,85 @@ def is_allowed_lang(text: str) -> bool:
     lang = detect_lang(text)
     return lang in ALLOWED_LANGS
 
+
+def get_missing_profile_pubkeys(db_path: str, limit: int = 50) -> list[str]:
+    """Get pubkeys from kind:1 that have no kind:0 profile."""
+    db = sqlite3.connect(db_path)
+    rows = db.execute("""
+        SELECT DISTINCT e1.pubkey 
+        FROM events e1 
+        WHERE e1.kind=1 
+          AND NOT EXISTS (
+            SELECT 1 FROM events e0 
+            WHERE e0.kind=0 AND e0.pubkey=e1.pubkey
+          )
+        LIMIT ?
+    """, (limit,)).fetchall()
+    db.close()
+    return [r[0] for r in rows]
+
+
+async def sync_author_profiles(relay_url: str, pubkeys: list[str]) -> int:
+    """Query kind:0 profiles for a list of pubkeys. Returns count stored."""
+    stored = 0
+    
+    # Split into batches (some relays reject large author filters)
+    batch_size = 10
+    for i in range(0, len(pubkeys), batch_size):
+        batch = pubkeys[i:i+batch_size]
+        ws = None
+        try:
+            ws = await asyncio.wait_for(
+                websockets.connect(relay_url, ssl=SSL_CTX, max_size=1_000_000),
+                timeout=10
+            )
+        except BaseException:
+            stats['conn_fails'] += 1
+            return stored
+        
+        try:
+            sub_id = f"prof_{int(time.time())}_{i}"
+            sub = json.dumps(["REQ", sub_id, {
+                "kinds": [0],
+                "authors": batch,
+            }])
+            await ws.send(sub)
+            
+            events = []
+            try:
+                while True:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=3)
+                    data = json.loads(msg)
+                    if not isinstance(data, list) or len(data) < 2:
+                        continue
+                    if data[0] == "EVENT" and len(data) >= 3:
+                        events.append(data[2])
+                    elif data[0] == "EOSE":
+                        break
+                    elif data[0] == "CLOSED":
+                        break
+            except asyncio.TimeoutError:
+                pass
+            
+            for ev in events:
+                if store_event(RELAY_DB, ev):
+                    stored += 1
+            
+            await ws.send(json.dumps(["CLOSE", sub_id]))
+        except BaseException:
+            pass
+        finally:
+            try:
+                await ws.close()
+            except:
+                pass
+        
+        # Brief pause between batches
+        await asyncio.sleep(0.5)
+    
+    stats['conn_ok'] += 1
+    return stored
+
 CRYTER_PK = "8ae7965af1b61347bb9900b91cfa9487e4da2400bdb063521ad0850706ff5f96"
 RELAY_DB = "/home/agent/data/sites/relay/relay_v2.db"
 SYNC_LOG = "/tmp/external_sync.log"
@@ -351,6 +430,16 @@ async def sync_cycle():
             log(f"  {relay_url}: global fed {len(global_posts)} posts, {gstored} new")
         total_new += gstored
         stats['global_posts'] += gstored
+    
+    # Phase 5: Pull kind:0 profiles for authors we don't have
+    missing_pks = get_missing_profile_pubkeys(RELAY_DB, limit=50)
+    if missing_pks:
+        stored_profiles = 0
+        for relay_url in EXTERNAL_RELAYS[:3]:  # Use first 3 relays
+            n = await sync_author_profiles(relay_url, missing_pks)
+            stored_profiles += n
+        if stored_profiles > 0:
+            log(f"  Profiles synced: {stored_profiles} kind:0 for {len(missing_pks)} missing authors")
     
     log(f"  Total new events: {total_new}")
     stats['total_synced'] += total_new
