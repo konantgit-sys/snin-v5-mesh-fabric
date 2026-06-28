@@ -123,98 +123,144 @@ def store_event(db_path: str, event: dict) -> bool:
 
 async def query_relay_reactions(relay_url: str, event_ids: list[str]) -> list[dict]:
     """Query a relay for reactions/comments on Cryter's events."""
+    ws = None
     try:
         ws = await asyncio.wait_for(
             websockets.connect(relay_url, ssl=SSL_CTX, max_size=5_000_000),
             timeout=10
         )
-    except Exception as e:
+    except BaseException as e:
         log(f"  {relay_url}: connection failed — {str(e)[:60]}")
         stats['conn_fails'] += 1
         return []
     
-    # Query for kind:7 (reactions) + kind:1111 (comments) referencing Cryter events
-    # Use #e (event tag) filter to find events that reference our event IDs
-    sub_id = f"sync_{int(time.time())}"
-    sub = json.dumps(["REQ", sub_id, {
-        "kinds": [7, 1111, 1],
-        "#e": event_ids[:20],  # limit to 20 IDs per subscription to avoid rejection
-        "limit": 50,
-    }])
-    
-    await ws.send(sub)
-    
-    events = []
     try:
-        while True:
-            msg = await asyncio.wait_for(ws.recv(), timeout=5)
-            try:
+        sub_id = f"sync_{int(time.time())}"
+        sub = json.dumps(["REQ", sub_id, {
+            "kinds": [7, 1111, 1],
+            "#e": event_ids[:20],
+            "limit": 50,
+        }])
+        await ws.send(sub)
+        
+        events = []
+        try:
+            while True:
+                msg = await asyncio.wait_for(ws.recv(), timeout=5)
                 data = json.loads(msg)
-            except json.JSONDecodeError:
-                continue
-            
-            if not isinstance(data, list) or len(data) < 2:
-                continue
-            
-            msg_type = data[0]
-            if msg_type == "EVENT" and len(data) >= 3:
-                event = data[2]
-                # Skip our own events
-                if event.get('pubkey') != CRYTER_PK:
-                    events.append(event)
-            elif msg_type == "EOSE":
-                break
-            elif msg_type == "NOTICE":
-                log(f"  {relay_url} NOTICE: {data[1][:80]}")
-    except asyncio.TimeoutError:
-        pass  # No more events
-    except Exception as e:
-        log(f"  {relay_url}: read error — {str(e)[:60]}")
-    
-    await ws.close()
-    return events
+                if not isinstance(data, list) or len(data) < 2:
+                    continue
+                msg_type = data[0]
+                if msg_type == "EVENT" and len(data) >= 3:
+                    event = data[2]
+                    if event.get('pubkey') != CRYTER_PK:
+                        events.append(event)
+                elif msg_type == "EOSE":
+                    break
+                elif msg_type == "NOTICE":
+                    log(f"  {relay_url} NOTICE: {data[1][:80]}")
+        except (asyncio.TimeoutError, Exception):
+            pass
+        
+        return events
+    finally:
+        try:
+            await ws.close()
+        except BaseException:
+            pass
 
 
 async def query_followed_posts(relay_url: str, followed_pks: list[str]) -> list[dict]:
     """Query a relay for recent posts from followed authors."""
+    ws = None
     try:
         ws = await asyncio.wait_for(
             websockets.connect(relay_url, ssl=SSL_CTX, max_size=5_000_000),
             timeout=10
         )
-    except Exception:
+    except BaseException:
         stats['conn_fails'] += 1
         return []
     
-    sub = json.dumps(["REQ", f"followed_{int(time.time())}", {
-        "kinds": [1],
-        "authors": followed_pks[:10],
-        "limit": 5,
-    }])
-    
-    await ws.send(sub)
-    
-    events = []
     try:
-        while True:
-            msg = await asyncio.wait_for(ws.recv(), timeout=5)
-            try:
+        sub = json.dumps(["REQ", f"followed_{int(time.time())}", {
+            "kinds": [1],
+            "authors": followed_pks[:10],
+            "limit": 5,
+        }])
+        await ws.send(sub)
+        
+        events = []
+        try:
+            while True:
+                msg = await asyncio.wait_for(ws.recv(), timeout=5)
                 data = json.loads(msg)
-            except json.JSONDecodeError:
-                continue
-            
-            if not isinstance(data, list) or len(data) < 2:
-                continue
-            
-            if data[0] == "EVENT" and len(data) >= 3:
-                events.append(data[2])
-            elif data[0] == "EOSE":
-                break
-    except asyncio.TimeoutError:
-        pass
+                if not isinstance(data, list) or len(data) < 2:
+                    continue
+                if data[0] == "EVENT" and len(data) >= 3:
+                    events.append(data[2])
+                elif data[0] == "EOSE":
+                    break
+        except (asyncio.TimeoutError, Exception):
+            pass
+        
+        return events
+    finally:
+        try:
+            await ws.close()
+        except BaseException:
+            pass
+
+
+async def query_global_feed(relay_url: str, limit: int = 15) -> list[dict]:
+    """Phase 4: Query a relay for recent global kind:1 posts (no author filter).
+    This pulls the same kind of global feed that Damus/Primal show."""
+    ws = None
+    try:
+        ws = await asyncio.wait_for(
+            websockets.connect(relay_url, ssl=SSL_CTX, max_size=10_000_000),
+            timeout=10
+        )
+    except BaseException:
+        stats['conn_fails'] += 1
+        return []
     
-    await ws.close()
-    return events
+    try:
+        sub = json.dumps(["REQ", f"global_{int(time.time())}", {
+            "kinds": [1],
+            "limit": limit,
+        }])
+        await ws.send(sub)
+        
+        events = []
+        try:
+            while True:
+                msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                try:
+                    data = json.loads(msg)
+                except json.JSONDecodeError:
+                    continue
+                
+                if not isinstance(data, list) or len(data) < 2:
+                    continue
+                
+                if data[0] == "EVENT" and len(data) >= 3:
+                    ev = data[2]
+                    if ev.get('pubkey') != CRYTER_PK:
+                        events.append(ev)
+                elif data[0] == "EOSE":
+                    break
+        except asyncio.TimeoutError:
+            pass
+        except Exception:
+            pass
+        
+        return events
+    finally:
+        try:
+            await ws.close()
+        except Exception:
+            pass
 
 
 def get_followed_pubkeys(db_path: str) -> list[str]:
@@ -270,6 +316,17 @@ async def sync_cycle():
             if pstored > 0:
                 log(f"  {relay_url}: {len(posts)} followed posts, {pstored} new")
             total_new += pstored
+        
+        # Phase 4: Global feed — pull recent kind:1 from all relays
+        global_posts = await query_global_feed(relay_url, limit=15)
+        gstored = 0
+        for ev in global_posts:
+            if store_event(RELAY_DB, ev):
+                gstored += 1
+        if gstored > 0:
+            log(f"  {relay_url}: global fed {len(global_posts)} posts, {gstored} new")
+        total_new += gstored
+        stats['global_posts'] += gstored
     
     log(f"  Total new events: {total_new}")
     stats['total_synced'] += total_new
@@ -292,8 +349,8 @@ async def run_daemon(interval: int):
     while True:
         try:
             await sync_cycle()
-        except Exception as e:
-            log(f"Cycle error: {e}")
+        except BaseException as e:
+            log(f"CRASH in sync_cycle: {type(e).__name__}: {e}")
         
         log(f"Sleeping {interval}s...")
         await asyncio.sleep(interval)
