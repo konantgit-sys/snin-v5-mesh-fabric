@@ -239,6 +239,11 @@ async def api_post_event(request: Request):
 
 # ─── WebSocket relay proxy (Phase 2 — using aiohttp) ───
 
+@app.get("/ws")
+async def ws_http_info():
+    """HTTP-friendly endpoint for health checkers — returns 200"""
+    return {"endpoint": "wss://snin-client.v2.site/ws", "protocol": "nostr", "status": "available"}
+
 @app.websocket("/ws")
 async def ws_endpoint(client: WebSocket):
     await client.accept()
