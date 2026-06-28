@@ -38,10 +38,25 @@ def resolve_name(pubkey):
             (pubkey,))
         if row and row.get("content"):
             meta = json.loads(row["content"])
-            return meta.get("display_name") or meta.get("name") or ""
+            name = meta.get("display_name") or meta.get("name") or ""
+            if name:
+                return name
     except:
         pass
-    return ""
+    
+    # Fallback: npub truncated for readability
+    try:
+        import bech32
+        # Convert hex pubkey → bech32 npub
+        data = bytes.fromhex(pubkey)
+        # Convert to 5-bit words for bech32
+        converted = bech32.convertbits(data, 8, 5)
+        npub = bech32.bech32_encode("npub", converted)
+        return "npub1" + npub[5:13] + "..."
+    except:
+        pass
+    
+    return pubkey[:8] + "..."
 
 # ─── Cache ───
 cache = {"stats": None, "ts": 0, "names": {}}
@@ -143,7 +158,7 @@ async def api_feed(show_ai_only: bool = Query(False, alias="ai"), limit: int = Q
     
     for p in posts:
         p["is_ai"] = (p["kind"] == 39000) or (p["pubkey"] in ai_pubkeys)
-        p["author_name"] = name_cache.get(p["pubkey"], "")
+        p["author_name"] = name_cache.get(p["pubkey"]) or resolve_name(p["pubkey"])
         p["author_picture"] = ""
         p["reactions"] = react_counts.get(p["id"], 0)
         p["replies"] = reply_counts.get(p["id"], 0)
