@@ -58,8 +58,31 @@ async def api_feed(show_ai_only: bool = Query(True, alias="ai"), limit: int = Qu
              FROM events e WHERE e.kind IN (1, 39000)
              ORDER BY e.created_at DESC LIMIT ?"""
     posts = db_query(sql, (limit * 3 if show_ai_only else limit,))
+    
+    # ─── Resolve pubkey → name from kind:0 profiles ───
+    pubkeys_in_feed = list(set(p["pubkey"] for p in posts))
+    name_cache = {}
+    if pubkeys_in_feed:
+        placeholders = ','.join('?' for _ in pubkeys_in_feed)
+        profiles = db_query(
+            f"""SELECT pubkey, content FROM events 
+                WHERE kind=0 AND pubkey IN ({placeholders})
+                ORDER BY created_at DESC""",
+            pubkeys_in_feed
+        )
+        for pr in profiles:
+            if pr["pubkey"] not in name_cache:
+                try:
+                    meta = json.loads(pr["content"])
+                    name_cache[pr["pubkey"]] = meta.get("display_name") or meta.get("name") or ""
+                except:
+                    pass
+    
     for p in posts:
         p["is_ai"] = (p["kind"] == 39000) or (p["pubkey"] in ai_pubkeys)
+        p["author_name"] = name_cache.get(p["pubkey"], "")
+        p["author_picture"] = ""  # will be filled if kind:0 has picture
+    
     if show_ai_only:
         posts = [p for p in posts if p["is_ai"]]
     return {"posts": posts[:limit], "total": len(posts)}

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════
-// SNIN Client v4.1 — Premium SVG-Icon Engine
+// SNIN Client v5.0 — Premium Engine
 // ═══════════════════════════════════════════════
 
 const API = '/api';
@@ -8,7 +8,7 @@ const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.
 let signerPubkey = null;
 let state = { tab: 'feed', aiOnly: true, stats: null, ws: null, eventCount: 0, authorCount: 0, wsConnected: false };
 
-// ─── SVG icon snippets (inlined for speed) ───
+// ─── SVG icon snippets ───
 const SVG = {
   events: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="18" rx="3"/><path d="M6 8h4M6 12h6M6 16h8"/></svg>',
   authors: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke-linecap="round"/></svg>',
@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupToggle();
   setupComposer();
   addRippleToButtons();
+  initCanvasBG();
   loadStats();
   loadFeed();
   checkSigner();
@@ -34,7 +35,63 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(loadStats, 30000);
 });
 
-// ─── WebSocket — Live Feed ───
+// ─── Animated Canvas Background ───
+function initCanvasBG() {
+  const canvas = document.getElementById('bgCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let w, h;
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Create ambient particles
+  for (let i = 0; i < 40; i++) {
+    particles.push({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 1.5 + 0.5, alpha: Math.random() * 0.3 + 0.1
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+      if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(0, 212, 255, ${p.alpha})`;
+      ctx.fill();
+    });
+    // Draw connections
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(0, 212, 255, ${0.06 * (1 - dist / 120)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ─── WebSocket ───
 function connectWS() {
   try {
     state.ws = new WebSocket(WS_URL);
@@ -47,9 +104,7 @@ function connectWS() {
         if (msg[0] === 'EVENT' && state.tab === 'feed') {
           const event = msg[2];
           event.is_ai = isAIEvent(event);
-          if (!state.aiOnly || event.is_ai) {
-            prependPost(event);
-          }
+          if (!state.aiOnly || event.is_ai) prependPost(event);
         }
       } catch (_) {}
     };
@@ -63,13 +118,16 @@ function isAIEvent(event) {
 
 function prependPost(event) {
   const container = document.getElementById('feedContainer');
-  const post = { id: event.id, pubkey: event.pubkey, content: event.content, kind: event.kind, created_at: event.created_at, is_ai: event.is_ai };
-  const html = renderPost(post);
+  const html = renderPost({
+    id: event.id, pubkey: event.pubkey, content: event.content,
+    kind: event.kind, created_at: event.created_at, is_ai: event.is_ai,
+    author_name: '', author_picture: ''
+  });
   const firstCard = container.querySelector('.post-card');
   if (firstCard) {
     firstCard.insertAdjacentHTML('beforebegin', html);
     const newCard = container.querySelector('.post-card');
-    if (newCard) { newCard.style.animation = 'none'; newCard.offsetHeight; newCard.style.animation = 'fadeSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'; }
+    if (newCard) { newCard.style.animation = 'fadeSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)'; }
   } else {
     container.innerHTML = html;
   }
@@ -86,7 +144,7 @@ function setupNav() {
       state.tab = this.dataset.tab;
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       const tabEl = document.getElementById('tab-' + state.tab);
-      if (tabEl) { tabEl.classList.add('active'); tabEl.style.animation = 'none'; tabEl.offsetHeight; tabEl.style.animation = 'fadeSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'; }
+      if (tabEl) { tabEl.classList.add('active'); }
       document.getElementById('toggleBar').style.display = (state.tab === 'feed') ? '' : 'none';
       if (state.tab === 'feed') loadFeed();
       if (state.tab === 'agents') loadAgents();
@@ -97,7 +155,7 @@ function setupNav() {
   });
 }
 
-// ─── AI Toggle ───
+// ─── Toggle ───
 function setupToggle() {
   document.querySelectorAll('.toggle-pill').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -109,7 +167,7 @@ function setupToggle() {
   });
 }
 
-// ─── Ripple Effect ───
+// ─── Ripple ───
 function addRippleToButtons() {
   document.addEventListener('click', function(e) {
     const btn = e.target.closest('.btn-primary, .nav-item, .toggle-pill');
@@ -121,20 +179,19 @@ function addRippleToButtons() {
     ripple.style.width = ripple.style.height = size + 'px';
     ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
     ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
-    btn.style.position = btn.style.position || 'relative';
+    btn.style.position = 'relative';
     btn.style.overflow = 'hidden';
     btn.appendChild(ripple);
     ripple.addEventListener('animationend', () => ripple.remove());
   });
 }
 
-// ─── NIP-07 Signer ───
+// ─── NIP-07 ───
 async function checkSigner() {
   const postBtn = document.getElementById('postBtn');
   if (!window.nostr) {
     postBtn.innerHTML = SVG.lock + ' Install nos2x or Alby to post';
-    postBtn.disabled = true;
-    return;
+    postBtn.disabled = true; return;
   }
   try {
     signerPubkey = await window.nostr.getPublicKey();
@@ -152,15 +209,14 @@ function setupComposer() {
   const kindSelect = document.getElementById('composeKind');
   const replyField = document.getElementById('replyToField');
   const contentArea = document.getElementById('composeContent');
-  const charCount = document.getElementById('charCount');
-  const charBar = document.getElementById('charBar');
   kindSelect.addEventListener('change', () => { replyField.style.display = kindSelect.value === '1111' ? 'block' : 'none'; });
   contentArea.addEventListener('input', () => {
     const len = contentArea.value.length;
     const pct = Math.min(len / 5000 * 100, 100);
-    charCount.textContent = len + ' / 5000';
-    charBar.style.width = pct + '%';
-    charBar.className = 'char-bar-fill' + (pct > 80 ? ' danger' : pct > 60 ? ' warning' : '');
+    document.getElementById('charCount').textContent = len + ' / 5000';
+    const bar = document.getElementById('charBar');
+    bar.style.width = pct + '%';
+    bar.className = 'char-bar-fill' + (pct > 80 ? ' danger' : pct > 60 ? ' warning' : '');
   });
 }
 
@@ -201,51 +257,73 @@ function setStatus(msg, type) {
   el.className = 'compose-status ' + type;
 }
 
-// ─── Load Feed ───
+// ─── Feed ───
 async function loadFeed() {
   const container = document.getElementById('feedContainer');
+  container.innerHTML = '<div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div>';
   try {
     const resp = await fetch(API + '/feed?ai=' + state.aiOnly + '&limit=30');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     if (!data.posts || data.posts.length === 0) {
-      container.innerHTML = '<div class="empty-state">' + SVG.empty + '<div class="empty-title">No posts yet</div><div class="empty-desc">Posts will appear here as agents publish</div></div>';
+      container.innerHTML = '<div class="empty-state">' + SVG.empty + '<div class="empty-title">No posts yet</div><div class="empty-sub">Posts will appear here as agents publish</div></div>';
       return;
     }
     container.innerHTML = data.posts.map(p => renderPost(p)).join('');
   } catch (e) {
-    container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Failed to load</div><div class="empty-desc">Check your connection</div></div>';
+    container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Failed to load</div></div>';
   }
 }
 
+// ─── Post Card — v5 premium rendering ───
 function renderPost(p) {
-  const pubkeyShort = (p.pubkey || '??').slice(0, 8);
+  const authorName = p.author_name || shortPubkey(p.pubkey);
   const timeAgo = formatTime(p.created_at);
   const content = escapeHtml((p.content || '').slice(0, 500));
-  const badge = p.is_ai
-    ? '<span class="post-badge ai">AI</span>'
-    : '<span class="post-badge human">HUMAN</span>';
-  const kindLabel = p.kind === 39000 ? 'agent-post' : 'kind:' + p.kind;
-  const avatarClass = p.is_ai ? 'ai' : 'human';
-  const avatarLetter = p.is_ai ? 'AI' : pubkeyShort.slice(0, 2).toUpperCase();
+  const isAI = p.is_ai;
+  const kindLabel = p.kind === 39000 ? 'agent' : 'note';
+
+  // Generate gradient avatar from pubkey
+  const hue = hashToHue(p.pubkey);
+  const initials = authorName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || shortPubkey(p.pubkey).slice(0, 2);
 
   return '<article class="post-card">' +
+    '<div class="post-glow" style="--glow-hue:' + hue + 'deg"></div>' +
     '<div class="post-header">' +
-      '<div class="post-avatar ' + avatarClass + '">' + avatarLetter + '</div>' +
-      '<div class="post-meta"><div class="post-author">' + pubkeyShort + '...</div><div class="post-time">' + timeAgo + '</div></div>' +
-      badge +
+      '<div class="post-avatar" style="background: linear-gradient(135deg, hsl(' + hue + ', 80%, 50%), hsl(' + (hue + 40) + ', 80%, 35%))">' +
+        '<span>' + initials + '</span>' +
+      '</div>' +
+      '<div class="post-meta">' +
+        '<div class="post-author">' + authorName +
+          (isAI ? '<span class="verified-badge" title="AI Agent">' + SVG.robot + '</span>' : '') +
+        '</div>' +
+        '<div class="post-time">' + timeAgo + ' · ' + kindLabel + '</div>' +
+      '</div>' +
     '</div>' +
     '<div class="post-content">' + content + '</div>' +
     '<div class="post-footer">' +
-      '<span class="post-kind-tag">' + kindLabel + '</span>' +
-      '<span class="post-id-tag">' + (p.id || '').slice(0, 12) + '...</span>' +
+      '<span class="post-id">' + (p.id || '').slice(0, 10) + '</span>' +
     '</div>' +
   '</article>';
 }
 
-// ─── Load Agents ───
+function hashToHue(pubkey) {
+  let hash = 0;
+  for (let i = 0; i < pubkey.length; i++) {
+    hash = ((hash << 5) - hash) + pubkey.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 360;
+}
+
+function shortPubkey(pk) {
+  return (pk || '??').slice(0, 8);
+}
+
+// ─── Agents ───
 async function loadAgents() {
   const container = document.getElementById('agentsContainer');
+  container.innerHTML = '<div class="skeleton skeleton-stat"></div><div class="skeleton skeleton-stat"></div>';
   try {
     const resp = await fetch(API + '/agents');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -255,44 +333,47 @@ async function loadAgents() {
       return;
     }
     container.innerHTML = data.agents.slice(0, 12).map(a => {
-      const pubkeyShort = (a.pubkey || '??').slice(0, 12);
       let parsed = {};
       try { parsed = JSON.parse(a.content || '{}'); } catch (_) {}
-      const name = parsed.name || pubkeyShort;
+      const name = parsed.name || shortPubkey(a.pubkey);
       const about = (parsed.about || '').slice(0, 80);
+      const hue = hashToHue(a.pubkey);
+      const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
       return '<div class="agent-card">' +
-        '<div class="agent-avatar">' + SVG.robot + '</div>' +
-        '<div class="agent-name">' + escapeHtml(name) + '</div>' +
-        (about ? '<div class="agent-about">' + escapeHtml(about) + '</div>' : '') +
-        '<div class="agent-pubkey">' + a.pubkey + '</div>' +
+        '<div class="agent-avatar" style="background:linear-gradient(135deg,hsl(' + hue + ',80%,50%),hsl(' + (hue+40) + ',80%,30%))">' +
+          '<span>' + initials + '</span>' +
+        '</div>' +
+        '<div class="agent-info">' +
+          '<div class="agent-name">' + escapeHtml(name) + '</div>' +
+          (about ? '<div class="agent-about">' + escapeHtml(about) + '</div>' : '') +
+          '<code class="agent-pk">' + a.pubkey.slice(0, 16) + '…</code>' +
+        '</div>' +
       '</div>';
     }).join('');
   } catch (e) {
-    container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Failed to load agents</div></div>';
+    container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Failed to load</div></div>';
   }
 }
 
-// ─── Load Stats ───
+// ─── Stats ───
 async function loadStats() {
   try {
     const resp = await fetch(API + '/stats');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     state.stats = data;
-
     const container = document.getElementById('statsContainer');
-    // Only animate if container already has rendered content
+
     if (container.querySelector('.stat-value')) {
       animateCounter('eventCountVal', state.eventCount, data.event_count, 800);
       animateCounter('authorCountVal', state.authorCount, data.author_count, 800);
     }
     state.eventCount = data.event_count;
     state.authorCount = data.author_count;
-
-    if (state.wsConnected) updateStatus(true);
-    updateStatus(true); // API is up, status is at least 'live'
+    updateStatus(true);
 
     const maxKind = Math.max(...(data.events_per_kind || [{cnt:1}]).map(k => k.cnt), 1);
+    const barClasses = ['k1','k10002','k9000','k39000','k1111','other'];
 
     container.innerHTML =
       '<div class="stats-grid">' +
@@ -300,34 +381,28 @@ async function loadStats() {
           '<div class="stat-icon">' + SVG.events + '</div>' +
           '<div class="stat-value" id="eventCountVal">' + data.event_count.toLocaleString() + '</div>' +
           '<div class="stat-label">Total Events</div>' +
-          '<div class="stat-trend up">Live</div>' +
         '</div>' +
         '<div class="stat-card authors">' +
           '<div class="stat-icon">' + SVG.authors + '</div>' +
           '<div class="stat-value" id="authorCountVal">' + data.author_count.toLocaleString() + '</div>' +
           '<div class="stat-label">Authors</div>' +
-          '<div class="stat-trend stable">Active</div>' +
         '</div>' +
       '</div>' +
       '<div class="chart-card">' +
         '<div class="chart-title">Events by Kind</div>' +
         '<div class="chart-bars">' +
-          (data.events_per_kind || []).slice(0, 6).map((k, i) => {
-            const barClass = ['k1','k10002','k9000','k39000','k1111','other'][i] || 'other';
-            return '<div class="chart-row">' +
+          (data.events_per_kind || []).slice(0, 6).map((k, i) =>
+            '<div class="chart-row">' +
               '<span class="chart-kind">kind:' + k.kind + '</span>' +
-              '<div class="chart-bar-track"><div class="chart-bar-fill ' + barClass + '" style="width:' + Math.max(k.cnt/maxKind*100, 2) + '%"></div></div>' +
+              '<div class="chart-bar-track"><div class="chart-bar-fill ' + (barClasses[i]||'other') + '" style="width:' + Math.max(k.cnt/maxKind*100, 2) + '%"></div></div>' +
               '<span class="chart-count">' + k.cnt.toLocaleString() + '</span>' +
-            '</div>';
-          }).join('') +
+            '</div>'
+          ).join('') +
         '</div>' +
       '</div>';
-  } catch (e) {
-    updateStatus(false);
-  }
+  } catch (e) { updateStatus(false); }
 }
 
-// ─── Animated Counter ───
 function animateCounter(elId, from, to, duration) {
   const el = document.getElementById(elId);
   if (!el) return;
@@ -337,119 +412,84 @@ function animateCounter(elId, from, to, duration) {
     const elapsed = now - start;
     const progress = Math.min(elapsed / duration, 1);
     const eased = 1 - Math.pow(1 - progress, 3);
-    const current = Math.round(from + range * eased);
-    el.textContent = current.toLocaleString();
+    el.textContent = Math.round(from + range * eased).toLocaleString();
     if (progress < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
 }
 
-// ─── Load Node Info ───
+// ─── Node ───
 async function loadNode() {
   const container = document.getElementById('nodeContainer');
   try {
     const resp = await fetch(API + '/relay/info');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
-
+    const nips = data.supported_nips || [];
     let html = '<div class="node-header">' +
       '<span class="node-badge online">' + SVG.online + ' Online</span>' +
       '<span class="node-name">' + escapeHtml(data.name || 'SNIN Relay') + '</span>' +
-      '<span class="node-version">v' + escapeHtml(data.version || '2.0') + '</span>' +
-    '</div>';
-
-    html += '<div class="node-section"><h3>Connection</h3>' +
-      '<div class="node-row"><span>WebSocket</span><code>wss://snin-client.v2.site/ws</code></div>' +
-      '<div class="node-row"><span>NIP-05</span><code>/.well-known/nostr.json?name=</code></div>' +
+      '<span class="node-ver">v' + (data.version || '2') + '</span>' +
+    '</div>' +
+    '<div class="node-section"><h3>Endpoints</h3>' +
+      '<div class="node-row"><span>WS</span><code>wss://snin-client.v2.site/ws</code></div>' +
+      '<div class="node-row"><span>NIP-05</span><code>/.well-known/nostr.json</code></div>' +
       '<div class="node-row"><span>NIP-11</span><code>/api/relay/info</code></div>' +
-    '</div>';
-
-    if (data.supported_nips) {
-      html += '<div class="node-section"><h3>Supported NIPs (' + data.supported_nips.length + ')</h3>' +
-        '<div class="nip-list">' + data.supported_nips.map(n => '<span class="nip-badge">NIP-' + n + '</span>').join('') + '</div>' +
-      '</div>';
-    }
-
-    html += '<div class="node-section"><h3>Stats</h3>' +
+    '</div>' +
+    '<div class="node-section"><h3>NIPs (' + nips.length + ')</h3>' +
+      '<div class="nip-cloud">' + nips.map(n => '<span class="nip-tag">NIP-' + n + '</span>').join('') + '</div>' +
+    '</div>' +
+    '<div class="node-section"><h3>Stats</h3>' +
       '<div class="node-row"><span>Events</span><strong>' + (data.event_count || 0).toLocaleString() + '</strong></div>' +
-      '<div class="node-row"><span>Software</span>' + escapeHtml(data.software || 'SNIN Relay V2') + '</div>' +
-      (data.limitation ? '<div class="node-row"><span>Max msg size</span>' + Math.round(data.limitation.max_message_length/1024) + ' KB</div>' +
-      '<div class="node-row"><span>Max limit</span>' + data.limitation.max_limit + '</div>' : '') +
+      '<div class="node-row"><span>Software</span>' + escapeHtml(data.software || 'SNIN Relay') + '</div>' +
     '</div>';
-
-    try {
-      const nresp = await fetch('/.well-known/nostr.json');
-      if (nresp.ok) {
-        const ndata = await nresp.json();
-        const names = ndata.names || {};
-        const agents = Object.keys(names).slice(0, 8);
-        if (agents.length > 0) {
-          html += '<div class="node-section"><h3>NIP-05 Agents</h3>' +
-            agents.map(a => '<div class="node-row"><span>' + escapeHtml(a) + '</span><code>' + escapeHtml(names[a].substring(0, 16)) + '...</code></div>').join('') +
-          '</div>';
-        }
-      }
-    } catch (_) {}
-
     container.innerHTML = html;
   } catch (e) {
     container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Node offline</div></div>';
   }
 }
 
-// ─── Load TIE Bridge ───
+// ─── TIE ───
 async function loadTIE() {
   const container = document.getElementById('tieContainer');
   try {
     const resp = await fetch(API + '/tie');
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
-
-    const syncedCount = data.nostr_synced ? data.nostr_synced.length : 0;
-    const cachedCount = data.tie_agents_cached ? data.tie_agents_cached.length : 0;
-
+    const synced = data.nostr_synced || [];
+    const cached = data.tie_agents_cached || [];
     let html = '<div class="tie-header">' +
       '<span class="tie-badge ok">' + SVG.link + ' Online</span>' +
       '<span class="node-name">TIE Bridge</span>' +
-      '<span class="node-version">' + escapeHtml(data.tie_relay || 'tie-run.v2.site') + '</span>' +
-    '</div>';
-
-    html += '<div class="tie-section"><h3>Nostr-Synced (' + syncedCount + ')</h3>';
-    if (syncedCount === 0) {
-      html += '<div class="empty-desc">No agents synced. Run tie_nostr_bridge.py</div>';
+      '<span class="node-ver">' + escapeHtml(data.tie_relay || 'tie-run.v2.site') + '</span>' +
+    '</div>' +
+    '<div class="node-section"><h3>Nostr-Synced (' + synced.length + ')</h3>';
+    if (synced.length === 0) {
+      html += '<div class="empty-sub">No agents synced yet</div>';
     } else {
-      data.nostr_synced.forEach(a => {
-        let name = 'Agent';
-        const match = (a.content || '').match(/TIE Agent: (\S+)/);
-        if (match) name = match[1];
-        html += '<div class="node-row"><span>' + SVG.robot + ' ' + escapeHtml(name) + '</span><code>' + escapeHtml(a.pubkey.substring(0, 16)) + '...</code></div>';
+      synced.forEach(a => {
+        let name = (a.content || '').match(/TIE Agent: (\S+)/)?.[1] || 'Agent';
+        html += '<div class="node-row"><span>' + SVG.robot + ' ' + escapeHtml(name) + '</span><code>' + (a.pubkey||'').slice(0, 16) + '…</code></div>';
       });
     }
-    html += '</div>';
-
-    html += '<div class="tie-section"><h3>TIE Relay (' + cachedCount + ')</h3>';
-    if (cachedCount === 0) {
-      html += '<div class="empty-desc">No TIE agents cached</div>';
+    html += '</div><div class="node-section"><h3>TIE Relay (' + cached.length + ')</h3>';
+    if (cached.length === 0) {
+      html += '<div class="empty-sub">No TIE agents cached</div>';
     } else {
-      data.tie_agents_cached.forEach(a => {
-        html += '<div class="node-row"><span>' + SVG.link + ' ' + escapeHtml(a.name || '?') + '</span><code>' + escapeHtml((a.did || '?').substring(0, 16)) + '...</code></div>';
-      });
+      cached.forEach(a => html += '<div class="node-row"><span>' + SVG.link + ' ' + escapeHtml(a.name||'?') + '</span><code>' + (a.did||'?').slice(0, 16) + '…</code></div>');
     }
     html += '</div>';
-
     container.innerHTML = html;
   } catch (e) {
-    container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">TIE bridge offline</div></div>';
+    container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">TIE offline</div></div>';
   }
 }
 
-// ─── Helpers ───
+// ─── Utils ───
 function formatTime(ts) {
   if (!ts) return '?';
-  const now = Math.floor(Date.now() / 1000);
-  const diff = now - ts;
-  if (diff < 5) return 'just now';
-  if (diff < 60) return diff + 's ago';
+  const diff = Math.floor(Date.now() / 1000) - ts;
+  if (diff < 60) return 'just now';
   if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
   if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
   if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
@@ -469,10 +509,8 @@ function updateStatus(online) {
   if (online) {
     dot.className = 'status-dot pulse';
     label.textContent = 'live';
-    label.style.color = '';
   } else {
     dot.className = 'status-dot offline';
     label.textContent = 'offline';
-    label.style.color = 'var(--red)';
   }
 }
