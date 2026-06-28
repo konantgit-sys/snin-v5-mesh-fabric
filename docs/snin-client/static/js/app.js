@@ -1,28 +1,35 @@
 // ═══════════════════════════════════════════════
-// SNIN Client v5.0 — Premium Engine
+// SNIN Client v5.5 — Aurora Engine
 // ═══════════════════════════════════════════════
 
 const API = '/api';
 const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
 
 let signerPubkey = null;
-let state = { tab: 'feed', aiOnly: true, stats: null, ws: null, eventCount: 0, authorCount: 0, wsConnected: false };
+let state = {
+  tab: 'feed', aiOnly: true,
+  stats: null, ws: null, wsConnected: false,
+  eventCount: 0, authorCount: 0
+};
 
-// ─── SVG icon snippets ───
+// ─── SVG Snippets ───
 const SVG = {
   events: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="18" rx="3"/><path d="M6 8h4M6 12h6M6 16h8"/></svg>',
   authors: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke-linecap="round"/></svg>',
   online: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3" fill="currentColor"/><circle cx="12" cy="12" r="8" opacity="0.4"/><circle cx="12" cy="12" r="4" opacity="0.2"/></svg>',
-  robot: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="6" width="16" height="12" rx="3"/><circle cx="8" cy="10" r="1.5" fill="currentColor" stroke="none"/><circle cx="16" cy="10" r="1.5" fill="currentColor" stroke="none"/><path d="M9 17h6M12 6V3M7 3h10" stroke-linecap="round"/></svg>',
+  robot: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="6" width="16" height="12" rx="3"/><circle cx="8" cy="10" r="1.5" fill="white"/><circle cx="16" cy="10" r="1.5" fill="white"/><path d="M9 17h6M12 6V3M7 3h10" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>',
   link: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 007.5 0l2-2a5 5 0 00-7-7.5L11 5"/><path d="M14 11a5 5 0 00-7.5 0l-2 2a5 5 0 007 7.5L13 19"/></svg>',
   send: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/></svg>',
   lock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
   warning: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
   empty: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 13h4"/></svg>',
+  lightning: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h6l-2 8 10-12h-6l2-8z"/></svg>',
 };
 
 // ─── Init ───
 document.addEventListener('DOMContentLoaded', () => {
+  injectAuroraOrb();
+  injectGrid();
   setupNav();
   setupToggle();
   setupComposer();
@@ -35,13 +42,25 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(loadStats, 30000);
 });
 
-// ─── Animated Canvas Background ───
+// ─── Aurora enhancements ───
+function injectAuroraOrb() {
+  const orb = document.createElement('div');
+  orb.className = 'aurora-orb-3-injected';
+  document.body.appendChild(orb);
+}
+
+function injectGrid() {
+  const grid = document.createElement('div');
+  grid.className = 'grid-overlay';
+  document.body.appendChild(grid);
+}
+
+// ─── Canvas Particle Network ───
 function initCanvasBG() {
   const canvas = document.getElementById('bgCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  let particles = [];
-  let w, h;
+  let particles = [], w, h;
 
   function resize() {
     w = canvas.width = window.innerWidth;
@@ -50,37 +69,40 @@ function initCanvasBG() {
   resize();
   window.addEventListener('resize', resize);
 
-  // Create ambient particles
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 50; i++) {
     particles.push({
       x: Math.random() * w, y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
-      r: Math.random() * 1.5 + 0.5, alpha: Math.random() * 0.3 + 0.1
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: (Math.random() - 0.5) * 0.25,
+      r: Math.random() * 2 + 0.5,
+      alpha: Math.random() * 0.25 + 0.05,
+      hue: [200, 260, 40, 340][Math.floor(Math.random() * 4)] // cyan, purple, gold, rose
     });
   }
 
   function draw() {
     ctx.clearRect(0, 0, w, h);
-    particles.forEach(p => {
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
       p.x += p.vx; p.y += p.vy;
       if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
       if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
+
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(0, 212, 255, ${p.alpha})`;
+      ctx.fillStyle = `hsla(${p.hue}, 80%, 65%, ${p.alpha})`;
       ctx.fill();
-    });
-    // Draw connections
-    for (let i = 0; i < particles.length; i++) {
+
+      // Connections
       for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
+        const q = particles[j];
+        const dx = p.x - q.x, dy = p.y - q.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 120) {
+        if (dist < 130) {
           ctx.beginPath();
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.strokeStyle = `rgba(0, 212, 255, ${0.06 * (1 - dist / 120)})`;
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(q.x, q.y);
+          ctx.strokeStyle = `hsla(${(p.hue+q.hue)/2}, 60%, 60%, ${0.05*(1-dist/130)})`;
           ctx.lineWidth = 0.5;
           ctx.stroke();
         }
@@ -91,13 +113,24 @@ function initCanvasBG() {
   draw();
 }
 
-// ─── WebSocket ───
+// ─── Status (HTTP-based, rock-solid) ───
 function connectWS() {
+  async function pollStatus() {
+    try {
+      const resp = await fetch(API + '/stats');
+      if (resp.ok) { updateStatus(true); } else { updateStatus(false); }
+    } catch (_) { updateStatus(false); }
+  }
+  pollStatus();
+  if (state._statusInterval) clearInterval(state._statusInterval);
+  state._statusInterval = setInterval(pollStatus, 15000);
+
+  // Try WebSocket as bonus (don't fail on error)
   try {
     state.ws = new WebSocket(WS_URL);
-    state.ws.onopen = () => { state.wsConnected = true; updateStatus(true); };
-    state.ws.onclose = () => { state.wsConnected = false; updateStatus(false); setTimeout(connectWS, 5000); };
-    state.ws.onerror = () => { state.wsConnected = false; updateStatus(false); };
+    state.ws.onopen = () => { state.wsConnected = true; };
+    state.ws.onclose = () => { state.wsConnected = false; };
+    state.ws.onerror = () => { state.wsConnected = false; };
     state.ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
@@ -108,7 +141,7 @@ function connectWS() {
         }
       } catch (_) {}
     };
-  } catch (_) { updateStatus(false); }
+  } catch (_) {}
 }
 
 function isAIEvent(event) {
@@ -127,10 +160,11 @@ function prependPost(event) {
   if (firstCard) {
     firstCard.insertAdjacentHTML('beforebegin', html);
     const newCard = container.querySelector('.post-card');
-    if (newCard) { newCard.style.animation = 'fadeSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)'; }
+    if (newCard) { newCard.style.animation = 'tabEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1)'; }
   } else {
     container.innerHTML = html;
   }
+  // Trim to 50
   const cards = container.querySelectorAll('.post-card');
   if (cards.length > 50) cards[cards.length - 1].remove();
 }
@@ -198,6 +232,7 @@ async function checkSigner() {
     postBtn.innerHTML = SVG.send + ' Publish';
     postBtn.disabled = false;
     postBtn.style.background = 'linear-gradient(135deg, #00d4ff, #0088cc)';
+    postBtn.style.color = '#fff';
   } catch (e) {
     postBtn.innerHTML = SVG.lock + ' Connect signer to post';
     postBtn.disabled = true;
@@ -209,7 +244,9 @@ function setupComposer() {
   const kindSelect = document.getElementById('composeKind');
   const replyField = document.getElementById('replyToField');
   const contentArea = document.getElementById('composeContent');
-  kindSelect.addEventListener('change', () => { replyField.style.display = kindSelect.value === '1111' ? 'block' : 'none'; });
+  kindSelect.addEventListener('change', () => {
+    replyField.style.display = kindSelect.value === '1111' ? 'block' : 'none';
+  });
   contentArea.addEventListener('input', () => {
     const len = contentArea.value.length;
     const pct = Math.min(len / 5000 * 100, 100);
@@ -271,11 +308,11 @@ async function loadFeed() {
     }
     container.innerHTML = data.posts.map(p => renderPost(p)).join('');
   } catch (e) {
-    container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Failed to load</div></div>';
+    container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Failed to load feed</div></div>';
   }
 }
 
-// ─── Post Card — v5 premium rendering ───
+// ─── Post Card ───
 function renderPost(p) {
   const authorName = p.author_name || shortPubkey(p.pubkey);
   const timeAgo = formatTime(p.created_at);
@@ -283,26 +320,28 @@ function renderPost(p) {
   const isAI = p.is_ai;
   const kindLabel = p.kind === 39000 ? 'agent' : 'note';
 
-  // Generate gradient avatar from pubkey
   const hue = hashToHue(p.pubkey);
   const initials = authorName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || shortPubkey(p.pubkey).slice(0, 2);
 
-  return '<article class="post-card">' +
-    '<div class="post-glow" style="--glow-hue:' + hue + 'deg"></div>' +
+  return '<article class="post-card" style="--author-hue:' + hue + '">' +
     '<div class="post-header">' +
-      '<div class="post-avatar" style="background: linear-gradient(135deg, hsl(' + hue + ', 80%, 50%), hsl(' + (hue + 40) + ', 80%, 35%))">' +
+      '<div class="post-avatar" style="background:linear-gradient(135deg,hsl(' + hue + ',80%,50%),hsl(' + (hue+35) + ',80%,30%))">' +
         '<span>' + initials + '</span>' +
       '</div>' +
       '<div class="post-meta">' +
-        '<div class="post-author">' + authorName +
+        '<div class="post-author">' +
+          authorName +
           (isAI ? '<span class="verified-badge" title="AI Agent">' + SVG.robot + '</span>' : '') +
         '</div>' +
-        '<div class="post-time">' + timeAgo + ' · ' + kindLabel + '</div>' +
+        '<div class="post-time">' +
+          timeAgo +
+          '<span class="kind-badge">' + kindLabel + '</span>' +
+        '</div>' +
       '</div>' +
     '</div>' +
     '<div class="post-content">' + content + '</div>' +
     '<div class="post-footer">' +
-      '<span class="post-id">' + (p.id || '').slice(0, 10) + '</span>' +
+      '<span class="post-id">' + (p.id || '').slice(0, 12) + '</span>' +
     '</div>' +
   '</article>';
 }
@@ -316,9 +355,7 @@ function hashToHue(pubkey) {
   return Math.abs(hash) % 360;
 }
 
-function shortPubkey(pk) {
-  return (pk || '??').slice(0, 8);
-}
+function shortPubkey(pk) { return (pk || '??').slice(0, 8); }
 
 // ─── Agents ───
 async function loadAgents() {
@@ -332,10 +369,10 @@ async function loadAgents() {
       container.innerHTML = '<div class="empty-state">' + SVG.empty + '<div class="empty-title">No agents</div></div>';
       return;
     }
-    container.innerHTML = data.agents.slice(0, 12).map(a => {
+    container.innerHTML = '<div class="agents-grid">' + data.agents.slice(0, 12).map(a => {
       let parsed = {};
       try { parsed = JSON.parse(a.content || '{}'); } catch (_) {}
-      const name = parsed.name || shortPubkey(a.pubkey);
+      const name = parsed.name || parsed.display_name || shortPubkey(a.pubkey);
       const about = (parsed.about || '').slice(0, 80);
       const hue = hashToHue(a.pubkey);
       const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
@@ -349,9 +386,9 @@ async function loadAgents() {
           '<code class="agent-pk">' + a.pubkey.slice(0, 16) + '…</code>' +
         '</div>' +
       '</div>';
-    }).join('');
+    }).join('') + '</div>';
   } catch (e) {
-    container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Failed to load</div></div>';
+    container.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Failed to load agents</div></div>';
   }
 }
 
@@ -374,6 +411,7 @@ async function loadStats() {
 
     const maxKind = Math.max(...(data.events_per_kind || [{cnt:1}]).map(k => k.cnt), 1);
     const barClasses = ['k1','k10002','k9000','k39000','k1111','other'];
+    const kindNames = {1:'Text',10002:'Relay List',9000:'Groups',39000:'Agent',1111:'Comment',30023:'Article'};
 
     container.innerHTML =
       '<div class="stats-grid">' +
@@ -391,13 +429,15 @@ async function loadStats() {
       '<div class="chart-card">' +
         '<div class="chart-title">Events by Kind</div>' +
         '<div class="chart-bars">' +
-          (data.events_per_kind || []).slice(0, 6).map((k, i) =>
-            '<div class="chart-row">' +
-              '<span class="chart-kind">kind:' + k.kind + '</span>' +
-              '<div class="chart-bar-track"><div class="chart-bar-fill ' + (barClasses[i]||'other') + '" style="width:' + Math.max(k.cnt/maxKind*100, 2) + '%"></div></div>' +
+          (data.events_per_kind || []).slice(0, 6).map((k, i) => {
+            const pct = Math.max(k.cnt / maxKind * 100, 2);
+            const name = kindNames[k.kind] || 'kind:' + k.kind;
+            return '<div class="chart-row">' +
+              '<span class="chart-kind">' + name + '</span>' +
+              '<div class="chart-bar-track"><div class="chart-bar-fill ' + (barClasses[i]||'other') + '" style="width:' + pct + '%"></div></div>' +
               '<span class="chart-count">' + k.cnt.toLocaleString() + '</span>' +
-            '</div>'
-          ).join('') +
+            '</div>';
+          }).join('') +
         '</div>' +
       '</div>';
   } catch (e) { updateStatus(false); }
@@ -432,15 +472,15 @@ async function loadNode() {
       '<span class="node-ver">v' + (data.version || '2') + '</span>' +
     '</div>' +
     '<div class="node-section"><h3>Endpoints</h3>' +
-      '<div class="node-row"><span>WS</span><code>wss://snin-client.v2.site/ws</code></div>' +
+      '<div class="node-row"><span>WebSocket</span><code>wss://snin-client.v2.site/ws</code></div>' +
       '<div class="node-row"><span>NIP-05</span><code>/.well-known/nostr.json</code></div>' +
       '<div class="node-row"><span>NIP-11</span><code>/api/relay/info</code></div>' +
     '</div>' +
-    '<div class="node-section"><h3>NIPs (' + nips.length + ')</h3>' +
+    '<div class="node-section"><h3>Supported NIPs</h3>' +
       '<div class="nip-cloud">' + nips.map(n => '<span class="nip-tag">NIP-' + n + '</span>').join('') + '</div>' +
     '</div>' +
-    '<div class="node-section"><h3>Stats</h3>' +
-      '<div class="node-row"><span>Events</span><strong>' + (data.event_count || 0).toLocaleString() + '</strong></div>' +
+    '<div class="node-section"><h3>Statistics</h3>' +
+      '<div class="node-row"><span>Total Events</span><strong>' + (data.event_count || 0).toLocaleString() + '</strong></div>' +
       '<div class="node-row"><span>Software</span>' + escapeHtml(data.software || 'SNIN Relay') + '</div>' +
     '</div>';
     container.innerHTML = html;
@@ -472,7 +512,7 @@ async function loadTIE() {
         html += '<div class="node-row"><span>' + SVG.robot + ' ' + escapeHtml(name) + '</span><code>' + (a.pubkey||'').slice(0, 16) + '…</code></div>';
       });
     }
-    html += '</div><div class="node-section"><h3>TIE Relay (' + cached.length + ')</h3>';
+    html += '</div><div class="node-section"><h3>TIE Relay Cache (' + cached.length + ')</h3>';
     if (cached.length === 0) {
       html += '<div class="empty-sub">No TIE agents cached</div>';
     } else {
