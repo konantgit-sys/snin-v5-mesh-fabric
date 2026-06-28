@@ -76,6 +76,9 @@ async def api_feed(show_ai_only: bool = Query(False, alias="ai"), limit: int = Q
     
     sql = """SELECT e.id, e.pubkey, e.content, e.kind, e.created_at, e.sig
              FROM events e WHERE e.kind IN (1, 39000, 1111)
+               AND e.lang IN ('ru', 'en', '')
+               AND (e.content NOT LIKE '%zone_presence%'
+                    OR e.content IS NULL)
              ORDER BY e.created_at DESC LIMIT ?"""
     posts = db_query(sql, (limit * 3 if show_ai_only else limit,))
     

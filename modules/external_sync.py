@@ -19,8 +19,30 @@ from datetime import datetime, timezone
 from collections import defaultdict
 
 import websockets
+from langdetect import detect, DetectorFactory, LangDetectException
+
+DetectorFactory.seed = 0
+
+import websockets
 
 # ─── Config ──────────────────────────────────────────────────────────────
+# Language filter: only RU and EN
+ALLOWED_LANGS = {'ru', 'en'}
+
+def detect_lang(text: str) -> str:
+    """Detect language, return 'unknown' on failure."""
+    if not text or len(text.strip()) < 3:
+        return 'unknown'
+    try:
+        return detect(text.strip())
+    except LangDetectException:
+        return 'unknown'
+
+def is_allowed_lang(text: str) -> bool:
+    """Check if text is in an allowed language."""
+    lang = detect_lang(text)
+    return lang in ALLOWED_LANGS
+
 CRYTER_PK = "8ae7965af1b61347bb9900b91cfa9487e4da2400bdb063521ad0850706ff5f96"
 RELAY_DB = "/home/agent/data/sites/relay/relay_v2.db"
 SYNC_LOG = "/tmp/external_sync.log"
@@ -247,7 +269,9 @@ async def query_global_feed(relay_url: str, limit: int = 15) -> list[dict]:
                 if data[0] == "EVENT" and len(data) >= 3:
                     ev = data[2]
                     if ev.get('pubkey') != CRYTER_PK:
-                        events.append(ev)
+                        content = ev.get('content', '')
+                        if is_allowed_lang(content):
+                            events.append(ev)
                 elif data[0] == "EOSE":
                     break
         except asyncio.TimeoutError:
