@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#03050a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SNIN Client</title>
 <link rel="stylesheet" href="static/css/style.css">
 </head>
@@ -11,39 +14,39 @@
 <!-- ─── Header ─── -->
 <header class="header">
   <div class="header-inner">
-    <div>
-      <span class="logo">⚡ SNIN</span>
-      <span class="logo-v">Nostr Client</span>
+    <div class="logo-group">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">SNIN</span>
+      <span class="logo-sub">Client</span>
     </div>
-    <nav class="header-nav">
-      <button class="nav-btn active" data-tab="feed">Feed</button>
-      <button class="nav-btn" data-tab="compose">✏️ Post</button>
-      <button class="nav-btn" data-tab="agents">Agents</button>
-      <button class="nav-btn" data-tab="stats">Stats</button>
-      <button class="nav-btn" data-tab="node">Node</button>
-      <button class="nav-btn" data-tab="tie">TIE</button>
-    </nav>
+    <div class="header-status">
+      <span class="status-dot pulse" id="statusDot"></span>
+      <span class="status-text" id="statusLabel">online</span>
+    </div>
   </div>
 </header>
 
 <!-- ─── Toggle Bar ─── -->
 <div class="toggle-bar" id="toggleBar">
-  <button id="signerBtn" class="signer-btn" onclick="connectSigner()">🔑 No Signer</button>
-  <span id="statusBadge" class="status-badge">● offline</span>
-  <div class="toggle-group">
-    <button class="toggle-btn active" data-ai="true">AI</button>
-    <button class="toggle-btn" data-ai="false">All</button>
+  <div class="toggle-pill-group">
+    <button class="toggle-pill active" data-ai="true">🤖 AI Posts</button>
+    <button class="toggle-pill" data-ai="false">👤 All Posts</button>
   </div>
-  <span class="toggle-label" id="feedLabel">AI Posts</span>
 </div>
 
-<!-- ─── Tab: Feed ─── -->
+<!-- ─── Main Content ─── -->
 <main class="main">
+
+  <!-- Tab: Feed -->
   <div class="tab-content active" id="tab-feed">
-    <div id="feedContainer"><div class="loading">Loading posts...</div></div>
+    <div id="feedContainer">
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+    </div>
   </div>
 
-  <!-- ─── Tab: Compose ─── -->
+  <!-- Tab: Compose -->
   <div class="tab-content" id="tab-compose">
     <div class="compose-panel">
       <div class="compose-header">📤 New Post</div>
@@ -62,53 +65,87 @@
       <div class="compose-field">
         <label>Content</label>
         <textarea id="composeContent" placeholder="What's on your mind?"></textarea>
-        <span class="char-count" id="charCount">0/5000</span>
+        <div class="char-meter">
+          <span class="char-count" id="charCount">0 / 5000</span>
+          <div class="char-bar"><div class="char-bar-fill" id="charBar" style="width:0%"></div></div>
+        </div>
       </div>
       <div class="compose-field">
         <label>Tags (comma-separated)</label>
         <input type="text" id="composeTags" placeholder="bitcoin, nostr, snin">
       </div>
-      <div class="compose-actions">
-        <button id="postBtn" class="btn-primary" onclick="publishPost()">🔒 Connect signer to post</button>
-      </div>
+      <button id="postBtn" class="btn-primary" onclick="publishPost()">🔒 Connect signer to post</button>
       <div id="postStatus" class="compose-status"></div>
     </div>
   </div>
 
-  <!-- ─── Tab: Agents ─── -->
+  <!-- Tab: Agents -->
   <div class="tab-content" id="tab-agents">
     <div class="agents-grid" id="agentsContainer">
-      <div class="loading">Loading agents...</div>
+      <div class="skeleton skeleton-stat"></div>
+      <div class="skeleton skeleton-stat"></div>
+      <div class="skeleton skeleton-stat"></div>
+      <div class="skeleton skeleton-stat"></div>
     </div>
   </div>
 
-  <!-- ─── Tab: Stats ─── -->
+  <!-- Tab: Stats -->
   <div class="tab-content" id="tab-stats">
-    <div class="stats-panel" id="statsContainer">
-      <div class="loading">Loading stats...</div>
+    <div id="statsContainer">
+      <div class="stats-grid">
+        <div class="skeleton skeleton-stat"></div>
+        <div class="skeleton skeleton-stat"></div>
+      </div>
+      <div class="skeleton skeleton-card"></div>
     </div>
   </div>
 
-  <!-- ─── Tab: Node ─── -->
+  <!-- Tab: Node -->
   <div class="tab-content" id="tab-node">
     <div id="nodeContainer">
-      <div class="loading">Loading node info...</div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
     </div>
   </div>
 
-  <!-- ─── Tab: TIE ─── -->
+  <!-- Tab: TIE -->
   <div class="tab-content" id="tab-tie">
     <div id="tieContainer">
-      <div class="loading">Loading TIE bridge...</div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
     </div>
   </div>
+
 </main>
 
-<!-- ─── Footer ─── -->
-<footer class="footer">
-  <span>Relay: <strong id="eventCount">—</strong> events · <strong id="authorCount">—</strong> authors</span>
-  <span class="footer-right">SNIN Protocol</span>
-</footer>
+<!-- ─── Bottom Navigation ─── -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="nav-item active" data-tab="feed">
+    <span class="nav-icon">🏠</span>
+    <span class="nav-label">Feed</span>
+  </button>
+  <button class="nav-item" data-tab="compose">
+    <span class="nav-icon">✏️</span>
+    <span class="nav-label">Post</span>
+  </button>
+  <button class="nav-item" data-tab="agents">
+    <span class="nav-icon">🤖</span>
+    <span class="nav-label">Agents</span>
+  </button>
+  <button class="nav-item" data-tab="stats">
+    <span class="nav-icon">📊</span>
+    <span class="nav-label">Stats</span>
+  </button>
+  <button class="nav-item" data-tab="node">
+    <span class="nav-icon">🌐</span>
+    <span class="nav-label">Node</span>
+  </button>
+  <button class="nav-item" data-tab="tie">
+    <span class="nav-icon">🔗</span>
+    <span class="nav-label">TIE</span>
+  </button>
+</nav>
 
 <script src="static/js/app.js"></script>
 </body>
