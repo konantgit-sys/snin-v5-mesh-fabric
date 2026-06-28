@@ -428,6 +428,133 @@ async def api_post_event(request: Request):
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
+# ══════════════════════════════════════════
+# PHASE 5 — Zaps (NIP-57) + Notifications
+# ══════════════════════════════════════════
+
+@app.get("/api/zap-info/{pubkey}")
+async def api_zap_info(pubkey: str):
+    """Get Lightning info for zapping an author."""
+    lud16 = ""
+    lud06 = ""
+    display_name = resolve_name(pubkey)
+    
+    row = db_query_one(
+        "SELECT content FROM events WHERE kind=0 AND pubkey=? ORDER BY created_at DESC LIMIT 1",
+        (pubkey,))
+    
+    if row and row.get("content"):
+        try:
+            meta = json.loads(row["content"])
+            lud16 = meta.get("lud16", "")
+            lud06 = meta.get("lud06", "")
+        except:
+            pass
+    
+    # Create zap request (kind:9734) template
+    zap_template = {
+        "kind": 9734,
+        "content": "",
+        "tags": [
+            ["p", pubkey],
+            ["relays", "wss://relay.damus.io", "wss://relay.primal.net", "wss://nos.lol", "wss://snin-client.v2.site"],
+        ]
+    }
+    
+    return {
+        "pubkey": pubkey,
+        "display_name": display_name,
+        "lud16": lud16,
+        "lud06": lud06,
+        "can_zap": bool(lud16 or lud06),
+        "zap_request_template": zap_template,
+    }
+
+
+@app.get("/api/notifications")
+async def api_notifications(pubkey: str = Query(...), limit: int = Query(20, le=50), since: int = Query(0)):
+    """Get notifications (reactions, replies, zaps, reposts) for a pubkey."""
+    since_clause = "AND e.created_at > ?" if since > 0 else ""
+    where = [f"t.tag_type = 'e' AND t2.tag_type = 'p' AND t2.tag_value = ? {since_clause}"]
+    params = [pubkey]
+    if since > 0:
+        params.append(since)
+    
+    # Get events with tags
+    sql = f"""
+        SELECT DISTINCT e.id, e.pubkey, e.content, e.kind, e.created_at, e.tags_json
+        FROM events e
+        JOIN tags t ON e.id = t.event_id
+        JOIN tags t2 ON e.id = t2.event_id
+        WHERE t.tag_type = 'e' AND t2.tag_type = 'p' AND t2.tag_value = ?
+        {'AND e.created_at > ?' if since > 0 else ''}
+        ORDER BY e.created_at DESC LIMIT ?
+    """
+    params2 = [pubkey]
+    if since > 0:
+        params2.append(since)
+    params2.append(limit)
+    
+    events = db_query(sql, tuple(params2))
+    
+    notifications = []
+    for ev in events:
+        tags_data = ev.get("tags_json", "[]")
+        if isinstance(tags_data, str):
+            try:
+                tags_data = json.loads(tags_data)
+            except:
+                tags_data = []
+        
+        # Find which event this is a reaction/reply to
+        ref_event = ""
+        for tag in tags_data:
+            if tag[0] == "e" and len(tag) >= 2:
+                ref_event = tag[1]
+                break
+        
+        author_name = resolve_name(ev["pubkey"])
+        
+        # Type label
+        type_map = {7: "❤️ reaction", 6: "🔄 repost", 1111: "💬 reply", 9735: "⚡ zap", 9734: "⚡ zap request"}
+        ntype = type_map.get(ev["kind"], f"kind:{ev['kind']}")
+        
+        notifications.append({
+            "id": ev["id"],
+            "type": ntype,
+            "kind": ev["kind"],
+            "from": author_name,
+            "from_pubkey": ev["pubkey"],
+            "ref_event": ref_event,
+            "content": (ev.get("content") or "")[:140],
+            "created_at": ev["created_at"],
+        })
+    
+    return {"notifications": notifications, "total": len(notifications), "for_pubkey": pubkey}
+
+
+@app.get("/api/notifications/count")
+async def api_notifications_count(pubkey: str = Query(...)):
+    """Get unread notification count for a pubkey (last 7 days)."""
+    seven_days_ago = int(time.time()) - 7 * 86400
+    
+    sql = """
+        SELECT COUNT(DISTINCT e.id) as cnt
+        FROM events e
+        JOIN tags t ON e.id = t.event_id
+        WHERE t.tag_type = 'p' AND t.tag_value = ?
+        AND e.kind IN (7, 1111, 9735, 6)
+        AND e.created_at > ?
+    """
+    row = db_query_one(sql, (pubkey, seven_days_ago))
+    
+    return {
+        "count": row["cnt"] if row else 0,
+        "since_days": 7,
+        "for_pubkey": pubkey,
+    }
+
+
 @app.get("/ws")
 async def ws_http_info():
     return {"endpoint": "wss://snin-client.v2.site/ws", "protocol": "nostr", "status": "available"}
