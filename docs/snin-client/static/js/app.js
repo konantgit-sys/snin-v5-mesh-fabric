@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════
-// SNIN Client v5.5 — Aurora Engine
+// SNIN Client v6.0 — Phase 2 (Profiles, Threads, Search, Reactions)
 // ═══════════════════════════════════════════════
 
 const API = '/api';
@@ -14,16 +14,20 @@ let state = {
 
 // ─── SVG Snippets ───
 const SVG = {
-  events: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="18" rx="3"/><path d="M6 8h4M6 12h6M6 16h8"/></svg>',
-  authors: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke-linecap="round"/></svg>',
-  online: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3" fill="currentColor"/><circle cx="12" cy="12" r="8" opacity="0.4"/><circle cx="12" cy="12" r="4" opacity="0.2"/></svg>',
-  robot: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="6" width="16" height="12" rx="3"/><circle cx="8" cy="10" r="1.5" fill="white"/><circle cx="16" cy="10" r="1.5" fill="white"/><path d="M9 17h6M12 6V3M7 3h10" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>',
-  link: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 007.5 0l2-2a5 5 0 00-7-7.5L11 5"/><path d="M14 11a5 5 0 00-7.5 0l-2 2a5 5 0 007 7.5L13 19"/></svg>',
+  events: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="18" rx="3"/><path d="M6 8h4M6 12h6M6 16h8"/></svg>',
+  authors: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
+  online: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3" fill="currentColor"/><circle cx="12" cy="12" r="8" opacity="0.4"/></svg>',
+  robot: '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="8" cy="10" r="2" fill="white"/><circle cx="16" cy="10" r="2" fill="white"/><path d="M9 17h6M12 5V2M6 2h12" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>',
+  searchIcon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4" stroke-linecap="round"/></svg>',
+  heart: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.18L12 21z"/></svg>',
+  replyIcon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>',
+  threadIcon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>',
+  zapIcon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" opacity="0.5"><path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/></svg>',
+  empty: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 13h4"/></svg>',
+  warning: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
+  globe: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10M12 2a15.3 15.3 0 00-4 10 15.3 15.3 0 004 10"/></svg>',
   send: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/></svg>',
   lock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
-  warning: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
-  empty: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 13h4"/></svg>',
-  lightning: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h6l-2 8 10-12h-6l2-8z"/></svg>',
 };
 
 // ─── Init ───
@@ -76,7 +80,7 @@ function initCanvasBG() {
       vy: (Math.random() - 0.5) * 0.25,
       r: Math.random() * 2 + 0.5,
       alpha: Math.random() * 0.25 + 0.05,
-      hue: [200, 260, 40, 340][Math.floor(Math.random() * 4)] // cyan, purple, gold, rose
+      hue: [200, 260, 40, 340][Math.floor(Math.random() * 4)]
     });
   }
 
@@ -93,7 +97,6 @@ function initCanvasBG() {
       ctx.fillStyle = `hsla(${p.hue}, 80%, 65%, ${p.alpha})`;
       ctx.fill();
 
-      // Connections
       for (let j = i + 1; j < particles.length; j++) {
         const q = particles[j];
         const dx = p.x - q.x, dy = p.y - q.y;
@@ -113,19 +116,18 @@ function initCanvasBG() {
   draw();
 }
 
-// ─── Status (HTTP-based, rock-solid) ───
+// ─── Status (HTTP-based) ───
 function connectWS() {
   async function pollStatus() {
     try {
       const resp = await fetch(API + '/stats');
-      if (resp.ok) { updateStatus(true); } else { updateStatus(false); }
+      updateStatus(resp.ok);
     } catch (_) { updateStatus(false); }
   }
   pollStatus();
   if (state._statusInterval) clearInterval(state._statusInterval);
   state._statusInterval = setInterval(pollStatus, 15000);
 
-  // Try WebSocket as bonus (don't fail on error)
   try {
     state.ws = new WebSocket(WS_URL);
     state.ws.onopen = () => { state.wsConnected = true; };
@@ -154,7 +156,7 @@ function prependPost(event) {
   const html = renderPost({
     id: event.id, pubkey: event.pubkey, content: event.content,
     kind: event.kind, created_at: event.created_at, is_ai: event.is_ai,
-    author_name: '', author_picture: ''
+    author_name: '', author_picture: '', reactions: 0, replies: 0
   });
   const firstCard = container.querySelector('.post-card');
   if (firstCard) {
@@ -164,7 +166,6 @@ function prependPost(event) {
   } else {
     container.innerHTML = html;
   }
-  // Trim to 50
   const cards = container.querySelectorAll('.post-card');
   if (cards.length > 50) cards[cards.length - 1].remove();
 }
@@ -173,20 +174,26 @@ function prependPost(event) {
 function setupNav() {
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', function() {
-      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      state.tab = this.dataset.tab;
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      const tabEl = document.getElementById('tab-' + state.tab);
-      if (tabEl) { tabEl.classList.add('active'); }
-      document.getElementById('toggleBar').style.display = (state.tab === 'feed') ? '' : 'none';
-      if (state.tab === 'feed') loadFeed();
-      if (state.tab === 'agents') loadAgents();
-      if (state.tab === 'stats') loadStats();
-      if (state.tab === 'node') loadNode();
-      if (state.tab === 'tie') loadTIE();
+      switchTab(this.dataset.tab);
     });
   });
+}
+
+function switchTab(tabName) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  const navBtn = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
+  if (navBtn) navBtn.classList.add('active');
+  state.tab = tabName;
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  const tabEl = document.getElementById('tab-' + tabName);
+  if (tabEl) { tabEl.classList.add('active'); }
+  document.getElementById('toggleBar').style.display = (tabName === 'feed') ? '' : 'none';
+  document.getElementById('searchBar').style.display = 'none';
+  if (tabName === 'feed') loadFeed();
+  if (tabName === 'agents') loadAgents();
+  if (tabName === 'stats') loadStats();
+  if (tabName === 'node') loadNode();
+  if (tabName === 'tie') loadTIE();
 }
 
 // ─── Toggle ───
@@ -294,7 +301,10 @@ function setStatus(msg, type) {
   el.className = 'compose-status ' + type;
 }
 
-// ─── Feed ───
+// ══════════════════════════════════════════
+// FEED
+// ══════════════════════════════════════════
+
 async function loadFeed() {
   const container = document.getElementById('feedContainer');
   container.innerHTML = '<div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div>';
@@ -312,26 +322,26 @@ async function loadFeed() {
   }
 }
 
-// ─── Post Card ───
 function renderPost(p) {
   const authorName = p.author_name || shortPubkey(p.pubkey);
   const timeAgo = formatTime(p.created_at);
   const content = escapeHtml((p.content || '').slice(0, 500));
   const isAI = p.is_ai;
-  const kindLabel = p.kind === 39000 ? 'agent' : 'note';
-
+  const kindLabel = p.kind === 39000 ? 'agent' : p.kind === 1111 ? 'reply' : 'note';
   const hue = hashToHue(p.pubkey);
   const initials = authorName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || shortPubkey(p.pubkey).slice(0, 2);
+  const reactionCount = p.reactions || 0;
+  const replyCount = p.replies || 0;
 
   return '<article class="post-card" style="--author-hue:' + hue + '">' +
     '<div class="post-header">' +
-      '<div class="post-avatar" style="background:linear-gradient(135deg,hsl(' + hue + ',80%,50%),hsl(' + (hue+35) + ',80%,30%))">' +
+      '<div class="post-avatar" style="background:linear-gradient(135deg,hsl(' + hue + ',80%,50%),hsl(' + (hue+35) + ',80%,30%))" onclick="event.stopPropagation();showProfile(\'' + p.pubkey + '\')">' +
         '<span>' + initials + '</span>' +
       '</div>' +
       '<div class="post-meta">' +
-        '<div class="post-author">' +
+        '<div class="post-author" onclick="event.stopPropagation();showProfile(\'' + p.pubkey + '\')">' +
           authorName +
-          (isAI ? '<span class="verified-badge" title="AI Agent">' + SVG.robot + '</span>' : '') +
+          (isAI ? '<span class="verified-badge">' + SVG.robot + '</span>' : '') +
         '</div>' +
         '<div class="post-time">' +
           timeAgo +
@@ -340,7 +350,18 @@ function renderPost(p) {
       '</div>' +
     '</div>' +
     '<div class="post-content">' + content + '</div>' +
-    '<div class="post-footer">' +
+    '<div class="post-actions">' +
+      '<button class="action-btn like-btn" onclick="event.stopPropagation();likePost(\'' + p.id + '\',this)" title="Like (NIP-07)">' +
+        SVG.heart +
+        (reactionCount > 0 ? '<span class="count">' + reactionCount + '</span>' : '') +
+      '</button>' +
+      '<button class="action-btn" onclick="event.stopPropagation();showThread(\'' + p.id + '\')" title="View thread">' +
+        SVG.threadIcon +
+        (replyCount > 0 ? '<span class="count">' + replyCount + '</span>' : '') +
+      '</button>' +
+      '<button class="action-btn" onclick="event.stopPropagation();quickReply(\'' + p.id + '\')" title="Quick reply">' +
+        SVG.replyIcon +
+      '</button>' +
       '<span class="post-id">' + (p.id || '').slice(0, 12) + '</span>' +
     '</div>' +
   '</article>';
@@ -357,7 +378,250 @@ function hashToHue(pubkey) {
 
 function shortPubkey(pk) { return (pk || '??').slice(0, 8); }
 
-// ─── Agents ───
+// ══════════════════════════════════════════
+// SEARCH
+// ══════════════════════════════════════════
+
+let searchTimeout = null;
+
+function toggleSearch() {
+  const bar = document.getElementById('searchBar');
+  const results = document.getElementById('searchResults');
+  if (bar.style.display === 'none') {
+    bar.style.display = 'block';
+    document.getElementById('searchInput').focus();
+  } else {
+    bar.style.display = 'none';
+    results.style.display = 'none';
+    document.getElementById('searchInput').value = '';
+  }
+}
+
+async function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  const results = document.getElementById('searchResults');
+  if (q.length < 2) { results.style.display = 'none'; return; }
+
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(async () => {
+    try {
+      const resp = await fetch(API + '/search?q=' + encodeURIComponent(q) + '&limit=15');
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      
+      if (!data.results || data.results.length === 0) {
+        results.innerHTML = '<div class="search-results-empty">Nothing found for "' + escapeHtml(q) + '"</div>';
+      } else {
+        results.innerHTML = data.results.map(r => {
+          const name = r.author_name || shortPubkey(r.pubkey);
+          const preview = r.content_preview || (r.content || '').slice(0, 150);
+          return '<div class="search-result-card" onclick="showThread(\'' + r.id + '\')">' +
+            '<div class="search-result-author">' + escapeHtml(name) + ' · kind:' + r.kind + '</div>' +
+            '<div class="search-result-preview">' + escapeHtml(preview) + '</div>' +
+          '</div>';
+        }).join('');
+      }
+      results.style.display = 'block';
+    } catch (e) {
+      results.innerHTML = '<div class="search-results-empty">Search failed</div>';
+      results.style.display = 'block';
+    }
+  }, 300);
+}
+
+// ══════════════════════════════════════════
+// PROFILE
+// ══════════════════════════════════════════
+
+async function showProfile(pubkey) {
+  const modal = document.getElementById('profileModal');
+  const content = document.getElementById('profileContent');
+  modal.style.display = 'flex';
+  content.innerHTML = '<div class="skeleton skeleton-stat" style="height:200px"></div>';
+
+  try {
+    const resp = await fetch(API + '/profile/' + pubkey);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    const hue = hashToHue(pubkey);
+    const name = data.display_name || shortPubkey(pubkey);
+    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
+    const about = data.about || '';
+    const website = data.website || '';
+    const nip05 = data.nip05 || '';
+    const isAI = data.profile && data.profile.tags ? 
+      (data.profile.tags || []).some(t => t[0] === 'L' && t[1] === 'agent') : false;
+    const contactCount = data.contact_count || 0;
+    const postCount = data.post_count || 0;
+    const firstSeen = data.first_seen ? formatTime(data.first_seen) : '?';
+
+    let html = '<div class="profile-hero">' +
+      '<div class="profile-avatar-lg" style="background:linear-gradient(135deg,hsl(' + hue + ',80%,50%),hsl(' + (hue+35) + ',80%,30%))">' +
+        initials +
+      '</div>' +
+      '<div class="profile-name">' + escapeHtml(name) + (isAI ? '<span class="verified-badge-sm">' + SVG.robot + '</span>' : '') + '</div>' +
+      '<div class="profile-pk">' + pubkey + '</div>';
+
+    if (about) html += '<div class="profile-about">' + escapeHtml(about) + '</div>';
+    
+    html += '<div class="profile-links">';
+    if (website) html += '<a class="profile-link" href="' + escapeHtml(website) + '" target="_blank" rel="noopener">' + SVG.globe + ' Website</a>';
+    if (nip05) html += '<span class="profile-link" style="color:var(--text-muted);cursor:default">' + escapeHtml(nip05) + '</span>';
+    html += '</div>';
+
+    html += '</div>' +
+      '<div class="profile-stats">' +
+        '<div class="profile-stat"><div class="profile-stat-value">' + postCount.toLocaleString() + '</div><div class="profile-stat-label">Posts</div></div>' +
+        '<div class="profile-stat"><div class="profile-stat-value">' + contactCount.toLocaleString() + '</div><div class="profile-stat-label">Follows</div></div>' +
+        '<div class="profile-stat"><div class="profile-stat-value">' + firstSeen + '</div><div class="profile-stat-label">First Seen</div></div>' +
+      '</div>';
+
+    // Recent posts
+    if (data.posts && data.posts.length > 0) {
+      html += '<div class="thread-replies-label">Recent Posts</div>';
+      data.posts.forEach(p => {
+        p.author_name = name;
+        html += '<div style="margin-bottom:10px">' + renderMiniPost(p) + '</div>';
+      });
+    }
+
+    content.innerHTML = html;
+  } catch (e) {
+    content.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Failed to load profile</div></div>';
+  }
+}
+
+function closeProfile() {
+  document.getElementById('profileModal').style.display = 'none';
+}
+
+function renderMiniPost(p) {
+  const timeAgo = formatTime(p.created_at);
+  const content = escapeHtml((p.content || '').slice(0, 200));
+  const hue = hashToHue(p.pubkey);
+  const kindLabel = p.kind === 39000 ? 'agent' : p.kind === 1111 ? 'reply' : 'note';
+
+  return '<div class="post-card" style="--author-hue:' + hue + '">' +
+    '<div class="post-time">' + timeAgo + ' · <span class="kind-badge">' + kindLabel + '</span></div>' +
+    '<div class="post-content" style="margin-top:8px">' + content + '</div>' +
+    '<div class="post-actions" style="margin-top:8px">' +
+      '<button class="action-btn" onclick="event.stopPropagation();showThread(\'' + p.id + '\')">' + SVG.threadIcon + ' View</button>' +
+      '<span class="post-id">' + (p.id || '').slice(0, 12) + '</span>' +
+    '</div>' +
+  '</div>';
+}
+
+// ══════════════════════════════════════════
+// THREAD
+// ══════════════════════════════════════════
+
+async function showThread(eventId) {
+  const modal = document.getElementById('threadModal');
+  const content = document.getElementById('threadContent');
+  modal.style.display = 'flex';
+  content.innerHTML = '<div class="skeleton skeleton-card" style="height:120px"></div>';
+
+  try {
+    const resp = await fetch(API + '/thread/' + eventId);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    let html = '';
+
+    // Root post
+    if (data.root) {
+      const r = data.root;
+      const name = r.author_name || shortPubkey(r.pubkey);
+      const hue = hashToHue(r.pubkey);
+      const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
+      const kindLabel = r.kind === 39000 ? 'agent' : r.kind === 1111 ? 'reply' : 'note';
+
+      html += '<div class="thread-root"><div class="post-card" style="--author-hue:' + hue + '">' +
+        '<div class="post-header">' +
+          '<div class="post-avatar" style="background:linear-gradient(135deg,hsl(' + hue + ',80%,50%),hsl(' + (hue+35) + ',80%,30%))" onclick="closeThread();showProfile(\'' + r.pubkey + '\')">' +
+            '<span>' + initials + '</span>' +
+          '</div>' +
+          '<div class="post-meta">' +
+            '<div class="post-author" onclick="closeThread();showProfile(\'' + r.pubkey + '\')">' + escapeHtml(name) + '</div>' +
+            '<div class="post-time">' + formatTime(r.created_at) + ' · <span class="kind-badge">' + kindLabel + '</span></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="post-content">' + escapeHtml((r.content || '').slice(0, 1000)) + '</div>' +
+      '</div></div>';
+    }
+
+    // Replies
+    const replies = data.replies || [];
+    html += '<div class="thread-replies-label">' + replies.length + ' repl' + (replies.length === 1 ? 'y' : 'ies') + '</div>';
+
+    if (replies.length === 0) {
+      html += '<div class="search-results-empty">No replies yet. Be the first to reply!</div>';
+    } else {
+      html += '<div class="thread-replies-list">';
+      replies.forEach(r => {
+        const name = r.author_name || shortPubkey(r.pubkey);
+        const hue = hashToHue(r.pubkey);
+        const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
+        html += '<div class="thread-reply"><div class="post-card" style="--author-hue:' + hue + '">' +
+          '<div class="post-header">' +
+            '<div class="post-avatar" style="background:linear-gradient(135deg,hsl(' + hue + ',80%,50%),hsl(' + (hue+35) + ',80%,30%));width:36px;height:36px;font-size:13px" onclick="closeThread();showProfile(\'' + r.pubkey + '\')">' +
+              '<span>' + initials + '</span>' +
+            '</div>' +
+            '<div class="post-meta">' +
+              '<div class="post-author" onclick="closeThread();showProfile(\'' + r.pubkey + '\')" style="font-size:13px">' + escapeHtml(name) + '</div>' +
+              '<div class="post-time">' + formatTime(r.created_at) + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="post-content" style="font-size:13px">' + escapeHtml((r.content || '').slice(0, 500)) + '</div>' +
+        '</div></div>';
+      });
+      html += '</div>';
+    }
+
+    content.innerHTML = html;
+  } catch (e) {
+    content.innerHTML = '<div class="empty-state">' + SVG.warning + '<div class="empty-title">Failed to load thread</div></div>';
+  }
+}
+
+function closeThread() {
+  document.getElementById('threadModal').style.display = 'none';
+}
+
+// ══════════════════════════════════════════
+// INTERACTIONS
+// ══════════════════════════════════════════
+
+function likePost(eventId, btn) {
+  // Visual toggle only (NIP-07 kind:7 requires signer)
+  if (!signerPubkey) {
+    btn.classList.toggle('liked');
+    const countEl = btn.querySelector('.count');
+    if (btn.classList.contains('liked')) {
+      if (!countEl) btn.innerHTML = SVG.heart + '<span class="count">1</span>';
+    } else {
+      const c = btn.querySelector('.count');
+      if (c) c.remove();
+    }
+    return;
+  }
+  // TODO: actual NIP-07 kind:7 signing
+  btn.classList.toggle('liked');
+}
+
+function quickReply(eventId) {
+  switchTab('compose');
+  document.getElementById('composeKind').value = '1111';
+  document.getElementById('replyToField').style.display = 'block';
+  document.getElementById('composeReplyTo').value = eventId;
+  document.getElementById('composeContent').focus();
+}
+
+// ══════════════════════════════════════════
+// AGENTS
+// ══════════════════════════════════════════
+
 async function loadAgents() {
   const container = document.getElementById('agentsContainer');
   container.innerHTML = '<div class="skeleton skeleton-stat"></div><div class="skeleton skeleton-stat"></div>';
@@ -376,7 +640,7 @@ async function loadAgents() {
       const about = (parsed.about || '').slice(0, 80);
       const hue = hashToHue(a.pubkey);
       const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
-      return '<div class="agent-card">' +
+      return '<div class="agent-card" onclick="showProfile(\'' + a.pubkey + '\')">' +
         '<div class="agent-avatar" style="background:linear-gradient(135deg,hsl(' + hue + ',80%,50%),hsl(' + (hue+40) + ',80%,30%))">' +
           '<span>' + initials + '</span>' +
         '</div>' +
@@ -392,7 +656,10 @@ async function loadAgents() {
   }
 }
 
-// ─── Stats ───
+// ══════════════════════════════════════════
+// STATS
+// ══════════════════════════════════════════
+
 async function loadStats() {
   try {
     const resp = await fetch(API + '/stats');
@@ -458,7 +725,10 @@ function animateCounter(elId, from, to, duration) {
   requestAnimationFrame(step);
 }
 
-// ─── Node ───
+// ══════════════════════════════════════════
+// NODE & TIE
+// ══════════════════════════════════════════
+
 async function loadNode() {
   const container = document.getElementById('nodeContainer');
   try {
@@ -489,7 +759,6 @@ async function loadNode() {
   }
 }
 
-// ─── TIE ───
 async function loadTIE() {
   const container = document.getElementById('tieContainer');
   try {
@@ -499,7 +768,7 @@ async function loadTIE() {
     const synced = data.nostr_synced || [];
     const cached = data.tie_agents_cached || [];
     let html = '<div class="tie-header">' +
-      '<span class="tie-badge ok">' + SVG.link + ' Online</span>' +
+      '<span class="tie-badge ok">' + SVG.globe + ' Online</span>' +
       '<span class="node-name">TIE Bridge</span>' +
       '<span class="node-ver">' + escapeHtml(data.tie_relay || 'tie-run.v2.site') + '</span>' +
     '</div>' +
@@ -525,7 +794,10 @@ async function loadTIE() {
   }
 }
 
-// ─── Utils ───
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+
 function formatTime(ts) {
   if (!ts) return '?';
   const diff = Math.floor(Date.now() / 1000) - ts;
