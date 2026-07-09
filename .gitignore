@@ -1,14 +1,71 @@
-*.log
-*.rdb
+# Dependencies
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.secret
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+*.rdb
+dump.rdb
+
+# Logs
+*.log
+logs/
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Sensitive
+identities/
+*.cheque_key
+*.pem
+*.key
+*.keystore
+
+# Runtime state
+*.pid
+*.sock
+*.lock
+/tmp/
+
+# Status files (runtime)
 circuit_breaker_status.json
 health_status.json
 pulse_status.json
-app.log
-backend.log
-dump.rdb
-*.db
 
-logs/
+# Agent data
+agents.json
+buffer_zone.json
+capabilities.json
+chrono_agents_mesh.json
+devices.json
+relay_list.txt
+nip65_relay_list.json
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Docker
+docker-compose.override.yml

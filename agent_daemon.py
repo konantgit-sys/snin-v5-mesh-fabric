@@ -32,15 +32,15 @@ from reputation import calculate_reputation, get_reputation_for_pubkey
 NOSTR_KEYS = {
     "forecaster_ai": {
         "npub": "npub1qplr6kz4eeqdhy8mwumhq5m6yftfhl7tc5vrns350nresqksl8rq28c9ce",
-        "nsec": "nsec1mdc2lfqg9cc4swgkldqw6ztwhawazm4sz3a52vm4h7p9mdw7wsfsyv7vm4",
+        "nsec": "nsec1...SET_VIA_ENV",
     },
     "archivist_ai": {
         "npub": "npub1hnaz4q7fqlsv565w770xl56prkfddk9xmjrk2r9lhg4xkrl04tzq3xu8c4",
-        "nsec": "nsec1gklepes03plj9etqryht55cytgs2yzvqhv0uhpyhgzvhfrvs788stw97ax",
+        "nsec": "nsec1...SET_VIA_ENV",
     },
     "anton_ai": {
         "npub": "npub1umau63896ryszn2jw9sx8hvvaw4l25tagfaty90u27nhsfqdadjsp640jk",
-        "nsec": "nsec1xpz3vk5dw8mg29j7ec8d9yk7uwerkakkg947dx87r3j80n2szuqsrcxdfr",
+        "nsec": "nsec1...SET_VIA_ENV",
     },
 }
 
