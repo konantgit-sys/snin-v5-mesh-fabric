@@ -1,0 +1,482 @@
+#!/usr/bin/env python3
+"""External Sync Daemon — pulls reactions/comments from external Nostr relays.
+
+Phase 3: Relay mesh synchronization.
+Queries external relays for kind:7 (reactions) and kind:1111 (comments) 
+referencing Cryter's posts. Stores in local relay_v2.db.
+
+Run: python3 external_sync.py [--interval 300] [--once]
+"""
+
+import asyncio
+import json
+import os
+import ssl
+import sys
+import time
+import sqlite3
+from datetime import datetime, timezone
+from collections import defaultdict
+
+import websockets
+from langdetect import detect, DetectorFactory, LangDetectException
+
+DetectorFactory.seed = 0
+
+import websockets
+
+# ─── Config ──────────────────────────────────────────────────────────────
+# Language filter: only RU and EN
+ALLOWED_LANGS = {'ru', 'en'}
+
+def detect_lang(text: str) -> str:
+    """Detect language, return 'unknown' on failure."""
+    if not text or len(text.strip()) < 3:
+        return 'unknown'
+    try:
+        return detect(text.strip())
+    except LangDetectException:
+        return 'unknown'
+
+def is_allowed_lang(text: str) -> bool:
+    """Check if text is in an allowed language."""
+    lang = detect_lang(text)
+    return lang in ALLOWED_LANGS
+
+
+def get_missing_profile_pubkeys(db_path: str, limit: int = 50) -> list[str]:
+    """Get pubkeys from kind:1 that have no kind:0 profile."""
+    db = sqlite3.connect(db_path)
+    rows = db.execute("""
+        SELECT DISTINCT e1.pubkey 
+        FROM events e1 
+        WHERE e1.kind=1 
+          AND NOT EXISTS (
+            SELECT 1 FROM events e0 
+            WHERE e0.kind=0 AND e0.pubkey=e1.pubkey
+          )
+        LIMIT ?
+    """, (limit,)).fetchall()
+    db.close()
+    return [r[0] for r in rows]
+
+
+async def sync_author_profiles(relay_url: str, pubkeys: list[str]) -> int:
+    """Query kind:0 profiles for a list of pubkeys. Returns count stored."""
+    stored = 0
+    
+    # Split into batches (some relays reject large author filters)
+    batch_size = 10
+    for i in range(0, len(pubkeys), batch_size):
+        batch = pubkeys[i:i+batch_size]
+        ws = None
+        try:
+            ws = await asyncio.wait_for(
+                websockets.connect(relay_url, ssl=SSL_CTX, max_size=1_000_000),
+                timeout=10
+            )
+        except BaseException:
+            stats['conn_fails'] += 1
+            return stored
+        
+        try:
+            sub_id = f"prof_{int(time.time())}_{i}"
+            sub = json.dumps(["REQ", sub_id, {
+                "kinds": [0],
+                "authors": batch,
+            }])
+            await ws.send(sub)
+            
+            events = []
+            try:
+                while True:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=3)
+                    data = json.loads(msg)
+                    if not isinstance(data, list) or len(data) < 2:
+                        continue
+                    if data[0] == "EVENT" and len(data) >= 3:
+                        events.append(data[2])
+                    elif data[0] == "EOSE":
+                        break
+                    elif data[0] == "CLOSED":
+                        break
+            except asyncio.TimeoutError:
+                pass
+            
+            for ev in events:
+                if store_event(RELAY_DB, ev):
+                    stored += 1
+            
+            await ws.send(json.dumps(["CLOSE", sub_id]))
+        except BaseException:
+            pass
+        finally:
+            try:
+                await ws.close()
+            except:
+                pass
+        
+        # Brief pause between batches
+        await asyncio.sleep(0.5)
+    
+    stats['conn_ok'] += 1
+    return stored
+
+CRYTER_PK = "8ae7965af1b61347bb9900b91cfa9487e4da2400bdb063521ad0850706ff5f96"
+RELAY_DB = "/home/agent/data/sites/relay/relay_v2.db"
+SYNC_LOG = "/tmp/external_sync.log"
+
+EXTERNAL_RELAYS = [
+    "wss://relay.damus.io",
+    "wss://relay.primal.net",
+    "wss://nos.lol",
+    "wss://relay.nostr.band",
+    "wss://purplepag.es",
+]
+
+# How many recent Cryter events to check
+MAX_EVENT_IDS = 50
+# How long to wait between sync cycles (seconds)
+DEFAULT_INTERVAL = 300
+
+# ─── SSL context ─────────────────────────────────────────────────────────
+SSL_CTX = ssl.create_default_context()
+SSL_CTX.check_hostname = False
+SSL_CTX.verify_mode = ssl.CERT_NONE
+
+# ─── Stats ───────────────────────────────────────────────────────────────
+stats = defaultdict(int)
+
+
+def log(msg: str):
+    ts = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+    line = f"[{ts}] {msg}"
+    print(line, flush=True)
+    with open(SYNC_LOG, 'a') as f:
+        f.write(line + '\n')
+
+
+def get_recent_event_ids(db_path: str, limit: int = 50) -> list[str]:
+    """Get recent Cryter event IDs from local relay."""
+    db = sqlite3.connect(db_path)
+    rows = db.execute(
+        "SELECT id FROM events WHERE pubkey=? AND kind=1 ORDER BY created_at DESC LIMIT ?",
+        (CRYTER_PK, limit)
+    ).fetchall()
+    db.close()
+    return [r[0] for r in rows]
+
+
+def event_already_stored(db_path: str, event_id: str) -> bool:
+    """Check if event already in DB."""
+    db = sqlite3.connect(db_path)
+    exists = db.execute(
+        "SELECT 1 FROM events WHERE id=? LIMIT 1", (event_id,)
+    ).fetchone()
+    db.close()
+    return exists is not None
+
+
+def store_event(db_path: str, event: dict) -> bool:
+    """Store a Nostr event in relay_v2.db. Returns True if new."""
+    
+    event_id = event.get('id', '')
+    if not event_id:
+        return False
+    
+    if event_already_stored(db_path, event_id):
+        return False  # Already stored
+    
+    pubkey = event.get('pubkey', '')
+    created_at = event.get('created_at', 0)
+    kind = event.get('kind', 0)
+    content = event.get('content', '')
+    sig = event.get('sig', '')
+    tags = event.get('tags', [])
+    
+    db = sqlite3.connect(db_path)
+    db.execute("""
+        INSERT INTO events (id, pubkey, created_at, kind, tags_json, content, sig, received_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        event_id,
+        pubkey,
+        created_at,
+        kind,
+        json.dumps(tags),
+        content,
+        sig,
+        int(time.time())
+    ))
+    
+    # Store tags
+    for tag in tags:
+        if len(tag) >= 2:
+            db.execute(
+                "INSERT INTO tags (event_id, tag_type, tag_value) VALUES (?, ?, ?)",
+                (event_id, tag[0], tag[1])
+            )
+    
+    db.commit()
+    db.close()
+    return True
+
+
+async def query_relay_reactions(relay_url: str, event_ids: list[str]) -> list[dict]:
+    """Query a relay for reactions/comments/zaps on Cryter's events."""
+    ws = None
+    try:
+        ws = await asyncio.wait_for(
+            websockets.connect(relay_url, ssl=SSL_CTX, max_size=5_000_000),
+            timeout=10
+        )
+    except BaseException as e:
+        log(f"  {relay_url}: connection failed — {str(e)[:60]}")
+        stats['conn_fails'] += 1
+        return []
+    
+    try:
+        sub_id = f"sync_{int(time.time())}"
+        sub = json.dumps(["REQ", sub_id, {
+            "kinds": [7, 1111, 6, 9735],
+            "#e": event_ids[:20],
+            "limit": 50,
+        }])
+        await ws.send(sub)
+        
+        events = []
+        try:
+            while True:
+                msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                data = json.loads(msg)
+                if not isinstance(data, list) or len(data) < 2:
+                    continue
+                msg_type = data[0]
+                if msg_type == "EVENT" and len(data) >= 3:
+                    event = data[2]
+                    if event.get('pubkey') != CRYTER_PK:
+                        events.append(event)
+                elif msg_type == "EOSE":
+                    break
+                elif msg_type == "NOTICE":
+                    log(f"  {relay_url} NOTICE: {data[1][:80]}")
+        except (asyncio.TimeoutError, Exception):
+            pass
+        
+        return events
+    finally:
+        try:
+            await ws.close()
+        except BaseException:
+            pass
+
+
+async def query_followed_posts(relay_url: str, followed_pks: list[str]) -> list[dict]:
+    """Query a relay for recent posts from followed authors."""
+    ws = None
+    try:
+        ws = await asyncio.wait_for(
+            websockets.connect(relay_url, ssl=SSL_CTX, max_size=5_000_000),
+            timeout=10
+        )
+    except BaseException:
+        stats['conn_fails'] += 1
+        return []
+    
+    try:
+        sub = json.dumps(["REQ", f"followed_{int(time.time())}", {
+            "kinds": [1],
+            "authors": followed_pks[:10],
+            "limit": 5,
+        }])
+        await ws.send(sub)
+        
+        events = []
+        try:
+            while True:
+                msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                data = json.loads(msg)
+                if not isinstance(data, list) or len(data) < 2:
+                    continue
+                if data[0] == "EVENT" and len(data) >= 3:
+                    events.append(data[2])
+                elif data[0] == "EOSE":
+                    break
+        except (asyncio.TimeoutError, Exception):
+            pass
+        
+        return events
+    finally:
+        try:
+            await ws.close()
+        except BaseException:
+            pass
+
+
+async def query_global_feed(relay_url: str, limit: int = 15) -> list[dict]:
+    """Phase 4: Query a relay for recent global kind:1 posts (no author filter).
+    This pulls the same kind of global feed that Damus/Primal show."""
+    ws = None
+    try:
+        ws = await asyncio.wait_for(
+            websockets.connect(relay_url, ssl=SSL_CTX, max_size=10_000_000),
+            timeout=10
+        )
+    except BaseException:
+        stats['conn_fails'] += 1
+        return []
+    
+    try:
+        sub = json.dumps(["REQ", f"global_{int(time.time())}", {
+            "kinds": [1],
+            "limit": limit,
+        }])
+        await ws.send(sub)
+        
+        events = []
+        try:
+            while True:
+                msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                try:
+                    data = json.loads(msg)
+                except json.JSONDecodeError:
+                    continue
+                
+                if not isinstance(data, list) or len(data) < 2:
+                    continue
+                
+                if data[0] == "EVENT" and len(data) >= 3:
+                    ev = data[2]
+                    if ev.get('pubkey') != CRYTER_PK:
+                        content = ev.get('content', '')
+                        if is_allowed_lang(content):
+                            events.append(ev)
+                elif data[0] == "EOSE":
+                    break
+        except asyncio.TimeoutError:
+            pass
+        except Exception:
+            pass
+        
+        return events
+    finally:
+        try:
+            await ws.close()
+        except Exception:
+            pass
+
+
+def get_followed_pubkeys(db_path: str) -> list[str]:
+    """Get pubkeys from Cryter's kind:3 contact list."""
+    db = sqlite3.connect(db_path)
+    rows = db.execute(
+        "SELECT tags_json FROM events WHERE pubkey=? AND kind=3 ORDER BY created_at DESC LIMIT 1",
+        (CRYTER_PK,)
+    ).fetchone()
+    db.close()
+    
+    if not rows:
+        return []
+    
+    tags = json.loads(rows[0])
+    pks = [tag[1] for tag in tags if tag[0] == 'p' and len(tag) > 1]
+    return pks
+
+
+async def sync_cycle():
+    """One full sync cycle: query all external relays for reactions + comments."""
+    log("=== Sync cycle start ===")
+    
+    event_ids = get_recent_event_ids(RELAY_DB, MAX_EVENT_IDS)
+    log(f"  Event IDs to check: {len(event_ids)}")
+    
+    # Also get followed pubkeys for pulling their posts
+    followed_pks = get_followed_pubkeys(RELAY_DB)
+    log(f"  Followed pubkeys: {len(followed_pks)}")
+    
+    total_new = 0
+    
+    for relay_url in EXTERNAL_RELAYS:
+        # Query reactions/comments on Cryter's events
+        events = await query_relay_reactions(relay_url, event_ids)
+        
+        stored = 0
+        for ev in events:
+            if store_event(RELAY_DB, ev):
+                stored += 1
+        
+        if stored > 0:
+            log(f"  {relay_url}: {len(events)} found, {stored} new stored")
+        total_new += stored
+        
+        # Also query posts from followed authors
+        if followed_pks:
+            posts = await query_followed_posts(relay_url, followed_pks)
+            pstored = 0
+            for ev in posts:
+                if store_event(RELAY_DB, ev):
+                    pstored += 1
+            if pstored > 0:
+                log(f"  {relay_url}: {len(posts)} followed posts, {pstored} new")
+            total_new += pstored
+        
+        # Phase 4: Global feed — pull recent kind:1 from all relays
+        global_posts = await query_global_feed(relay_url, limit=15)
+        gstored = 0
+        for ev in global_posts:
+            if store_event(RELAY_DB, ev):
+                gstored += 1
+        if gstored > 0:
+            log(f"  {relay_url}: global fed {len(global_posts)} posts, {gstored} new")
+        total_new += gstored
+        stats['global_posts'] += gstored
+    
+    # Phase 5: Pull kind:0 profiles for authors we don't have
+    missing_pks = get_missing_profile_pubkeys(RELAY_DB, limit=50)
+    if missing_pks:
+        stored_profiles = 0
+        for relay_url in EXTERNAL_RELAYS[:3]:  # Use first 3 relays
+            n = await sync_author_profiles(relay_url, missing_pks)
+            stored_profiles += n
+        if stored_profiles > 0:
+            log(f"  Profiles synced: {stored_profiles} kind:0 for {len(missing_pks)} missing authors")
+    
+    log(f"  Total new events: {total_new}")
+    stats['total_synced'] += total_new
+    stats['cycles'] += 1
+    
+    # Count by kind
+    db = sqlite3.connect(RELAY_DB)
+    k7 = db.execute("SELECT COUNT(*) FROM events WHERE kind=7").fetchone()[0]
+    k1111 = db.execute("SELECT COUNT(*) FROM events WHERE kind=1111").fetchone()[0]
+    db.close()
+    log(f"  DB state: kind:7={k7}, kind:1111={k1111}, total_non_cryter_kind1=...")
+    
+    return total_new
+
+
+async def run_daemon(interval: int):
+    """Run sync cycles continuously."""
+    log(f"Starting External Sync Daemon — interval={interval}s, {len(EXTERNAL_RELAYS)} relays")
+    
+    while True:
+        try:
+            await sync_cycle()
+        except BaseException as e:
+            log(f"CRASH in sync_cycle: {type(e).__name__}: {e}")
+        
+        log(f"Sleeping {interval}s...")
+        await asyncio.sleep(interval)
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--interval", type=int, default=DEFAULT_INTERVAL, help="Seconds between cycles")
+    parser.add_argument("--once", action="store_true", help="Run one cycle and exit")
+    args = parser.parse_args()
+    
+    if args.once:
+        asyncio.run(sync_cycle())
+    else:
+        asyncio.run(run_daemon(args.interval))

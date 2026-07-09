@@ -24,17 +24,17 @@ sys.path.insert(0, "/home/agent/data/sites/relay-mesh")
 # ─── Ключи агентов ───
 AGENTS = {
     "forecaster_ai": {
-        "nsec": "nsec1REMOVED_BY_PURGE",
+        "nsec": "nsec1...SET_VIA_ENV",
         "npub": "npub1qplr6kz4eeqdhy8mwumhq5m6yftfhl7tc5vrns350nresqksl8rq28c9ce",
         "role": "forecaster",
     },
     "archivist_ai": {
-        "nsec": "nsec1REMOVED_BY_PURGE",
+        "nsec": "nsec1...SET_VIA_ENV",
         "npub": "npub1hnaz4q7fqlsv565w770xl56prkfddk9xmjrk2r9lhg4xkrl04tzq3xu8c4",
         "role": "archivist",
     },
     "anton_ai": {
-        "nsec": "nsec1REMOVED_BY_PURGE",
+        "nsec": "nsec1...SET_VIA_ENV",
         "npub": "npub1umau63896ryszn2jw9sx8hvvaw4l25tagfaty90u27nhsfqdadjsp640jk",
         "role": "assistant",
     },

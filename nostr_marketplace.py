@@ -30,7 +30,7 @@ from nostr.key import PrivateKey, PublicKey
 import websockets
 
 # ═══ Cryter's real Nostr identity ═══
-CRYTER_NSEC = "nsec1REMOVED_BY_PURGE"
+CRYTER_NSEC = "nsec1...SET_VIA_ENV"
 CRYTER_NPUB = "npub13tnevkh3kcf50wueqzu3e755sljd5fqqhkcxx5s66zzswphlt7tqe87x6n"
 
 # ═══ Nostr relay list (working, проверенные) ═══
