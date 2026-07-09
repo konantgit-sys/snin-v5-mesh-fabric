@@ -69,3 +69,7 @@ htmlcov/
 
 # Docker
 docker-compose.override.yml
+
+# Agent registry and keys (runtime)
+.agents_registry.json
+.cheque_key
