@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1">
+<title>Ожидание активации · SNIN</title>
+<link rel="stylesheet" href="/css/hub.css">
+<style>
+.pending-container{display:flex;align-items:center;justify-content:center;min-height:80vh;padding:20px}
+.pending-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:40px 32px;max-width:440px;width:100%;text-align:center}
+.pending-card .icon-wrap{width:64px;height:64px;border-radius:50%;background:rgba(212,168,67,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.pending-card .icon-wrap svg{width:32px;height:32px;stroke:var(--gold)}
+.pending-card h1{font-size:20px;margin:0 0 8px}
+.pending-card h2{font-size:13px;color:var(--text2);font-weight:400;line-height:1.6;margin:0 0 24px}
+.pending-card .steps{text-align:left;background:var(--bg);border-radius:var(--radius-sm);padding:16px 20px;margin-bottom:20px}
+.pending-card .steps .step{display:flex;align-items:flex-start;gap:10px;padding:6px 0;font-size:12px;color:var(--text2)}
+.pending-card .steps .step .num{width:22px;height:22px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;color:var(--text3)}
+.pending-card .steps .step.active .num{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.pending-card .steps .step.active{color:var(--text)}
+.pending-card .status-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:var(--radius-sm);margin-bottom:16px;font-size:12px;color:var(--amber)}
+.pending-card .status-bar .pulse{width:8px;height:8px;border-radius:50%;background:var(--amber);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.pending-card .retry-btn{margin-top:8px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="pending-container">
+  <div class="pending-card anim-fade">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    </div>
+    <h1>Аккаунт ожидает активации</h1>
+    <h2>Ваша регистрация принята. Администратор сети рассматривает заявку. Это защита от спама и ботов.</h2>
+
+    <div class="status-bar" id="statusBar">
+      <div class="pulse"></div>
+      <span id="statusText">Проверка статуса...</span>
+    </div>
+
+    <div class="steps">
+      <div class="step active" id="step1">
+        <div class="num">1</div>
+        <span>Регистрация — <strong>выполнено</strong></span>
+      </div>
+      <div class="step" id="step2">
+        <div class="num">2</div>
+        <span>Проверка администратором</span>
+      </div>
+      <div class="step" id="step3">
+        <div class="num">3</div>
+        <span>Активация — доступ к порталу</span>
+      </div>
+    </div>
+
+    <button class="btn btn-sm retry-btn" onclick="checkStatus()">🔄 Проверить статус</button>
+  </div>
+</div>
+
+<script>
+async function checkStatus(){
+  const bar=document.getElementById('statusBar');
+  const txt=document.getElementById('statusText');
+  const s2=document.getElementById('step2');
+  const s3=document.getElementById('step3');
+
+  try{
+    const r=await fetch('/api/v1/session');
+    const d=await r.json();
+
+    if(d.ok&&d.data&&d.data.role!=='pending'){
+      // Activated! Redirect to portal
+      txt.textContent='✅ Активирован! Перенаправление...';
+      bar.style.background='rgba(34,197,94,.08)';
+      bar.style.borderColor='rgba(34,197,94,.2)';
+      bar.querySelector('.pulse').style.background='var(--green)';
+      s2.classList.add('active');
+      s3.classList.add('active');
+      setTimeout(()=>window.location.href='/portal.html',1500);
+      return;
+    }
+
+    if(d.data&&d.data.status==='pending_2fa'){
+      txt.textContent='Требуется двухфакторная аутентификация';
+      bar.style.background='rgba(59,130,246,.08)';
+      bar.style.borderColor='rgba(59,130,246,.2)';
+      bar.querySelector('.pulse').style.background='var(--blue)';
+      return;
+    }
+
+    txt.textContent='Ожидание подтверждения администратором...';
+    s2.classList.add('active');
+  }catch(e){
+    txt.textContent='Не удалось проверить статус. Попробуйте позже.';
+  }
+}
+
+// Auto-check every 15 seconds
+checkStatus();
+setInterval(checkStatus,15000);
+</script>
+</body>
+</html>

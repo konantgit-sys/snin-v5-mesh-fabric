@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1">
+<title>API-ключи · SNIN</title>
+<link rel="stylesheet" href="/css/hub.css">
+<style>
+.key-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:8px;transition:all 0.2s var(--ease-out)}
+.key-card:hover{border-color:var(--accent)}
+.key-card .k-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.key-card .k-name{font-weight:600;font-size:14px}
+.key-card .k-prefix{font-family:monospace;font-size:11px;color:var(--accent);background:rgba(0,229,255,.08);padding:2px 8px;border-radius:4px;cursor:pointer;transition:0.15s}
+.key-card .k-prefix:hover{background:rgba(0,229,255,.15)}
+.key-card .k-meta{display:flex;gap:16px;font-size:10px;color:var(--text3);flex-wrap:wrap}
+.key-card .k-meta span{display:flex;align-items:center;gap:3px}
+.key-card .k-actions{margin-left:auto;display:flex;gap:6px}
+.key-card .k-actions button{font-size:10px;padding:4px 10px}
+.key-card.disabled{opacity:.4;border-style:dashed}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-state svg{margin-bottom:12px;opacity:.3}
+.key-reveal{background:var(--bg);border:1px dashed var(--accent);border-radius:var(--radius-sm);padding:12px 16px;margin:8px 0;font-family:monospace;font-size:11px;word-break:break-all;color:var(--accent);position:relative}
+.key-reveal .copy-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;padding:4px 8px}
+.key-reveal .warn{color:var(--amber);font-size:9px;margin-top:6px;display:block}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:420px;width:90%}
+.modal-box h3{margin:0 0 12px;font-size:16px}
+.modal-box input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:8px 12px;font-size:13px;margin-bottom:10px}
+.modal-box .btn-row{display:flex;gap:8px;justify-content:flex-end}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.anim-fade{animation:fadeIn 0.3s var(--ease-out)}
+</style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    SNIN <span>Hub</span><small>v3.0</small>
+  </div>
+  <div class="s-group">
+    <div class="s-label">Главная</div>
+    <a href="/portal.html"><span class="s-icon">📊</span> Дашборд</a>
+  </div>
+  <div class="s-group">
+    <div class="s-label">Пользователь</div>
+    <a href="/profile.html"><span class="s-icon">👤</span> Профиль</a>
+    <a href="/apikeys.html" class="active"><span class="s-icon">🔑</span> API-ключи</a>
+    <a href="/invites.html"><span class="s-icon">🔗</span> Инвайты</a>
+    <a href="/ranks.html"><span class="s-icon">🏆</span> Ранги</a>
+    <a href="/notifications.html"><span class="s-icon">🔔</span> Уведомления</a>
+    <a href="/news.html"><span class="s-icon">📰</span> Новости</a>
+    <a href="/guides.html"><span class="s-icon">📖</span> Гайды</a>
+  </div>
+  <div class="s-group">
+    <div class="s-label">Экосистема</div>
+    <a href="/agents.html"><span class="s-icon">🤖</span> Агенты</a>
+    <a href="/channel.html"><span class="s-icon">📢</span> Канал</a>
+    <a href="/documents.html"><span class="s-icon">📄</span> Документы</a>
+    <a href="/analytics.html"><span class="s-icon">📈</span> Аналитика</a>
+    <a href="/metrics.html"><span class="s-icon">📊</span> Метрики</a>
+  </div>
+  <div class="sidebar-bottom">
+    <a href="#" onclick="logout()"><span class="s-icon">🚪</span> Выйти</a>
+  </div>
+</aside>
+<div class="app-layout">
+  <div class="main-area">
+    <div class="top-row">
+      <div class="tr-left">
+        <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+        <h1>🔑 API-ключи</h1>
+        <span class="sub">Управление доступом агентов к SNIN</span>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="showCreateModal()">+ Новый ключ</button>
+    </div>
+    <div id="app"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" style="display:none" onclick="if(event.target===this)closeModal()"></div>
+
+<script>
+const API='/api/v1';
+let revealedKeys={};
+
+async function load(){
+  try{
+    const sr=await fetch(API+'/session');const sd=await sr.json();
+    if(!sd.ok){window.location.href='/';return}
+    const kr=await fetch(API+'/user/api-key');
+    const kd=await kr.json();
+    render(kd.data||[],sd.data);
+  }catch(e){document.getElementById('app').innerHTML='<div class="empty-state">Ошибка загрузки</div>'}
+}
+
+function render(keys,user){
+  const canCreate=user.role==='admin'||user.access_level>=1;
+  document.querySelector('.btn-primary').style.display=canCreate?'':'none';
+
+  if(!keys.length){
+    document.getElementById('app').innerHTML=`
+      <div class="empty-state anim-fade">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        <p>Нет API-ключей</p>
+        <p style="font-size:11px;margin-top:4px">Создайте ключ для подключения агентов и внешних сервисов</p>
+        ${canCreate?`<button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="showCreateModal()">Создать первый ключ</button>`:''}
+      </div>`;
+    return;
+  }
+
+  let html='';
+  keys.forEach(k=>{
+    const lastUsed=k.last_used||'никогда';
+    const created=(k.created_at||'').substring(0,10);
+    const scopes=k.scopes||'read,write';
+    const isRev=revealedKeys[k.id];
+    html+=`
+      <div class="key-card anim-fade ${!k.enabled?'disabled':''}">
+        <div class="k-row">
+          <span class="k-name">${esc(k.name)}</span>
+          <span class="k-prefix" onclick="copyText('${esc(k.prefix)}')" title="Нажмите чтобы скопировать">${esc(k.prefix)}</span>
+          ${!k.enabled?'<span style="font-size:9px;color:var(--red);background:rgba(255,68,68,.1);padding:1px 6px;border-radius:3px">Отключён</span>':''}
+          <div class="k-actions">
+            <button class="btn btn-sm" style="font-size:10px;padding:4px 10px" onclick="revokeKey(${k.id})" title="Отозвать ключ">🗑</button>
+          </div>
+        </div>
+        ${isRev?`
+          <div class="key-reveal anim-fade">
+            <code>${esc(k.full_key||'Ключ показан один раз')}</code>
+            <button class="btn btn-sm copy-btn" onclick="copyText('${esc(k.full_key||'')}')">📋</button>
+            <span class="warn">⚠️ Сохраните ключ сейчас — полный ключ больше не будет показан</span>
+          </div>
+        `:''}
+        <div class="k-meta">
+          <span>🔐 ${esc(scopes)}</span>
+          <span>📅 ${created}</span>
+          <span>🕐 ${lastUsed}</span>
+          ${k.expires_at&&k.expires_at!=='—'?`<span>⏰ до ${(k.expires_at+'').substring(0,10)}</span>`:''}
+        </div>
+      </div>`;
+  });
+
+  document.getElementById('app').innerHTML=html;
+}
+
+async function showCreateModal(){
+  const overlay=document.getElementById('modalOverlay');
+  overlay.innerHTML=`
+    <div class="modal-box anim-fade">
+      <h3>Новый API-ключ</h3>
+      <input type="text" id="keyName" placeholder="Название ключа (например: Cryter Bot)" maxlength="64">
+      <div class="btn-row">
+        <button class="btn btn-sm" onclick="closeModal()">Отмена</button>
+        <button class="btn btn-primary btn-sm" onclick="createKey()">Создать</button>
+      </div>
+    </div>`;
+  overlay.style.display='flex';
+  setTimeout(()=>document.getElementById('keyName').focus(),100);
+}
+
+function closeModal(){document.getElementById('modalOverlay').style.display='none'}
+
+async function createKey(){
+  const name=document.getElementById('keyName').value.trim()||'Default';
+  const r=await fetch(API+'/user/api-key',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name})
+  });
+  const d=await r.json();
+  if(d.ok){
+    closeModal();
+    // Show the full key once, then reload
+    const fullKey=d.data.key;
+    const overlay=document.getElementById('modalOverlay');
+    overlay.innerHTML=`
+      <div class="modal-box anim-fade">
+        <h3>✅ Ключ создан</h3>
+        <div class="key-reveal">
+          <code>${esc(fullKey)}</code>
+          <button class="btn btn-sm copy-btn" onclick="copyText('${esc(fullKey)}')">📋</button>
+        </div>
+        <span class="warn">⚠️ Это единственный раз когда полный ключ показан. Сохраните его.</span>
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn btn-primary btn-sm" onclick="closeModal();load()">Понятно</button>
+        </div>
+      </div>`;
+    overlay.style.display='flex';
+  }else{
+    showToast('❌ '+d.error,false);
+    closeModal();
+  }
+}
+
+async function revokeKey(id){
+  if(!confirm('Отозвать ключ? Это действие необратимо. Агенты перестанут работать.'))return;
+  const r=await fetch(API+'/user/api-key/'+id,{method:'DELETE'});
+  const d=await r.json();
+  showToast(d.ok?'✅ Ключ отозван':'❌ Ошибка',d.ok);
+  if(d.ok)load();
+}
+
+function copyText(txt){
+  navigator.clipboard.writeText(txt).then(()=>showToast('📋 Скопировано',true));
+}
+
+function showToast(msg,ok){
+  const t=document.createElement('div');
+  t.className='toast toast-'+(ok?'success':'error');
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('show')}
+function logout(){fetch('/api/v1/logout',{method:'POST'}).then(()=>location.href='/')}
+load();
+</script>
+</body>
+</html>
