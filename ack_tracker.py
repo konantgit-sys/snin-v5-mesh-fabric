@@ -23,7 +23,7 @@ from typing import Optional
 ACK_KIND = 8014
 ACK_TIMEOUT = 30        # секунд ожидания ACK
 MAX_RETRIES = 3         # максимальное число повторов
-RETRY_BACKOFF = [5, 15, 45]  # секунд между повторами (экспоненциальный)
+RETRY_BACKOFF = [2, 5, 15]  # секунд между повторами (экспоненциальный)
 ACK_CLEANUP_INTERVAL = 60   # интервал очистки старых записей
 ACK_MAX_AGE = 300           # максимальный возраст pending ACK (5 мин)
 
