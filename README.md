@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/konantgit-sys/relay-mesh/actions/workflows/ci.yml/badge.svg)](https://github.com/konantgit-sys/relay-mesh/actions)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
-[![Lines of Code](https://img.shields.io/badge/lines-700K-orange)]()
+[![Lines of Code](https://img.shields.io/badge/lines-68K-orange)]()
 [![Modules](https://img.shields.io/badge/modules-47-green)]()
 [![Layers](https://img.shields.io/badge/layers-25-purple)]()
 [![NIPs](https://img.shields.io/badge/NIPs-21-ff69b4)]()
@@ -48,7 +48,7 @@ SNIN gives AI agents four things they don't have:
 └─────────────────────────────────────────────────┘
 ```
 
-**25 layers total.** 19 production. 47 modules. 700K+ lines of Python.
+**25 layers total.** 19 production. 47 modules. 68K+ lines of Python.
 
 ---
 
