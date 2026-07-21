@@ -129,12 +129,20 @@ class AutoRecovery:
         if not os.path.exists(self.config_path):
             logger.warning(f"Config not found: {self.config_path}")
             self.config = {"strategies": {}, "max_concurrent": 3,
-                           "global_cooldown": 60, "max_daily_total": 30}
+                           "global_cooldown": 60, "max_daily_total": 30,
+                           "max_daily_per_service": 10,
+                           "slot_health_threshold": 3}
             self.strategies = {}
             return
         with open(self.config_path) as f:
             self.config = yaml.safe_load(f) or {}
         self.strategies = self.config.get("strategies", {})
+        # Apply defaults for missing keys
+        self.config.setdefault("max_concurrent", 3)
+        self.config.setdefault("global_cooldown", 60)
+        self.config.setdefault("max_daily_total", 30)
+        self.config.setdefault("max_daily_per_service", 10)
+        self.config.setdefault("slot_health_threshold", 3)
 
     def _load_daily_count(self):
         today = datetime.utcnow().strftime("%Y-%m-%d")
@@ -179,10 +187,28 @@ class AutoRecovery:
             logger.debug(f"  Service cooldown for {service_name}")
             return False
 
-        # 5. Daily limit
+        # 5. Per-service daily limit (prevents crashloop on one service)
+        max_daily_per_svc = self.config.get("max_daily_per_service", 10)
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        cur = self._db.execute(
+            "SELECT count FROM recovery_daily WHERE date=? AND service_name=?",
+            (today, service_name)
+        )
+        row = cur.fetchone()
+        svc_daily = row[0] if row else 0
+        if svc_daily >= max_daily_per_svc:
+            logger.warning(f" Service daily limit reached ({max_daily_per_svc}) "
+                           f"for {service_name} — escalating, not recovering")
+            await self._escalate(service_name, "per_service_daily_limit")
+            # Lock service until tomorrow
+            tomorrow = time.time() + 86400
+            self._recovery_locks[service_name] = tomorrow
+            return False
+
+        # 6. Global daily limit
         max_daily = self.config.get("max_daily_total", 30)
         if self._daily_count >= max_daily:
-            logger.warning(f" Daily limit reached ({max_daily}) — skipping recovery")
+            logger.warning(f" Global daily limit reached ({max_daily}) — skipping")
             return False
 
         # ─── Consecutive fails check ───
@@ -220,11 +246,22 @@ class AutoRecovery:
             # Step 4: Result
             if success:
                 self._stats["successful"] += 1
-                logger.info(f"✅ {service_name} recovered successfully")
+                self._consecutive_fails.pop(service_name, None)  # Reset on success
+                self._recovery_locks.pop(service_name, None)     # Clear service cooldown
+                self._dead_since.pop(service_name, None)         # Clear dead timer
+                logger.info(f"✅ {service_name} recovered successfully "
+                           f"(consec_fails reset)")
             else:
                 self._stats["failed"] += 1
+                # INCREMENT consec_fails so backoff grows exponentially
+                consec = self._consecutive_fails.get(service_name, 3) + 1
+                self._consecutive_fails[service_name] = consec
                 self._stats["escalated"] += 1
-                logger.warning(f"❌ {service_name} recovery failed — escalated")
+                # Exponential backoff: 2^(consec-3) * 60 sec, capped at 1 hour
+                backoff_sec = min(2 ** (consec - 3) * 60, 3600)
+                self._recovery_locks[service_name] = time.time() + backoff_sec
+                logger.warning(f"❌ {service_name} recovery failed "
+                              f"(consec_fails={consec}, cooldown={backoff_sec}s)")
 
             return success
 
@@ -301,7 +338,11 @@ class AutoRecovery:
 
     async def _execute_attempts(self, service_name: str,
                                  attempts: List[Dict], cause: str) -> bool:
-        """Выполняет попытки восстановления по стратегии."""
+        """Выполняет попытки восстановления по стратегии.
+        
+        ВАЖНО: после каждого action проверяет РЕАЛЬНЫЙ статус сервиса,
+        а не просто ждёт health_check_after и верит что ожил.
+        """
         health_check_after = self._get_health_check_delay(service_name)
 
         for attempt_idx, attempt in enumerate(attempts, start=1):
@@ -314,7 +355,7 @@ class AutoRecovery:
                 return False
 
             start = time.time()
-            success = await self._execute_action(service_name, action, args)
+            action_ok = await self._execute_action(service_name, action, args)
             duration_ms = int((time.time() - start) * 1000)
 
             # Log to DB
@@ -323,7 +364,7 @@ class AutoRecovery:
                 "INSERT INTO recovery_events (id, service_name, attempt, action, "
                 "status, duration_ms, triggered_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (attempt_id, service_name, attempt_idx, action,
-                 "success" if success else "failed", duration_ms, int(time.time()))
+                 "success" if action_ok else "failed", duration_ms, int(time.time()))
             )
             self._db.commit()
             self._stats["total_attempts"] += 1
@@ -331,18 +372,40 @@ class AutoRecovery:
             self._update_daily_count(service_name)
 
             logger.info(f"  Attempt {attempt_idx}/{len(attempts)}: {action} "
-                        f"→ {'✅' if success else '❌'} ({duration_ms}ms)")
+                        f"→ {'✅' if action_ok else '❌'} ({duration_ms}ms)")
 
-            if success:
-                # Wait for health check
+            if action_ok:
+                # Wait and VERIFY service is alive
                 await asyncio.sleep(health_check_after)
-                return True
+                is_alive = await self._verify_service_alive(service_name)
+                if is_alive:
+                    logger.info(f"  ✅ {service_name} verified alive after {action}")
+                    return True
+                else:
+                    logger.warning(f"  ⚠️ {service_name} action succeeded but service "
+                                   f"still dead — moving to next attempt")
 
-            # Cooldown between attempts
+            # Cooldown between attempts (with jitter ±30%)
             if attempt_idx < len(attempts):
-                await asyncio.sleep(5)
+                import random
+                jitter = random.uniform(0.7, 1.3)
+                await asyncio.sleep(5 * jitter)
 
         return False
+
+    async def _verify_service_alive(self, service_name: str) -> bool:
+        """Проверяет что сервис РЕАЛЬНО жив после recovery action."""
+        try:
+            # Используем supervisor_bridge для проверки статуса
+            status = await self._sv.get_status(service_name)
+            if status and status.get("is_alive"):
+                return True
+            # Если supervisor_bridge не дал статус — пробуем прямой health check
+            health_status = await self._sv.health_check(service_name)
+            return bool(health_status and health_status.get("is_alive"))
+        except Exception as e:
+            logger.warning(f"  _verify_service_alive({service_name}): {e}")
+            return False
 
     async def _execute_action(self, service_name: str, action: str,
                                args: Dict) -> bool:
@@ -431,6 +494,17 @@ class AutoRecovery:
             logger.error(f"Alert engine escalation failed: {e}")
 
     # ─── CLEANUP & RESET ───
+
+    def _set_cooldown(self, service_name: str, seconds: int):
+        """Установить блокировку восстановления для сервиса на N секунд.
+        
+        Предотвращает crashloop: сервис с битым конфигом не будет
+        перезапускаться каждые 10 секунд пока не кончится дневной лимит.
+        """
+        lock_until = time.time() + seconds
+        self._recovery_locks[service_name] = lock_until
+        logger.info(f"🔒 {service_name} locked for {seconds}s (until "
+                     f"{datetime.fromtimestamp(lock_until).strftime('%H:%M:%S')})")
 
     def reset_service(self, service_name: str):
         """Сброс состояния сервиса (после ручного восстановления)."""
