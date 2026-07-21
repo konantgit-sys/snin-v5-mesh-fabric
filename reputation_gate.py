@@ -207,6 +207,119 @@ def load_cache():
 load_cache()
 
 
+# ═══ Bootstrap Challenge ═══
+# Новый агент (score < REP_MIN_READ) публикует kind:8010 (паспорт).
+# Релей выдаёт kind:8011 (задание-капча).
+# Агент выполняет kind:8013 (результат).
+# При успехе → стартовый reputation = REP_MIN_WRITE (0.3).
+
+BOOTSTRAP_TIMEOUT = 60          # секунд на выполнение задания
+BOOTSTRAP_CHALLENGES: dict[str, dict] = {}  # pubkey → {task, issued_at}
+BOOTSTRAP_STATE_FILE = Path.home() / "data" / "sites" / "relay" / "data" / "bootstrap_state.json"
+
+
+def generate_bootstrap_task(pubkey: str) -> dict:
+    """Сгенерировать тестовое задание для нового агента."""
+    import hashlib
+    challenge_nonce = hashlib.sha256(f"{pubkey}:{time.time()}".encode()).hexdigest()[:16]
+
+    task = {
+        "kind": 8011,
+        "challenge_nonce": challenge_nonce,
+        "task": "publish_kind_8013",
+        "prompt": "Respond with kind:8013 containing challenge_nonce and one descriptive sentence about your agent's purpose.",
+        "fields_required": ["challenge_nonce", "purpose"],
+        "issued_at": int(time.time()),
+        "expires_at": int(time.time() + BOOTSTRAP_TIMEOUT),
+    }
+
+    BOOTSTRAP_CHALLENGES[pubkey] = {
+        "nonce": challenge_nonce,
+        "issued_at": time.time(),
+    }
+    logger.info(f"Bootstrap challenge issued for {pubkey[:16]}... (nonce: {challenge_nonce})")
+    return task
+
+
+def verify_bootstrap_response(pubkey: str, event: dict) -> bool:
+    """Проверить ответ агента на bootstrap-задание (kind:8013)."""
+    if pubkey not in BOOTSTRAP_CHALLENGES:
+        logger.debug(f"No bootstrap challenge for {pubkey[:16]}...")
+        return False
+
+    challenge = BOOTSTRAP_CHALLENGES[pubkey]
+    now = time.time()
+
+    # 1. Таймаут
+    if now - challenge["issued_at"] > BOOTSTRAP_TIMEOUT:
+        del BOOTSTRAP_CHALLENGES[pubkey]
+        logger.info(f"Bootstrap timeout for {pubkey[:16]}...")
+        return False
+
+    # 2. Проверка nonce в контенте
+    content = event.get("content", "")
+    try:
+        content_data = json.loads(content) if isinstance(content, str) else content
+    except json.JSONDecodeError:
+        content_data = {"raw": content}
+
+    expected_nonce = challenge["nonce"]
+    found_nonce = False
+    if isinstance(content_data, dict):
+        found_nonce = content_data.get("challenge_nonce", "") == expected_nonce
+    if not found_nonce and expected_nonce in str(content_data):
+        found_nonce = True
+
+    if not found_nonce:
+        logger.debug(f"Bootstrap: nonce mismatch for {pubkey[:16]}...")
+        return False
+
+    # 3. Успех — выдать начальную репутацию
+    del BOOTSTRAP_CHALLENGES[pubkey]
+    _cache[pubkey] = {
+        "pubkey": pubkey,
+        "score": REP_MIN_WRITE,         # 0.3 — может писать публичные kinds
+        "access": "write",
+        "bootstrap_passed": True,
+        "bootstrap_at": now,
+        "ts": now,
+    }
+    save_cache()
+    logger.info(f"✅ Bootstrap passed for {pubkey[:16]}... → score={REP_MIN_WRITE}")
+    return True
+
+
+def get_bootstrap_state() -> dict:
+    """Состояние системы bootstrap-челленджей."""
+    return {
+        "pending_challenges": len(BOOTSTRAP_CHALLENGES),
+        "challenges": [
+            {
+                "pubkey_short": pk[:16] + "...",
+                "issued_at": info["issued_at"],
+                "age_sec": int(time.time() - info["issued_at"]),
+            }
+            for pk, info in BOOTSTRAP_CHALLENGES.items()
+        ],
+        "bootstrap_passed": sum(
+            1 for v in _cache.values() if v.get("bootstrap_passed")
+        ),
+    }
+
+
+def cleanup_stale_challenges():
+    """Очистка просроченных челленджей."""
+    now = time.time()
+    stale = [
+        pk for pk, info in BOOTSTRAP_CHALLENGES.items()
+        if now - info["issued_at"] > BOOTSTRAP_TIMEOUT
+    ]
+    for pk in stale:
+        del BOOTSTRAP_CHALLENGES[pk]
+    if stale:
+        logger.info(f"Cleaned up {len(stale)} stale bootstrap challenges")
+
+
 def get_reputation_stats() -> dict:
     """Статистика репутационной системы."""
     scores = load_reputation_scores()
