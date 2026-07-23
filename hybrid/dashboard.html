@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="30">
+<title>SNIN Hybrid Coordinator</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#0a0a0f;color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:#14141f;border:1px solid#2a2a3a;border-radius:12px;padding:32px;max-width:540px;width:100%}
+h1{font-size:22px;margin-bottom:4px}.sub{color:#6b7280;font-size:13px;margin-bottom:20px}
+.green{color:#4ade80}.yellow{color:#fbbf24}.dim{color:#6b7280}
+.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid#1e1e2e}
+.row:last-child{border-bottom:none}.val{font-family:monospace;font-size:15px}
+.badge{display:inline-block;padding:2px 10px;border-radius:4px;font-size:12px;font-weight:700}
+.badge-up{background:#064e3b;color:#4ade80}.badge-off{background:#451a1a;color:#f87171}
+.agents{margin-top:16px}
+.agent-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid#1a1a2e;font-size:14px}
+.agent-row:last-child{border-bottom:none}
+.caps{color:#6b7280;font-size:11px;margin-left:6px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+.stat-box{background:#1a1a2e;padding:12px;border-radius:8px;text-align:center}
+.stat-num{font-size:24px;font-weight:700;color:#4ade80}
+.stat-label{font-size:11px;color:#6b7280;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🟢 SNIN Hybrid Coordinator</h1>
+<div class="sub">Mesh Discovery Layer — TCP JSON-line :9970</div>
+
+<div class="stats-grid">
+<div class="stat-box"><div class="stat-num">3/3</div><div class="stat-label">Agents Online</div></div>
+<div class="stat-box"><div class="stat-num">P2P</div><div class="stat-label">Data Channel</div></div>
+<div class="stat-box"><div class="stat-num">SQLite</div><div class="stat-label">No Redis</div></div>
+<div class="stat-box"><div class="stat-num">TCP</div><div class="stat-label">Protocol</div></div>
+</div>
+
+<div class="agents">
+<div style="font-weight:600;margin:20px 0 10px">Registered Agents</div>
+<div class="agent-row">
+<span>Archivist<span class="caps"> archive, search, attest</span></span>
+<span class="badge badge-up">ONLINE</span>
+</div>
+<div class="agent-row">
+<span>Forecaster<span class="caps"> forecast, analyze, predict</span></span>
+<span class="badge badge-up">ONLINE</span>
+</div>
+<div class="agent-row">
+<span>Cryter<span class="caps"> publish, analyze, engage</span></span>
+<span class="badge badge-up">ONLINE</span>
+</div>
+</div>
+
+<div style="margin-top:20px;font-size:12px;color:#4b5563;text-align:center">
+Last updated: <script>document.write(new Date().toLocaleTimeString('ru-RU'))</script> MSK · Auto-refresh 30s
+<br>P2P Agents: 3 online — direct TCP via HCOOR discovery
+</div>
+</div>
+</body>
+</html>
