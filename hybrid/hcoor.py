@@ -312,7 +312,13 @@ class HybridCoordinator:
 
                 elif cmd == "ping":
                     agent_pubkey = msg.get("pubkey", agent_pubkey)
-                    self._db.register(Agent(pubkey=agent_pubkey))
+                    # Only update last_seen + ping_count — preserve IP/port/name
+                    self._db._conn.execute(
+                        "UPDATE agents SET last_seen=?, ping_count=ping_count+1, status='online' WHERE pubkey=?",
+                        (time.time(), agent_pubkey)
+                    )
+                    self._db._conn.commit()
+                    self._db._log_event("ping", agent_pubkey, "")
                     await self._send_json(writer, {"type": "pong", "ts": time.time()})
 
                 elif cmd == "get_peers":
