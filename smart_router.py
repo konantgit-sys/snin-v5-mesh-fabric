@@ -58,6 +58,14 @@ from priority_queue import PriorityQueue
 from agent_registry import AgentRegistry
 from marketplace_registry import MarketplaceRegistry
 
+# Phase: Hybrid Architecture — Discovery Coordinator + P2P Channel
+try:
+    from hybrid.hybrid_channel import HybridRouterAdapter
+    HYBRID_AVAILABLE = True
+except ImportError:
+    HYBRID_AVAILABLE = False
+    print("[Router] ⚠️ Hybrid channel not available (install: hybrid/)")
+
 # Level 2: CPU-bound crypto в ProcessPool
 sys.path.insert(0, "/home/agent/data/sites/relay-mesh")
 from cpu_worker import verify_ed25519_processpool_async, shutdown_pools
@@ -163,6 +171,7 @@ class SmartRouter:
             "gossip": {"ok": 0, "fail": 0, "avg_ms": 0},
             "nostr": {"ok": 0, "fail": 0, "avg_ms": 0},
             "direct": {"ok": 0, "fail": 0, "avg_ms": 0},
+            "hybrid": {"ok": 0, "fail": 0, "avg_ms": 0},
             "fire-and-forget": {"ok": 0, "fail": 0, "avg_ms": 0},
         }
         # ═══ Фаза 2: Circuit Breaker + Backpressure ═══
@@ -193,6 +202,14 @@ class SmartRouter:
         self._cb_recovery_count: dict[str, int] = {}  # channel → успешных drain подряд
         self._cb_recovery_threshold = 5                # после скольких снять блокировку
         self._cr_v2_writer = None  # Content Router v2 (:9920)
+        # ═══ Phase: Hybrid Architecture — Discovery Coordinator channel ═══
+        self._hybrid_channel: HybridRouterAdapter | None = None
+        if HYBRID_AVAILABLE:
+            from os import environ
+            hcoor_host = environ.get("HCOOR_HOST", "127.0.0.1")
+            hcoor_port = int(environ.get("HCOOR_PORT", "9970"))
+            self._hybrid_channel = HybridRouterAdapter(hcoor_host, hcoor_port)
+            print(f"[Router] 🧬 Hybrid channel ready → {hcoor_host}:{hcoor_port}")
         self._last_cr_reconnect = 0.0  # rate-limit reconnect
         # ═══ Фаза 1: DHT Kademlia ═══
         self._dht = None
@@ -552,7 +569,8 @@ class SmartRouter:
         alive_nostr = len([w for w in self._nostr_writers if w is not None])
         print(f"[Router]    Channels: mesh {'✓' if self._cr_writer else '✗'} "
               f"nostr({alive_nostr}/5) "
-              f"gossip({len(self._gossip_writers)}/5) direct ✓")
+              f"gossip({len(self._gossip_writers)}/5) direct ✓"
+              f" hybrid {'✓' if self._hybrid_channel and self._hybrid_channel._channel._registered else '✗'}")
     
     async def _reconnect_nostr_shard(self, shard_idx: int):
         """Переподключение к nostr шарду. Замещает элемент на месте, не добавляет дубль."""
@@ -1033,6 +1051,28 @@ class SmartRouter:
                         result["error"] = "agent not in DHT"
                 else:
                     result["error"] = "no DHT"
+            elif channel == "hybrid" and self._hybrid_channel:
+                # ═══ Phase: Hybrid Architecture — discovery + P2P ═══
+                to_agent = message.get("to", "")
+                payload = message.get("payload", message.get("content", ""))
+                if isinstance(payload, dict):
+                    payload = json.dumps(payload)
+                kind = message.get("kind", 39002)
+                hresult = await self._hybrid_channel.send(
+                    target=to_agent, payload=payload, kind=kind,
+                    meta={"source": "smart_router", "channel": "hybrid"},
+                )
+                result["ok"] = hresult.get("ok", False)
+                result["latency_ms"] = hresult.get("latency_ms", 0)
+                if not result["ok"]:
+                    result["error"] = hresult.get("error", "hybrid_failed")
+                if result["ok"]:
+                    self.stats["hybrid_delivered"] = self.stats.get("hybrid_delivered", 0) + 1
+                else:
+                    self.stats["hybrid_failed"] = self.stats.get("hybrid_failed", 0) + 1
+            elif channel == "hybrid":  # not available
+                result["error"] = "hybrid channel not available"
+
             else:
                 result["error"] = f"unknown channel '{channel}'"
 
@@ -1531,7 +1571,7 @@ class SmartRouter:
                         self.stats["congestion_reroute"] += 1
                 elif health["avg_ms"] > 200:
                     self.stats["congestion_slow"] += 1
-        elif channel_pref in ("direct", "mesh", "gossip", "nostr", "content_router", "chequebook", "gossip_data", "nostr_data", "fire-and-forget"):
+        elif channel_pref in ("direct", "mesh", "gossip", "nostr", "content_router", "chequebook", "gossip_data", "nostr_data", "fire-and-forget", "hybrid"):
             channel = channel_pref
             # Фаза 2: если явно запрошенный канал зациркуичен — mesh fallback
             if self._cb.is_blocked(channel):
@@ -2279,6 +2319,20 @@ class SmartRouter:
         except Exception as e:
             print(f"[Router] ⚠️ DHT init error: {e}")
 
+        # ═══ Phase: Hybrid Architecture — register with Discovery Coordinator ═══
+        if self._hybrid_channel:
+            try:
+                await self._hybrid_channel.start(
+                    agent_pubkey="smart_router",
+                    agent_name="SmartRouter",
+                    agent_ip="127.0.0.1",
+                    agent_port=LISTEN_PORT,
+                    nat_type="easy",
+                )
+                print(f"[Router] 🧬 Hybrid channel registered with coordinator")
+            except Exception as e:
+                print(f"[Router] ⚠️ Hybrid channel registration failed (coordinator down?): {e}")
+
         # ═══ Phase 2: ACK Retry Loop ═══
         asyncio.create_task(self.ack_retry_loop())
         self.ack_tracker.start()
@@ -2294,6 +2348,7 @@ class SmartRouter:
         print(f"[Router]    Policies: {n_policies} rules in Redis")
         print(f"[Router]    Route-learning: ON")
         print(f"[Router]    Phase 4: orjson + Health :{HEALTH_PORT}")
+        print(f"[Router]    Phase: Hybrid Architecture {'🧬' if self._hybrid_channel and self._hybrid_channel._channel._registered else '✗'}")
         print(f"[Router]    Phase 3: Message Ordering ENABLED (seq_num + reorder)")
         print(f"[Router]    Phase 4: Message Deduplication ENABLED")
         print(f"[Router]    Phase 5: Priority Queue ENABLED ({self._pq_workers} workers, aging)")
