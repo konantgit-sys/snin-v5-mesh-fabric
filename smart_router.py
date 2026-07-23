@@ -66,6 +66,14 @@ except ImportError:
     HYBRID_AVAILABLE = False
     print("[Router] ⚠️ Hybrid channel not available (install: hybrid/)")
 
+# Phase: ZeroMQ Transport — high-performance channel (FUTURE, groundwork laid)
+try:
+    from zmq_transport import ZmqTransportFactory
+    ZMQ_AVAILABLE = True
+except ImportError:
+    ZMQ_AVAILABLE = False
+    # Не печатаем warning — ZMQ опционален, TCP JSON-line по умолчанию
+
 # Level 2: CPU-bound crypto в ProcessPool
 sys.path.insert(0, "/home/agent/data/sites/relay-mesh")
 from cpu_worker import verify_ed25519_processpool_async, shutdown_pools
@@ -172,6 +180,7 @@ class SmartRouter:
             "nostr": {"ok": 0, "fail": 0, "avg_ms": 0},
             "direct": {"ok": 0, "fail": 0, "avg_ms": 0},
             "hybrid": {"ok": 0, "fail": 0, "avg_ms": 0},
+            "zmq": {"ok": 0, "fail": 0, "avg_ms": 0},     # FUTURE
             "fire-and-forget": {"ok": 0, "fail": 0, "avg_ms": 0},
         }
         # ═══ Фаза 2: Circuit Breaker + Backpressure ═══
@@ -210,6 +219,11 @@ class SmartRouter:
             hcoor_port = int(environ.get("HCOOR_PORT", "9970"))
             self._hybrid_channel = HybridRouterAdapter(hcoor_host, hcoor_port)
             print(f"[Router] 🧬 Hybrid channel ready → {hcoor_host}:{hcoor_port}")
+        # ═══ Phase: ZeroMQ Transport (FUTURE) — groundwork laid ═══
+        self._zmq_router = None
+        self._zmq_publisher = None
+        if ZMQ_AVAILABLE:
+            print("[Router] ⚡ ZMQ transport available (set SNIN_USE_ZMQ=1 to activate)")
         self._last_cr_reconnect = 0.0  # rate-limit reconnect
         # ═══ Фаза 1: DHT Kademlia ═══
         self._dht = None
