@@ -142,7 +142,7 @@ class ZmqRouter:
 
     async def send(self, target_identity: str, payload: dict) -> bool:
         """
-        Отправка сообщения конкретному агенту.
+        Отправка сообщения конкретному агенту (async).
         target_identity = pubkey[:20] (как registered в HCOOR)
         """
         if not self._started:
@@ -159,6 +159,27 @@ class ZmqRouter:
         except Exception as e:
             self._stats["errors"] += 1
             logger.error(f"ZmqRouter.send failed: {e}")
+            return False
+
+    def send_sync(self, target_identity: str, payload: dict) -> bool:
+        """
+        Синхронная отправка (для sync контекста из SmartRouter.send_via_channel).
+        Используется когда ZMQ создан через create_router_sync().
+        """
+        if not self._started or self._socket is None:
+            return False
+        try:
+            data = json.dumps(payload).encode()
+            self._socket.send_multipart([
+                target_identity.encode(),
+                b"",
+                data
+            ])
+            self._stats["sent"] += 1
+            return True
+        except Exception as e:
+            self._stats["errors"] += 1
+            logger.error(f"ZmqRouter.send_sync failed: {e}")
             return False
 
     async def recv(self) -> Optional[tuple[str, dict]]:
@@ -445,6 +466,59 @@ class ZmqTransportFactory:
         pipe = ZmqPipeline(port=port, mode=mode)
         ok = await pipe.start()
         return pipe if ok else None
+
+    @staticmethod
+    def create_pipeline_sync(port: int = ZMQ_PUSH_PORT, mode: str = "push") -> Optional[ZmqPipeline]:
+        """Sync version for pipeline tests (uses zmq.Context, not zmq.asyncio.Context)."""
+        if not ZmqTransportFactory.is_available():
+            return None
+        try:
+            pipe = ZmqPipeline(port=port, mode=mode)
+            pipe._ctx = zmq.Context()
+            if mode == "push":
+                pipe._socket = pipe._ctx.socket(zmq.PUSH)
+                pipe._socket.bind(f"tcp://0.0.0.0:{port}")
+            elif mode == "pull":
+                pipe._socket = pipe._ctx.socket(zmq.PULL)
+            pipe._started = True
+            return pipe
+        except Exception as e:
+            logger.error(f"ZmqPipeline sync init failed: {e}")
+            return None
+
+    @staticmethod
+    def create_router_sync(port: int = ZMQ_ROUTER_PORT) -> Optional[ZmqRouter]:
+        """Sync version for use in __init__ (uses zmq.Context, not zmq.asyncio.Context)."""
+        if not ZmqTransportFactory.is_available():
+            return None
+        try:
+            router = ZmqRouter(port=port)
+            router._ctx = zmq.Context()
+            router._socket = router._ctx.socket(zmq.ROUTER)
+            router._socket.bind(f"tcp://0.0.0.0:{port}")
+            router._started = True
+            logger.info(f"ZmqRouter (sync) bound to :{port}")
+            return router
+        except Exception as e:
+            logger.error(f"ZmqRouter sync init failed: {e}")
+            return None
+
+    @staticmethod
+    def create_publisher_sync(port: int = ZMQ_PUB_PORT) -> Optional[ZmqPublisher]:
+        """Sync version for use in __init__ (uses zmq.Context, not zmq.asyncio.Context)."""
+        if not ZmqTransportFactory.is_available():
+            return None
+        try:
+            pub = ZmqPublisher(port=port)
+            pub._ctx = zmq.Context()
+            pub._socket = pub._ctx.socket(zmq.PUB)
+            pub._socket.bind(f"tcp://0.0.0.0:{port}")
+            pub._started = True
+            logger.info(f"ZmqPublisher (sync) bound to :{port}")
+            return pub
+        except Exception as e:
+            logger.error(f"ZmqPublisher sync init failed: {e}")
+            return None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
