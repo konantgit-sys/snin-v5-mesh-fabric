@@ -1,0 +1,146 @@
+// SNIN Protocol Buffers — Phase 2b
+// Kind-specific schemas for high-performance serialization
+// Level 3: 10× faster than JSON, 3× faster than MessagePack
+
+syntax = "proto3";
+
+package snin;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Agent Metadata (kind:39000)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+message AgentMetadata {
+  string agent_id = 1;
+  string name = 2;
+  string version = 3;
+  repeated string capabilities = 4;
+  string npub = 5;
+  string did = 6;
+  int64 created_at = 7;
+  string status = 8;  // online, offline, degraded
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Agent Status (kind:39001)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+message AgentStatus {
+  string agent_id = 1;
+  string status = 2;  // online, offline, busy, error
+  int64 timestamp = 3;
+  int32 uptime_seconds = 4;
+  int32 messages_processed = 5;
+  int32 errors_count = 6;
+  float cpu_pct = 7;
+  int32 memory_mb = 8;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Agent Capability (kind:39002)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+message AgentCapability {
+  string agent_id = 1;
+  repeated string actions = 2;     // translate, analyze, generate, post, reply
+  repeated string languages = 3;   // en, ru, es, fr, de, etc.
+  repeated int32 event_kinds = 4;  // Nostr kinds this agent handles
+  int32 max_batch_size = 5;
+  int32 avg_latency_ms = 6;
+  float reliability = 7;           // 0.0–1.0
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DAO Proposal (kind:39010)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+message DaoProposal {
+  string proposal_id = 1;
+  string author = 2;
+  string title = 3;
+  string description = 4;
+  int64 created_at = 5;
+  int64 voting_ends_at = 6;
+  repeated string options = 7;
+  int32 quorum = 8;
+  string status = 9;  // draft, active, passed, rejected, executed
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DAO Vote (kind:39011)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+message DaoVote {
+  string proposal_id = 1;
+  string voter = 2;
+  int32 option_index = 3;
+  int32 weight = 4;
+  int64 timestamp = 5;
+  string signature = 6;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DAO Rank Update (kind:39020)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+message DaoRankUpdate {
+  string agent_id = 1;
+  string old_rank = 2;   // Observer, Member, Council, Validator
+  string new_rank = 3;
+  string reason = 4;
+  string issued_by = 5;
+  int64 timestamp = 6;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Market Event (kind:30000) — SNIN Marketplace
+// ═══════════════════════════════════════════════════════════════════════════════
+
+message MarketEvent {
+  string event_type = 1;   // trade, order, liquidity, stake
+  string agent_id = 2;
+  string asset = 3;
+  float amount = 4;
+  float price = 5;
+  int64 timestamp = 6;
+  string order_id = 7;
+  string status = 8;       // open, filled, cancelled
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Mesh Route (kind:39030) — internal routing metadata
+// ═══════════════════════════════════════════════════════════════════════════════
+
+message MeshRoute {
+  string from_peer = 1;
+  string to_peer = 2;
+  string channel = 3;      // direct, mesh, gossip, nostr, zmq
+  int32 priority = 4;      // 0=low, 1=normal, 2=high, 3=critical
+  int32 ttl = 5;
+  int64 sent_at = 6;
+  string trace_id = 7;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Wrapper — generic envelope for any SNIN kind
+// ═══════════════════════════════════════════════════════════════════════════════
+
+message SninEnvelope {
+  int32 kind = 1;
+  string from_agent = 2;
+  string to_agent = 3;
+  int64 timestamp = 4;
+  string correlation_id = 5;
+  
+  // One of the following, selected by kind
+  oneof payload {
+    AgentMetadata agent_metadata = 10;
+    AgentStatus agent_status = 11;
+    AgentCapability agent_capability = 12;
+    DaoProposal dao_proposal = 13;
+    DaoVote dao_vote = 14;
+    DaoRankUpdate dao_rank = 15;
+    MarketEvent market_event = 16;
+    MeshRoute mesh_route = 17;
+  }
+}
