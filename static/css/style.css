@@ -1738,6 +1738,108 @@ body::after {
 }
 .nav-scroll::-webkit-scrollbar { display: none; }
 
+/* V12.3 — Nav active indicator (animated pill) */
+.nav-indicator {
+  position: absolute;
+  top: 4px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg,
+    rgba(var(--accent-rgb), 0.18),
+    rgba(var(--accent-rgb), 0.08),
+    rgba(var(--accent-rgb), 0.04)
+  );
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  box-shadow:
+    0 0 16px rgba(var(--accent-rgb), 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: left 250ms var(--ease-out),
+              width 250ms var(--ease-out),
+              opacity 180ms var(--ease-out);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+}
+.nav-indicator.visible { opacity: 1; }
+
+/* V12.3 — Scroll progress bar */
+.scroll-progress {
+  position: fixed;
+  top: 0; left: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    var(--accent),
+    var(--accent-light),
+    var(--accent)
+  );
+  z-index: 999;
+  box-shadow: 0 0 8px var(--accent-glow),
+              0 0 20px rgba(var(--accent-rgb), 0.3);
+  transition: width 50ms linear;
+  border-radius: 0 1px 1px 0;
+}
+
+/* V12.3 — Agent card glow on hover */
+.agent-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 180ms var(--ease-out),
+              box-shadow 300ms var(--ease-out),
+              border-color 300ms var(--ease-out);
+}
+.agent-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 200%; height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(var(--accent-rgb), 0.06),
+    transparent
+  );
+  transition: left 400ms var(--ease-out);
+  pointer-events: none;
+}
+.agent-card:hover::after { left: 100%; }
+.agent-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.4),
+    0 0 24px rgba(var(--accent-rgb), 0.18),
+    0 0 60px rgba(var(--accent-rgb), 0.06);
+  border-color: rgba(var(--accent-rgb), 0.3);
+}
+
+/* V12.3 — Stat card hover lift */
+.stat-card {
+  transition: transform 180ms var(--ease-out),
+              box-shadow 300ms var(--ease-out),
+              border-color 300ms var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(var(--accent-rgb), 0.5),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+.stat-card:hover::before { opacity: 1; }
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 0 16px rgba(var(--accent-rgb), 0.1);
+  border-color: rgba(var(--accent-rgb), 0.2);
+}
+
 .nav-item {
   display: flex;
   flex-direction: column;
