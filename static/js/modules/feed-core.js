@@ -206,6 +206,33 @@ function setupNav() {
 );
 }
 
+// V12.3 — Animated nav indicator pill
+function moveNavIndicator(activeBtn) {
+  var indicator = document.getElementById('navIndicator');
+  var navScroll = document.getElementById('navScroll');
+  if (!indicator || !navScroll) return;
+  if (!activeBtn) { indicator.classList.remove('visible'); return; }
+  
+  var btnRect = activeBtn.getBoundingClientRect();
+  var navRect = navScroll.getBoundingClientRect();
+  var left = btnRect.left - navRect.left + navScroll.scrollLeft;
+  indicator.style.left = left + 'px';
+  indicator.style.width = btnRect.width + 'px';
+  indicator.classList.add('visible');
+}
+// Init indicator on page load
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    var activeBtn = document.querySelector('.nav-item.active');
+    if (activeBtn) moveNavIndicator(activeBtn);
+  }, 200);
+});
+// Update on resize
+window.addEventListener('resize', function() {
+  var activeBtn = document.querySelector('.nav-item.active');
+  if (activeBtn) moveNavIndicator(activeBtn);
+});
+
 function switchTab(tabName) {
   // Clear relay auto-refresh if leaving relay tab
   if (relayInterval && tabName !== 'relays') { clearInterval(relayInterval); relayInterval = null; }
@@ -221,6 +248,9 @@ function switchTab(tabName) {
   const navBtn = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
   if (navBtn) navBtn.classList.add('active');
   state.tab = tabName;
+  
+  // V12.3 — Move nav indicator pill
+  moveNavIndicator(navBtn);
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   const tabEl = document.getElementById('tab-' + tabName);
   if (tabEl) { tabEl.classList.add('active'); }

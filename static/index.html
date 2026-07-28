@@ -21,7 +21,7 @@
 <style>
   body { font-family: 'Urbanist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important; }
 </style>
-<link rel="stylesheet" href="static/css/style.css?v=1785240000">
+<link rel="stylesheet" href="static/css/style.css?v=1785258000">
 <svg style="display:none" aria-hidden="true">
   <defs>
     <g id="icon-feed"><path d="M3 3h18v4H3V3zm0 7h18v4H3v-4zm0 7h18v4H3v-4z" fill="currentColor"/></g>
@@ -57,6 +57,7 @@
 </svg>
 </head>
 <body>
+<div class="scroll-progress" id="scrollProgress"></div>
 
 <canvas id="bgCanvas"></canvas>
 
@@ -1010,6 +1011,7 @@
 
 <!-- ═══ Bottom Navigation — scrollable, ALL tabs visible ═══ -->
 <nav class="bottom-nav" id="bottomNav">
+  <div class="nav-indicator" id="navIndicator"></div>
   <div class="nav-scroll" id="navScroll">
     <button class="nav-item active" data-tab="feed" title="Лента">
       <svg width="16" height="16" viewBox="0 0 24 24"><use href="#icon-feed"/></svg>
@@ -1082,10 +1084,10 @@
     <script src="static/js/modules/state.js?v=1785221248"></script>
     <script src="static/js/modules/accounts.js?v=1785221248"></script>
     <script src="static/js/modules/auth.js?v=1785221248"></script>
-    <script src="static/js/modules/feed-core.js?v=1785240001"></script>
+    <script src="static/js/modules/feed-core.js?v=1785258001"></script>
     <script src="static/js/modules/composer.js?v=1785221248"></script>
     <script src="static/js/modules/ui-core.js?v=1785221248"></script>
-    <script src="static/js/modules/effects.js?v=1785221248"></script>
+    <script src="static/js/modules/effects.js?v=1785258001"></script>
     <script src="static/js/modules/wallet.js?v=1785221248"></script>
     <script src="static/js/modules/zap.js?v=1785221248"></script>
     <script src="static/js/modules/thread.js?v=1785221248"></script>
