@@ -27,6 +27,7 @@
     <g id="icon-feed"><path d="M3 3h18v4H3V3zm0 7h18v4H3v-4zm0 7h18v4H3v-4z" fill="currentColor"/></g>
     <g id="icon-post"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/></g>
     <g id="icon-agents"><circle cx="9" cy="7" r="3" fill="currentColor"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 3.13a4 4 0 010 7.75" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="7" r="3" fill="currentColor"/></g>
+    <g id="icon-marketplace"><path d="M3 9l1.5-5h15L21 9M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="15" r="1.5" fill="currentColor"/><circle cx="16" cy="15" r="1.5" fill="currentColor"/></g>
     <g id="icon-stats"><rect x="3" y="14" width="4" height="7" rx="1" fill="currentColor"/><rect x="10" y="9" width="4" height="12" rx="1" fill="currentColor"/><rect x="17" y="3" width="4" height="18" rx="1" fill="currentColor" opacity="0.4"/></g>
     <g id="icon-node"><circle cx="12" cy="12" r="3" fill="currentColor"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"/></g>
     <g id="icon-tie"><path d="M7 12l5-5 5 5M12 7v10M5 17h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
@@ -564,6 +565,15 @@
     <div class="agents-grid" id="agentsContainer">
       <div class="skeleton skeleton-stat"></div><div class="skeleton skeleton-stat"></div>
       <div class="skeleton skeleton-stat"></div><div class="skeleton skeleton-stat"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Marketplace (V16) -->
+  <div class="tab-content" id="tab-marketplace">
+    <div id="marketplaceContainer">
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
     </div>
   </div>
 
@@ -1160,6 +1170,10 @@
       <svg width="16" height="16" viewBox="0 0 24 24"><use href="#icon-agents"/></svg>
       <span class="nav-label">Агенты</span>
     </button>
+    <button class="nav-item" data-tab="marketplace" title="Marketplace">
+      <svg width="16" height="16" viewBox="0 0 24 24"><use href="#icon-marketplace"/></svg>
+      <span class="nav-label">Маркет</span>
+    </button>
     <button class="nav-item" data-tab="node" title="Node">
       <svg width="16" height="16" viewBox="0 0 24 24"><use href="#icon-node"/></svg>
       <span class="nav-label">Нода</span>
@@ -1232,6 +1246,7 @@
     <script src="static/js/modules/zk.js?v=1785255397"></script>
     <script src="static/js/modules/graph-explorer.js?v=1785258110"></script>
     <script src="static/js/modules/content-graph.js?v=1785264527"></script>
+    <script src="static/js/modules/marketplace.js?v=1785264620"></script>
     <script src="static/js/app.js?v=1785221248"></script>
     <div id="version-badge" style="position:fixed;top:4px;right:8px;font-size:10px;color:var(--text-dim);z-index:9999;opacity:0.4;pointer-events:none">V9.13.0 · Profile fix (CSS) + cache-bust unified
     
