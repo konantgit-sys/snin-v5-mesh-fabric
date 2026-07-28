@@ -132,6 +132,10 @@ from api_routes.trust import router as trust_router
 app.include_router(trust_router)
 from api_routes.zk import router as zk_router
 app.include_router(zk_router)
+from api_routes.graph import router as graph_router
+app.include_router(graph_router)
+from api_routes.content_graph import router as content_graph_router
+app.include_router(content_graph_router)
 
 # ══════════════════════════════════════════
 # PHASE 6 — SECURITY HARDENING

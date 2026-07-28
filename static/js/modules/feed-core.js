@@ -271,6 +271,7 @@ function switchTab(tabName) {
   }, 50);
   
   if (tabName === 'feed') { loadFeed(); resetNewEventsBadge(); }
+  if (tabName === 'search') initSearchTab();
   if (tabName === 'discover') loadDiscover();
   if (tabName === 'notifications') loadNotificationsTab();
   if (tabName === 'messages') loadDMChats();
@@ -286,6 +287,8 @@ function switchTab(tabName) {
   if (tabName === 'lists') loadLists();
   if (tabName === 'communities') loadCommunities();
   if (tabName === 'badges') loadBadges();
+  if (tabName === 'graph') initGraphTab();
+  if (tabName === 'topics') initContentTab();
   if (tabName === 'highlights') loadHighlights();
   if (tabName === 'analytics') loadAnalytics();
   if (tabName === 'relays') { loadRelays(); relayInterval = setInterval(loadRelays, 30000); }
