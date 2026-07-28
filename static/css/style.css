@@ -70,6 +70,17 @@
   --neon-lime: #8aaa8a;
   --neon-lime-glow: rgba(138, 170, 138, 0.3);
   --neon-amber: #e8a850;
+
+  /* ═══ EASING (design-rules) ═══ */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* ═══ DURATIONS ═══ */
+  --dur-fast: 120ms;
+  --dur-normal: 180ms;
+  --dur-slow: 250ms;
+  --dur-modal: 300ms;
   --neon-amber-glow: rgba(232, 168, 80, 0.4);
 
   /* ═══ STATUS COLORS ═══ */
@@ -401,6 +412,42 @@ body {
   user-select: none;
   position: relative;
 }
+
+/* ═══ POLISH: Global interaction standards ═══ */
+button, .btn, [role="button"], .clickable, .nav-item, .tab-btn,
+.post-card, .agent-card, .relay-item, .node-row, .feed-item {
+  transition: transform var(--dur-fast) var(--ease-out), 
+              opacity var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-normal) var(--ease-out),
+              border-color var(--dur-normal) var(--ease-out),
+              background var(--dur-normal) var(--ease-out);
+}
+button:active, .btn:active, [role="button"]:active, .clickable:active,
+.nav-item:active, .tab-btn:active {
+  transform: scale(0.97);
+}
+/* Card press feedback */
+.post-card:active, .agent-card:active, .feed-item:active {
+  transform: scale(0.98);
+}
+/* Hover lift */
+.post-card:hover, .agent-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3),
+              0 0 12px var(--accent-glow);
+  border-color: var(--border-active);
+}
+/* Tab content transition */
+.tab-content {
+  animation: tabFadeIn var(--dur-normal) var(--ease-out);
+}
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* Nav item hover glow */
+.nav-item:hover { color: var(--accent-light); }
+.nav-item.active { color: var(--accent); }
 
 /* Cyber grid — always visible background matrix */
 body::before {
@@ -2836,17 +2883,17 @@ a:focus-visible {
   background: linear-gradient(
     90deg,
     var(--bg-card-hover) 25%,
-    var(--bg-card) 50%,
+    rgba(255,255,255,0.03) 50%,
     var(--bg-card-hover) 75%
   );
   background-size: 200% 100%;
-  animation: skeletonPulse 1.5s ease-in-out infinite;
+  animation: skeletonShimmer 2s var(--ease-in-out) infinite;
   border-radius: var(--radius-sm);
 }
 
-@keyframes skeletonPulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .skeleton-card {
