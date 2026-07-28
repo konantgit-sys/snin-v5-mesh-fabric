@@ -76,6 +76,14 @@ function initCanvasBG() {
   });
   document.addEventListener('touchend', () => { mouseX = -999; mouseY = -999; });
 
+  // V12.4 — Parallax scroll tracking
+  var scrollY = 0, prevScrollY = 0, scrollDelta = 0;
+  window.addEventListener('scroll', function() {
+    prevScrollY = scrollY;
+    scrollY = window.scrollY || document.documentElement.scrollTop;
+    scrollDelta = (scrollY - prevScrollY) * 0.3; // dampened scroll speed
+  }, {passive: true});
+
   // 200 particles (V8.50 — doubled from 100, brighter)
   for (let i = 0; i < 200; i++) {
     particles.push({
@@ -121,8 +129,11 @@ function initCanvasBG() {
     }
 
     // Draw particles
+    // V12.4 — Parallax drift from scroll
+    var parallaxDrift = scrollDelta * 0.02;
     for (const p of particles) {
-      p.x += p.vx; p.y += p.vy;
+      p.x += p.vx + parallaxDrift * (p.y / h); // top particles drift more
+      p.y += p.vy;
       if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
       if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
 

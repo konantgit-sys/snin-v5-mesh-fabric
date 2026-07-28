@@ -603,10 +603,15 @@ body::after {
 .logo-icon {
   width: 36px; height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple), var(--neon-magenta), var(--neon-cyan));
+  background-size: 300% 300%;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 0 20px var(--neon-cyan-glow), 0 0 40px rgba(180,77,255,0.2);
-  animation: logoGlow 3s ease-in-out infinite;
+  animation: logoGlow 3s ease-in-out infinite, logoGradientShift 6s ease-in-out infinite;
+}
+@keyframes logoGradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 .logo-icon svg {
@@ -1877,12 +1882,50 @@ body::after {
 
 .nav-item svg {
   width: 18px; height: 18px;
-  transition: all 0.25s ease-out;
+  transition: transform 220ms var(--ease-spring),
+              color 250ms var(--ease-out),
+              filter 250ms var(--ease-out);
+}
+.nav-item.active svg {
+  transform: scale(1.12);
+  filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.5));
+  color: var(--accent);
 }
 
 .nav-item:active svg {
   transform: scale(0.85);
   transition: transform 0.1s ease-out;
+}
+
+/* V12.4 — Compose button glow */
+.nav-item[data-tab="compose"] {
+  position: relative;
+}
+.nav-item[data-tab="compose"]::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light), var(--accent));
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+  z-index: -1;
+}
+.nav-item[data-tab="compose"]:hover::before { opacity: 0.5; }
+.nav-item[data-tab="compose"].active::before { opacity: 0.7; }
+
+/* V12.4 — Zap spark animation */
+@keyframes zapSpark {
+  0% { filter: drop-shadow(0 0 0px var(--accent)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 8px var(--accent)); transform: scale(1.3) rotate(-5deg); }
+  100% { filter: drop-shadow(0 0 0px var(--accent)); transform: scale(1) rotate(0deg); }
+}
+.action-btn.zap-btn:active svg {
+  animation: zapSpark 0.4s var(--ease-spring);
+}
+.action-btn.like-btn:active:not(.liked) svg {
+  transform: scale(1.3);
+  transition: transform 0.15s var(--ease-spring);
 }
 
 .nav-item.active {
