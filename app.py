@@ -258,7 +258,7 @@ def resolve_name(pubkey):
             name = meta.get("display_name") or meta.get("name") or ""
             if name:
                 return name
-    except:
+    except (json.JSONDecodeError, KeyError, ValueError):
         pass
     
     # Fallback: npub truncated for readability
@@ -270,7 +270,7 @@ def resolve_name(pubkey):
         converted = bech32.convertbits(data, 8, 5)
         npub = bech32.bech32_encode("npub", converted)
         return "npub1" + npub[5:13] + "..."
-    except:
+    except (ValueError, ImportError):
         pass
     
     return pubkey[:8] + "..."
@@ -346,13 +346,13 @@ async def api_agents():
     for a in agents:
         try:
             data = json.loads(a["content"])
-        except:
+        except (json.JSONDecodeError, KeyError, ValueError):
             data = {}
         profile = {}
         try:
             if a.get("profile"):
                 profile = json.loads(a["profile"])
-        except:
+        except (json.JSONDecodeError, KeyError, ValueError):
             pass
         result.append({
             "pubkey": a["pubkey"],
@@ -406,7 +406,8 @@ def _bg_fetch_one(pubkey: str):
             conn.commit()
             conn.close()
             _profile_sync_seen.add(pubkey)
-    except:
+    except (sqlite3.Error, Exception) as e:
+        print(f"[SYNC] Profile sync error: {e}", flush=True)
         pass
     finally:
         _pending_bg_fetches.discard(pubkey)
@@ -445,9 +446,9 @@ async def _periodic_profile_sync():
                             conn.commit()
                             conn.close()
                             print(f"[A1-SYNC] Periodic: cached {pk[:12]}...", flush=True)
-                    except:
+                    except (sqlite3.Error, Exception) as e:
                         pass
-        except:
+        except (sqlite3.Error, Exception) as e:
             pass
 
 
@@ -492,9 +493,9 @@ def _sync_profiles_background(pubkeys):
                     )
                     conn.commit()
                     conn.close()
-                except:
+                except (sqlite3.Error, Exception) as e:
                     pass
-        except:
+        except (sqlite3.Error, Exception) as e:
             pass
     loop.close()
 
@@ -513,9 +514,9 @@ async def _sync_profiles_async(pubkeys):
                     )
                     conn.commit()
                     conn.close()
-                except:
+                except (sqlite3.Error, Exception) as e:
                     pass
-        except:
+        except (sqlite3.Error, Exception) as e:
             pass
 
 async def fetch_profile_from_nostr(pubkey: str):
@@ -540,9 +541,9 @@ async def fetch_profile_from_nostr(pubkey: str):
                                 break
                     except asyncio.TimeoutError:
                         break
-                    except:
+                    except (WebSocketDisconnect, asyncio.TimeoutError, Exception):
                         break
-        except:
+        except (WebSocketDisconnect, asyncio.TimeoutError, Exception):
             continue
     return None
 
@@ -575,9 +576,9 @@ async def fetch_kind_events_from_relays(kind: int, limit: int = 50, extra_filter
                                 break
                     except asyncio.TimeoutError:
                         break
-                    except:
+                    except (WebSocketDisconnect, asyncio.TimeoutError, Exception):
                         break
-        except:
+        except (WebSocketDisconnect, asyncio.TimeoutError, Exception):
             continue
         if len(events) >= limit // 2:
             break
@@ -594,7 +595,8 @@ async def fetch_kind_events_from_relays(kind: int, limit: int = 50, extra_filter
                      evt.get("sig",""), int(time.time())))
             conn.commit()
             conn.close()
-        except:
+        except (sqlite3.Error, Exception) as e:
+            print(f"[INGEST] DB error: {e}", flush=True)
             pass
     
     return events
@@ -614,7 +616,7 @@ def resolve_picture(pubkey):
             pic = meta.get("picture") or ""
             if pic:
                 return pic
-    except:
+    except (json.JSONDecodeError, KeyError, ValueError):
         pass
     return ""
 
@@ -630,7 +632,7 @@ def resolve_nip05(pubkey):
             nip = meta.get("nip05") or ""
             if nip:
                 return nip
-    except:
+    except (json.JSONDecodeError, KeyError, ValueError):
         pass
     return ""
 
@@ -643,7 +645,7 @@ def pubkey_to_npub(pubkey):
         converted = bech32.convertbits(data, 8, 5)
         npub = bech32.bech32_encode("npub", converted)
         return npub
-    except:
+    except (ValueError, ImportError):
         return pubkey[:16] + "..."
 
 
@@ -672,7 +674,7 @@ async def ws_endpoint(client: WebSocket):
                     await client.send_text(msg.data)
                 elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
                     break
-        except:
+        except (aiohttp.ClientError, asyncio.TimeoutError, ConnectionError, Exception):
             pass
     task = asyncio.create_task(relay_to_client())
     try:
@@ -821,9 +823,9 @@ async def _broadcast_to_external_relays(event_dict):
                     resp = await asyncio.wait_for(ws.recv(), timeout=2)
                     if "OK" in str(resp):
                         count += 1
-                except:
+                except (asyncio.TimeoutError, Exception):
                     pass
-        except:
+        except (websockets.exceptions.WebSocketException, asyncio.TimeoutError, Exception):
             continue
     print(f"[INGEST-EXT] Broadcast to {count}/{min(5,len(external))} external relays", flush=True)
 
@@ -927,7 +929,7 @@ async def api_nip05_verify(pubkey: str = Query(...)):
         try:
             meta = json.loads(profile_row["content"])
             identifier = meta.get("nip05", "")
-        except:
+        except (json.JSONDecodeError, KeyError, ValueError):
             pass
     
     if not identifier:
@@ -965,7 +967,7 @@ def parse_media_tags(tags_json: str) -> list:
         return []
     try:
         tags = json.loads(tags_json) if isinstance(tags_json, str) else tags_json
-    except:
+    except (json.JSONDecodeError, ValueError):
         return []
 
     media = []
