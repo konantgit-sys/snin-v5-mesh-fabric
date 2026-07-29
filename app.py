@@ -3,6 +3,7 @@
 import asyncio, json, time, sqlite3, os, re, uuid, threading, urllib.parse, hashlib, sys
 import nostr_sdk
 from datetime import datetime
+from shared import broadcast_event, verify_nostr_event
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, Request, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
@@ -704,6 +705,21 @@ async def api_events_ingest(request: Request):
     if not isinstance(kind, int):
         return {"ok": False, "error": "kind must be integer"}
     
+    # SEC-001: Verify event signature before storing
+    event_dict = {
+        "id": event_id,
+        "pubkey": pubkey,
+        "kind": kind,
+        "content": content,
+        "tags": tags,
+        "created_at": created_at,
+        "sig": sig
+    }
+    is_valid, verify_error = verify_nostr_event(event_dict)
+    if not is_valid:
+        print(f"[INGEST] Signature verification FAILED: {verify_error} | id={str(event_id)[:12]}", flush=True)
+        return {"ok": False, "error": f"event verification failed: {verify_error}"}
+    
     # Map kind to event_type for DB
     kind_type_map = {
         1: "post",
@@ -754,15 +770,6 @@ async def api_events_ingest(request: Request):
         conn.close()
         
         # Broadcast to SNIN relay (8197) — guaranteed storage
-        event_dict = {
-            "id": event_id,
-            "pubkey": pubkey,
-            "kind": kind,
-            "content": content,
-            "tags": tags,
-            "created_at": created_at,
-            "sig": sig
-        }
         broadcast_event(event_dict)
         
         # Also broadcast to external relays for propagation (async, best-effort)
