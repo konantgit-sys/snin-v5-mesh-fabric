@@ -876,6 +876,7 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), na
 _nip05_verify_cache = {}
 
 NIP05_VERIFY_TTL = 3600  # recheck every hour
+NIP05_CACHE_MAX_SIZE = 10000  # max cached entries before LRU eviction
 
 async def _verify_nip05_identifier(pubkey: str, identifier: str) -> bool:
     """Check if a NIP-05 identifier resolves back to the given pubkey."""
@@ -945,6 +946,15 @@ async def api_nip05_verify(pubkey: str = Query(...)):
     
     result["checked_at"] = now
     _nip05_verify_cache[pubkey] = result
+    
+    # LRU eviction: remove oldest entries when cache exceeds max size
+    if len(_nip05_verify_cache) > NIP05_CACHE_MAX_SIZE:
+        overflow = len(_nip05_verify_cache) - NIP05_CACHE_MAX_SIZE + 500
+        sorted_entries = sorted(_nip05_verify_cache.items(), 
+                               key=lambda x: x[1].get("checked_at", 0))
+        for pubkey_old, _ in sorted_entries[:overflow]:
+            del _nip05_verify_cache[pubkey_old]
+    
     return result
 
 
