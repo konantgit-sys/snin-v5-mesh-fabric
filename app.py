@@ -163,16 +163,31 @@ async def logging_security_middleware(request: Request, call_next):
         
         # Security headers
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data: https:; "
-            "font-src 'self' data:; "
-            "connect-src 'self' ws: wss:; "
-            "media-src 'self'; "
-            "frame-ancestors 'none'"
-        )
+        
+        # Nonce-based CSP (SEC-002): uses nonce for root HTML, strict fallback otherwise
+        csp_nonce = getattr(request.state, 'csp_nonce', None)
+        if csp_nonce and request.url.path == '/':
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                f"script-src 'nonce-{csp_nonce}' 'strict-dynamic'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: https:; "
+                "font-src 'self' data:; "
+                "connect-src 'self' ws: wss:; "
+                "media-src 'self'; "
+                "frame-ancestors 'none'"
+            )
+        else:
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: https:; "
+                "font-src 'self' data:; "
+                "connect-src 'self' ws: wss:; "
+                "media-src 'self'; "
+                "frame-ancestors 'none'"
+            )
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
@@ -822,8 +837,24 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @app.get("/")
 @app.head("/")
-async def index():
-    return FileResponse(os.path.join(BASE_DIR, "static/index.html"))
+async def index(request: Request):
+    """Serve index.html with nonce-based CSP for script-src."""
+    import secrets
+    nonce = secrets.token_hex(16)
+    
+    html_path = os.path.join(BASE_DIR, "static/index.html")
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    
+    # Inject nonce into all <script> tags
+    html = html.replace('<script ', f'<script nonce="{nonce}" ')
+    html = html.replace('<script>', f'<script nonce="{nonce}">')
+    
+    # Store nonce for CSP middleware
+    request.state.csp_nonce = nonce
+    
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(content=html)
 
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
