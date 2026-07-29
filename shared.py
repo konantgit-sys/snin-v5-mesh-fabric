@@ -1,5 +1,5 @@
 """
-SNIN Client — Shared utilities (DB + name resolution)
+SNIN Client — Shared utilities (DB + name resolution + crypto)
 Extracted from app.py for modularization Phase 2.2
 """
 
@@ -7,6 +7,8 @@ import sqlite3
 import json
 import time
 import os
+import base64
+import hashlib
 
 # ─── Constants ───
 DB_PATH = "/home/agent/data/sites/relay/relay_v2.db"
@@ -145,3 +147,55 @@ def verify_nostr_event(event_dict: dict) -> tuple[bool, str]:
             return False, "signature verification failed"
     except Exception as e:
         return False, f"verification error: {str(e)}"
+
+
+# ─── Wallet Secret Encryption (SEC-004) ───
+
+_MASTER_KEY_PATH = "/home/agent/data/.nwc_master_key"
+_fernet = None
+
+
+def _get_fernet():
+    """Lazy-load Fernet instance with master key."""
+    global _fernet
+    if _fernet is None:
+        from cryptography.fernet import Fernet
+        try:
+            with open(_MASTER_KEY_PATH, 'rb') as f:
+                key = f.read().strip()
+        except FileNotFoundError:
+            # Generate new key on first use
+            key = Fernet.generate_key()
+            with open(_MASTER_KEY_PATH, 'wb') as f:
+                f.write(key)
+            os.chmod(_MASTER_KEY_PATH, 0o600)
+        _fernet = Fernet(key)
+    return _fernet
+
+
+def encrypt_wallet_secret(plaintext: str) -> str:
+    """Encrypt a wallet secret using Fernet (AES-128-CBC). 
+    Returns base64-encoded ciphertext."""
+    if not plaintext:
+        return ""
+    try:
+        f = _get_fernet()
+        token = f.encrypt(plaintext.encode('utf-8'))
+        return base64.b64encode(token).decode('ascii')
+    except Exception as e:
+        print(f"[ENCRYPT] Error: {e}", flush=True)
+        return plaintext  # Fallback: store as plaintext (should not happen)
+
+
+def decrypt_wallet_secret(ciphertext: str) -> str:
+    """Decrypt a Fernet-encrypted wallet secret. 
+    Accepts base64-encoded ciphertext, returns plaintext."""
+    if not ciphertext:
+        return ""
+    try:
+        f = _get_fernet()
+        token = base64.b64decode(ciphertext)
+        return f.decrypt(token).decode('utf-8')
+    except Exception:
+        # If decryption fails, the value might be legacy plaintext
+        return ciphertext
