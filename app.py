@@ -170,7 +170,7 @@ async def logging_security_middleware(request: Request, call_next):
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; "
                 f"script-src 'nonce-{csp_nonce}' 'strict-dynamic'; "
-                "style-src 'self' 'unsafe-inline'; "
+                f"style-src 'self' 'nonce-{csp_nonce}'; "
                 "img-src 'self' data: https:; "
                 "font-src 'self' data:; "
                 "connect-src 'self' ws: wss:; "
@@ -181,7 +181,7 @@ async def logging_security_middleware(request: Request, call_next):
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; "
                 "script-src 'self'; "
-                "style-src 'self' 'unsafe-inline'; "
+                "style-src 'self'; "
                 "img-src 'self' data: https:; "
                 "font-src 'self' data:; "
                 "connect-src 'self' ws: wss:; "
@@ -848,9 +848,11 @@ async def index(request: Request):
     with open(html_path, 'r', encoding='utf-8') as f:
         html = f.read()
     
-    # Inject nonce into all <script> tags
+    # Inject nonce into all <script> and <style> tags
     html = html.replace('<script ', f'<script nonce="{nonce}" ')
     html = html.replace('<script>', f'<script nonce="{nonce}">')
+    html = html.replace('<style ', f'<style nonce="{nonce}" ')
+    html = html.replace('<style>', f'<style nonce="{nonce}">')
     
     # Store nonce for CSP middleware
     request.state.csp_nonce = nonce
