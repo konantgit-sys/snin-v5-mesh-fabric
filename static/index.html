@@ -67,30 +67,30 @@
 <!-- ═══ Header ═══ -->
 <header class="header glass-panel scroll-edge-fade" style="border-radius:0 0 var(--radius-lg) var(--radius-lg); border-top:none">
   <div class="header-inner">
-    <div class="logo-group" onclick="switchTab('feed')">
+    <div class="logo-group" data-action="switchTab:feed">
       <svg class="logo-svg" width="22" height="22" viewBox="0 0 24 24"><use href="#icon-lightning"/></svg>
       <span class="logo-text" data-text="SNIN">SNIN</span>
       <span class="logo-sub" data-i18n="social">соцсеть</span>
     </div>
     <div class="header-right">
       <div class="account-indicator" id="accountIndicator" style="display:none;align-items:center;gap:6px;margin-right:4px"></div>
-      <button class="icon-btn" id="notifyBtn" onclick="toggleNotifications()" aria-label="Notifications" style="position:relative">
+      <button class="icon-btn" id="notifyBtn" data-action="toggleNotifications" aria-label="Notifications" style="position:relative">
         <svg width="20" height="20" viewBox="0 0 24 24"><use href="#icon-bell"/></svg>
         <span class="notify-badge" id="notifyBadge" style="display:none">0</span>
       </button>
-      <button class="icon-btn" onclick="toggleSearch()" id="searchBtn" aria-label="Search">
+      <button class="icon-btn" data-action="toggleSearch" id="searchBtn" aria-label="Search">
         <svg width="20" height="20" viewBox="0 0 24 24"><use href="#icon-search"/></svg>
       </button>
-      <button class="icon-btn theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme">
+      <button class="icon-btn theme-toggle" id="themeToggle" data-action="toggleTheme" aria-label="Toggle theme">
         <svg width="20" height="20" viewBox="0 0 24 24" id="themeIcon"><use href="#icon-sun"/></svg>
       </button>
-      <button class="icon-btn lang-toggle" id="langToggle" onclick="toggleLang()" aria-label="Language" style="font-size:11px;font-weight:700;width:32px">
+      <button class="icon-btn lang-toggle" id="langToggle" data-action="toggleLang" aria-label="Language" style="font-size:11px;font-weight:700;width:32px">
         RU
       </button>
       <div class="header-status">
         <span class="status-dot live" id="relayDot"></span>
         <span class="status-text" id="relayLabel">ОНЛАЙН</span>
-        <span class="new-events-badge" id="newEventsBadge" style="display:none" onclick="switchTab('feed');resetNewEventsBadge()">0</span>
+        <span class="new-events-badge" id="newEventsBadge" style="display:none" data-action="switchTab:feed|resetNewEventsBadge">0</span>
         <span style="font-size:8px;opacity:0.4;margin-left:4px">V9.13.0</span>
       </div>
     </div>
@@ -101,13 +101,13 @@
 <div class="search-bar" id="searchBar" style="display:none">
   <div class="search-inner">
     <svg width="18" height="18" viewBox="0 0 24 24" class="search-icon"><use href="#icon-search"/></svg>
-    <input type="text" id="searchInput" placeholder="Поиск постов и людей..." class="search-input" oninput="doSearch()" onkeydown="if(event.key==='Enter')doSearch()">
-    <button class="icon-btn search-close" onclick="toggleSearch()" aria-label="Close search">
+    <input type="text" id="searchInput" placeholder="Поиск постов и людей..." class="search-input" data-action="doSearch">
+    <button class="icon-btn search-close" data-action="toggleSearch" aria-label="Close search">
       <svg width="18" height="18" viewBox="0 0 24 24"><use href="#icon-close"/></svg>
     </button>
   </div>
   <div class="search-filters" id="searchFilters">
-    <select id="filterKind" class="filter-select" onchange="doSearch()">
+    <select id="filterKind" class="filter-select" data-action="doSearch">
       <option value="">Все типы</option>
       <option value="1">Заметки</option>
       <option value="0">Профили</option>
@@ -115,19 +115,19 @@
       <option value="39000">Агенты</option>
       <option value="30023">Статьи</option>
     </select>
-    <select id="filterLang" class="filter-select" onchange="doSearch()">
+    <select id="filterLang" class="filter-select" data-action="doSearch">
       <option value="">Любой язык</option>
       <option value="ru">🇷🇺 РУС</option>
       <option value="en">🇬🇧 АНГ</option>
     </select>
-    <select id="filterSource" class="filter-select" onchange="doSearch()">
+    <select id="filterSource" class="filter-select" data-action="doSearch">
       <option value="">Только локально</option>
       <option value="all">Везде (релеи)</option>
     </select>
   </div>
   <div class="search-tabs" id="searchTabs" style="display:none">
-    <button class="search-tab active" id="searchTabPosts" onclick="switchSearchTab('posts')">Посты <span id="searchPostsCount" class="search-tab-count"></span></button>
-    <button class="search-tab" id="searchTabPeople" onclick="switchSearchTab('people')">Люди <span id="searchPeopleCount" class="search-tab-count"></span></button>
+    <button class="search-tab active" id="searchTabPosts" data-action="switchSearchTab:posts">Посты <span id="searchPostsCount" class="search-tab-count"></span></button>
+    <button class="search-tab" id="searchTabPeople" data-action="switchSearchTab:people">Люди <span id="searchPeopleCount" class="search-tab-count"></span></button>
   </div>
   <div id="searchLoading" class="search-loading" style="display:none">
     <div class="spinner-sm"></div>
@@ -141,7 +141,7 @@
   <div class="notify-header">
     <svg width="18" height="18" viewBox="0 0 24 24"><use href="#icon-bell"/></svg>
     <span data-i18n="notifications">Уведомления</span>
-    <button class="icon-btn notify-close" onclick="toggleNotifications()" aria-label="Close notifications">
+    <button class="icon-btn notify-close" data-action="toggleNotifications" aria-label="Close notifications">
       <svg width="16" height="16" viewBox="0 0 24 24"><use href="#icon-close"/></svg>
     </button>
   </div>
@@ -165,9 +165,9 @@
   <!-- Tab: Feed -->
   <div class="tab-content active" id="tab-feed">
     <div class="feed-toggle-bar">
-      <button class="feed-toggle active" data-mode="all" onclick="switchFeedMode('all')"><i class="icon icon-globe icon-sm"></i> Все</button>
-      <button class="feed-toggle" data-mode="following" onclick="switchFeedMode('following')"><i class="icon icon-users icon-sm"></i> Подписки</button>
-      <button class="feed-toggle" id="feedTabHashtags" data-mode="hashtags" onclick="switchFeedMode('hashtags')" style="display:none"><i class="icon icon-bell icon-sm"></i> Hashtags</button>
+      <button class="feed-toggle active" data-mode="all" data-action="switchFeedMode:all"><i class="icon icon-globe icon-sm"></i> Все</button>
+      <button class="feed-toggle" data-mode="following" data-action="switchFeedMode:following"><i class="icon icon-users icon-sm"></i> Подписки</button>
+      <button class="feed-toggle" id="feedTabHashtags" data-mode="hashtags" data-action="switchFeedMode:hashtags" style="display:none"><i class="icon icon-bell icon-sm"></i> Hashtags</button>
     </div>
     <div id="feedContainer" class="stagger-fast">
       <div class="skeleton skeleton-card"></div>
@@ -181,13 +181,13 @@
     <div class="search-tab-header">
       <div class="search-inner">
         <svg width="18" height="18" viewBox="0 0 24 24" class="search-icon"><use href="#icon-search"/></svg>
-        <input type="text" id="searchInputTab" placeholder="Поиск постов, людей, агентов..." class="search-input" oninput="doSearch()" onkeydown="if(event.key==='Enter')doSearch()">
-        <button class="icon-btn search-clear" id="searchClearBtn" onclick="clearSearch()" style="display:none" aria-label="Clear search">
+        <input type="text" id="searchInputTab" placeholder="Поиск постов, людей, агентов..." class="search-input" data-action="doSearch">
+        <button class="icon-btn search-clear" id="searchClearBtn" data-action="clearSearch" style="display:none" aria-label="Clear search">
           <svg width="16" height="16" viewBox="0 0 24 24"><use href="#icon-close"/></svg>
         </button>
       </div>
       <div class="search-filters" id="searchFilters">
-        <select id="filterKind" class="filter-select" onchange="doSearch()">
+        <select id="filterKind" class="filter-select" data-action="doSearch">
           <option value="">Все типы</option>
           <option value="1">Заметки</option>
           <option value="0">Профили</option>
@@ -195,15 +195,15 @@
           <option value="39000">Агенты</option>
           <option value="30023">Статьи</option>
         </select>
-        <select id="filterLang" class="filter-select" onchange="doSearch()">
+        <select id="filterLang" class="filter-select" data-action="doSearch">
           <option value="">Любой язык</option>
           <option value="ru">🇷🇺 РУС</option>
           <option value="en">🇬🇧 АНГ</option>
         </select>
       </div>
       <div class="search-tabs" id="searchTabs" style="display:none">
-        <button class="search-tab active" id="searchTabPosts" onclick="switchSearchTab('posts')">Посты <span id="searchPostsCount" class="search-tab-count"></span></button>
-        <button class="search-tab" id="searchTabPeople" onclick="switchSearchTab('people')">Люди <span id="searchPeopleCount" class="search-tab-count"></span></button>
+        <button class="search-tab active" id="searchTabPosts" data-action="switchSearchTab:posts">Посты <span id="searchPostsCount" class="search-tab-count"></span></button>
+        <button class="search-tab" id="searchTabPeople" data-action="switchSearchTab:people">Люди <span id="searchPeopleCount" class="search-tab-count"></span></button>
       </div>
     </div>
     <div id="searchLoading" class="search-loading" style="display:none">
@@ -223,7 +223,7 @@
     <div class="search-recent" id="searchRecent" style="display:none">
       <div class="search-recent-header">
         <span class="search-recent-title">Недавние поиски</span>
-        <button class="search-recent-clear" onclick="clearRecentSearches()">Очистить</button>
+        <button class="search-recent-clear" data-action="clearRecentSearches">Очистить</button>
       </div>
       <div id="recentSearchesList"></div>
     </div>
@@ -241,9 +241,9 @@
     <div class="graph-header">
       <h3 class="tab-heading"><svg width="20" height="20" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:6px"><use href="#icon-graph"/></svg>Social Graph</h3>
       <div class="graph-type-tabs">
-        <button class="graph-type-tab active" data-type="combined" onclick="GraphExplorer.load('combined')">All</button>
-        <button class="graph-type-tab" data-type="follows" onclick="GraphExplorer.load('follows')">Follows</button>
-        <button class="graph-type-tab" data-type="trust" onclick="GraphExplorer.load('trust')">Trust</button>
+        <button class="graph-type-tab active" data-type="combined" data-action="GraphExplorer.load('combined')">All</button>
+        <button class="graph-type-tab" data-type="follows" data-action="GraphExplorer.load('follows')">Follows</button>
+        <button class="graph-type-tab" data-type="trust" data-action="GraphExplorer.load('trust')">Trust</button>
       </div>
       <span class="graph-status" id="graphStatus"></span>
     </div>
@@ -275,15 +275,15 @@
       <span class="discover-subtitle" data-i18n="globalFeed">Глобальная лента</span>
     </div>
     <div class="feed-toggle-bar" id="langToggleBar" style="margin:0 0 8px;flex-wrap:nowrap;overflow-x:auto;gap:6px">
-      <button class="feed-toggle lang-chip active" data-lang="all" onclick="switchLangFeed('all')"><i class="icon icon-globe icon-sm"></i> Все</button>
-      <button class="feed-toggle lang-chip" data-lang="en" onclick="switchLangFeed('en')">🇬🇧 EN</button>
-      <button class="feed-toggle lang-chip" data-lang="ru" onclick="switchLangFeed('ru')">🇷🇺 RU</button>
-      <button class="feed-toggle lang-chip" data-lang="ja" onclick="switchLangFeed('ja')">🇯🇵 JA</button>
-      <button class="feed-toggle lang-chip" data-lang="zh" onclick="switchLangFeed('zh')">🇨🇳 ZH</button>
-      <button class="feed-toggle lang-chip" data-lang="es" onclick="switchLangFeed('es')">🇪🇸 ES</button>
-      <button class="feed-toggle lang-chip" data-lang="de" onclick="switchLangFeed('de')">🇩🇪 DE</button>
+      <button class="feed-toggle lang-chip active" data-lang="all" data-action="switchLangFeed:all"><i class="icon icon-globe icon-sm"></i> Все</button>
+      <button class="feed-toggle lang-chip" data-lang="en" data-action="switchLangFeed:en">🇬🇧 EN</button>
+      <button class="feed-toggle lang-chip" data-lang="ru" data-action="switchLangFeed:ru">🇷🇺 RU</button>
+      <button class="feed-toggle lang-chip" data-lang="ja" data-action="switchLangFeed:ja">🇯🇵 JA</button>
+      <button class="feed-toggle lang-chip" data-lang="zh" data-action="switchLangFeed:zh">🇨🇳 ZH</button>
+      <button class="feed-toggle lang-chip" data-lang="es" data-action="switchLangFeed:es">🇪🇸 ES</button>
+      <button class="feed-toggle lang-chip" data-lang="de" data-action="switchLangFeed:de">🇩🇪 DE</button>
       <span style="margin:0 4px;color:var(--border)">|</span>
-      <button class="feed-toggle lang-chip" data-lang="trending" onclick="switchLangFeed('trending')" style="font-weight:600"><i class="icon icon-flame icon-sm"></i> Trending</button>
+      <button class="feed-toggle lang-chip" data-lang="trending" data-action="switchLangFeed:trending" style="font-weight:600"><i class="icon icon-flame icon-sm"></i> Trending</button>
     </div>
     <div id="discoverFeed" class="feed-container stagger-fast">
 
@@ -309,7 +309,7 @@
         <div style="font-size:12px;color:var(--text-dim)">Уведомления браузера, когда вкладка не активна</div>
       </div>
       <label class="switch">
-        <input type="checkbox" id="pushToggle" onchange="togglePush(this.checked)">
+        <input type="checkbox" id="pushToggle" data-action="togglePush:this,checked">
         <span class="slider round"></span>
       </label>
     </div>
@@ -334,7 +334,7 @@
     <div style="padding:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <h2 style="margin:0">📅 Calendar</h2>
-        <button class="btn-primary" onclick="showCreateEvent()" style="font-size:13px">+ New Event</button>
+        <button class="btn-primary" data-action="showCreateEvent" style="font-size:13px">+ New Event</button>
       </div>
       <div id="calendarEvents" style="display:flex;flex-direction:column;gap:8px"></div>
       <div id="eventForm" style="display:none;margin-top:16px;padding:16px;border-radius:12px;background:var(--glass-bg);border:1px solid var(--border)">
@@ -345,8 +345,8 @@
         <input id="eventLocation" placeholder="Место (необязательно)" style="width:100%;padding:10px;margin-bottom:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px">
         <textarea id="eventDesc" placeholder="Описание (необязательно)" style="width:100%;padding:10px;margin-bottom:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px;min-height:80px;resize:vertical"></textarea>
         <div style="display:flex;gap:8px">
-          <button class="btn-primary" onclick="publishEvent()" style="flex:1">Publish</button>
-          <button class="btn-secondary" onclick="document.getElementById('eventForm').style.display='none'" style="flex:1">Cancel</button>
+          <button class="btn-primary" data-action="publishEvent" style="flex:1">Publish</button>
+          <button class="btn-secondary" data-action="document.getElementById('eventForm').style.display='none'" style="flex:1">Cancel</button>
         </div>
         <div id="eventStatus" style="margin-top:8px;font-size:13px"></div>
       </div>
@@ -374,7 +374,7 @@
       <div style="padding:14px;border-radius:12px;background:var(--glass-bg);border:1px solid var(--border);margin-bottom:10px">
         <div style="font-weight:700;font-size:13px;margin-bottom:8px">↗ Send</div>
         <textarea id="walletInvoiceInput" placeholder="Вставьте BOLT11 инвойс (lnbc...)" style="width:100%;min-height:44px;padding:8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:13px;resize:vertical;font-family:monospace"></textarea>
-        <button id="walletPayBtn" onclick="payInvoice()" style="margin-top:8px;padding:10px 20px;border-radius:8px;border:none;background:var(--accent);color:#000;font-weight:700;font-size:14px;cursor:pointer">Оплатить инвойс ⚡</button>
+        <button id="walletPayBtn" data-action="payInvoice" style="margin-top:8px;padding:10px 20px;border-radius:8px;border:none;background:var(--accent);color:#000;font-weight:700;font-size:14px;cursor:pointer">Оплатить инвойс ⚡</button>
         <span id="walletPayStatus" style="margin-left:10px;font-size:12px;color:var(--text-dim)"></span>
       </div>
 
@@ -383,9 +383,9 @@
         <div style="font-weight:700;font-size:13px;margin-bottom:8px">↘ Receive</div>
         <div style="display:flex;gap:8px;align-items:center">
           <input id="walletReceiveAmount" type="number" placeholder="Сумма в сатах" value="21" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:13px">
-          <button onclick="generateReceiveInvoice()" style="padding:10px 16px;border-radius:8px;border:none;background:rgba(var(--accent-rgb),0.2);color:var(--accent);font-weight:700;font-size:14px;cursor:pointer">Generate</button>
+          <button data-action="generateReceiveInvoice" style="padding:10px 16px;border-radius:8px;border:none;background:rgba(var(--accent-rgb),0.2);color:var(--accent);font-weight:700;font-size:14px;cursor:pointer">Generate</button>
         </div>
-        <input id="walletReceiveInvoice" readonly placeholder="Здесь появится инвойс" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:12px;font-family:monospace;display:none" onclick="this.select()">
+        <input id="walletReceiveInvoice" readonly placeholder="Здесь появится инвойс" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:12px;font-family:monospace;display:none" data-action="this.select()">
       </div>
 
       <!-- Transaction History -->
@@ -399,7 +399,7 @@
         <div style="font-size:13px;font-weight:600;margin-bottom:4px">⚡ Connect NWC Wallet</div>
         <p style="font-size:12px;color:var(--text-dim);margin:0 0 8px">Use Nostr Wallet Connect to pair your Lightning wallet</p>
         <input id="nwcConnectString" placeholder="nostr+walletconnect://..." style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:12px;font-family:monospace;margin-bottom:6px">
-        <button onclick="connectNWC()" style="padding:8px 16px;border-radius:8px;border:none;background:#f5a623;color:#000;font-weight:700;font-size:13px;cursor:pointer">Connect</button>
+        <button data-action="connectNWC" style="padding:8px 16px;border-radius:8px;border:none;background:#f5a623;color:#000;font-weight:700;font-size:13px;cursor:pointer">Connect</button>
       </div>
 
       <!-- Zaps section (NIP-57) -->
@@ -407,8 +407,8 @@
         <div class="tab-heading" style="margin-bottom:8px">⚡ Zaps</div>
         <div class="wallet-stats" id="walletStats" style="display:flex;gap:12px;margin-bottom:12px"></div>
         <div class="wallet-tabs" style="display:flex;gap:0;margin-bottom:12px;overflow:hidden;border-radius:10px">
-          <button class="wallet-tab-btn active" onclick="switchWalletTab('received')" style="flex:1;padding:8px;border:none;background:var(--glass-bg);color:var(--text);cursor:pointer;font-size:13px">Полученные</button>
-          <button class="wallet-tab-btn" onclick="switchWalletTab('sent')" style="flex:1;padding:8px;border:none;background:var(--glass-bg);color:var(--text-dim);cursor:pointer;font-size:13px">Отправленные</button>
+          <button class="wallet-tab-btn active" data-action="switchWalletTab:received" style="flex:1;padding:8px;border:none;background:var(--glass-bg);color:var(--text);cursor:pointer;font-size:13px">Полученные</button>
+          <button class="wallet-tab-btn" data-action="switchWalletTab:sent" style="flex:1;padding:8px;border:none;background:var(--glass-bg);color:var(--text-dim);cursor:pointer;font-size:13px">Отправленные</button>
         </div>
         <div id="walletContent">
           <div class="skeleton skeleton-card"></div>
@@ -433,7 +433,7 @@
       <div class="prompt-icon"><i class="icon icon-xl icon-lock"></i></div>
       <h3>Войдите, чтобы публиковать</h3>
       <p>Перейдите во вкладку <strong>Профиль</strong>, вставьте ваш nsec-ключ — и сможете писать посты, ставить лайки и подписываться на авторов.</p>
-      <button class="btn-primary" onclick="switchTab('account')">
+      <button class="btn-primary" data-action="switchTab:account">
         → Перейти в Профиль
       </button>
     </div>
@@ -471,13 +471,13 @@
           <input class="poll-opt-input" placeholder="Вариант 1" style="width:100%;margin-bottom:6px;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text)">
           <input class="poll-opt-input" placeholder="Вариант 2" style="width:100%;margin-bottom:6px;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text)">
         </div>
-        <button class="btn-secondary btn-sm" onclick="addPollOption()" style="font-size:12px;margin-top:4px">+ Add option</button>
+        <button class="btn-secondary btn-sm" data-action="addPollOption" style="font-size:12px;margin-top:4px">+ Add option</button>
       </div>
       <div class="compose-field">
         <label>Media</label>
         <div class="compose-media">
-          <input type="file" id="composeMediaInput" accept="image/*,video/*" style="display:none" onchange="handleMediaAttach(event)">
-          <button class="btn-secondary" onclick="document.getElementById('composeMediaInput').click()">
+          <input type="file" id="composeMediaInput" accept="image/*,video/*" style="display:none" data-action="handleMediaAttach:event">
+          <button class="btn-secondary" data-action="document.getElementById('composeMediaInput').click()">
             <i class="icon icon-attach"></i> Прикрепить
           </button>
           <div class="media-preview-grid" id="mediaPreviewGrid"></div>
@@ -487,11 +487,11 @@
         <label>Hashtags</label>
         <input type="text" id="composeTags" placeholder="bitcoin, nostr, дизайн">
       </div>
-      <button id="postBtn" class="btn-primary" onclick="publishPost()">
+      <button id="postBtn" class="btn-primary" data-action="publishPost">
         <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right:8px;vertical-align:-3px"><use href="#icon-lock"/></svg>
         Опубликовать
       </button>
-      <button class="btn-secondary" onclick="openArticleEditor()" style="margin-left:8px">
+      <button class="btn-secondary" data-action="openArticleEditor" style="margin-left:8px">
         <i class="icon icon-article"></i> Написать статью
       </button>
       <div id="postStatus" class="compose-status"></div>
@@ -513,7 +513,7 @@
     <div style="padding:8px 12px;display:flex;align-items:center;gap:12px">
       <h3 class="tab-heading"><i class="icon icon-lg icon-list"></i>My Lists</h3>
       <div style="flex:1"></div>
-      <button class="btn-secondary" onclick="showCreateList()" style="font-size:13px;padding:6px 14px">+ New List</button>
+      <button class="btn-secondary" data-action="showCreateList" style="font-size:13px;padding:6px 14px">+ New List</button>
     </div>
     <div id="listsContainer">
       <div class="empty-state" style="padding:40px 20px;text-align:center">
@@ -529,7 +529,7 @@
     <div style="padding:8px 12px;display:flex;align-items:center;gap:12px">
       <h3 class="tab-heading"><i class="icon icon-lg icon-community"></i>Communities</h3>
       <div style="flex:1"></div>
-      <button class="btn-secondary" onclick="showCreateCommunity()" style="font-size:13px;padding:6px 14px">+ Create</button>
+      <button class="btn-secondary" data-action="showCreateCommunity" style="font-size:13px;padding:6px 14px">+ Create</button>
     </div>
     <div id="communitiesContainer">
       <div class="skeleton skeleton-card"></div>
@@ -541,7 +541,7 @@
     <div style="padding:8px 12px;display:flex;align-items:center;gap:12px">
       <h3 class="tab-heading"><i class="icon icon-lg icon-badge"></i>Badges</h3>
       <div style="flex:1"></div>
-      <button class="btn-secondary" onclick="showCreateBadge()" style="font-size:13px;padding:6px 14px">+ Create</button>
+      <button class="btn-secondary" data-action="showCreateBadge" style="font-size:13px;padding:6px 14px">+ Create</button>
     </div>
     <div id="badgesContainer">
       <div class="skeleton skeleton-card"></div>
@@ -553,7 +553,7 @@
     <div style="padding:8px 12px;display:flex;align-items:center;gap:12px">
       <h3 class="tab-heading"><i class="icon icon-lg icon-star"></i>Highlights</h3>
       <div style="flex:1"></div>
-      <button class="btn-secondary" onclick="showCreateHighlight()" style="font-size:13px;padding:6px 14px">+ New</button>
+      <button class="btn-secondary" data-action="showCreateHighlight" style="font-size:13px;padding:6px 14px">+ New</button>
     </div>
     <div id="highlightsContainer">
       <div class="skeleton skeleton-card"></div>
@@ -616,27 +616,27 @@
       </div>
       <div class="nsec-input-group">
         <input type="password" id="nsecInput" class="nsec-input" placeholder="nsec1..." autocomplete="off">
-        <button class="nsec-toggle" onclick="toggleNsecVisibility()" title="Show/Hide">
+        <button class="nsec-toggle" data-action="toggleNsecVisibility" title="Show/Hide">
           <svg width="20" height="20" viewBox="0 0 24 24" id="nsecEyeIcon"><use href="#icon-search"/></svg>
         </button>
       </div>
-      <button class="nsec-login-btn" onclick="nsecLogin()" id="nsecLoginBtn" data-i18n="signIn">Sign In</button>
+      <button class="nsec-login-btn" data-action="nsecLogin" id="nsecLoginBtn" data-i18n="signIn">Sign In</button>
       <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin:10px 0">
         <div style="flex:1;height:1px;background:var(--border)"></div>
         <span style="font-size:11px;color:var(--text-dim)">or</span>
         <div style="flex:1;height:1px;background:var(--border)"></div>
       </div>
-      <button class="nip46-connect-btn" onclick="connectRemoteSigner()" id="nip46ConnectBtn">
+      <button class="nip46-connect-btn" data-action="connectRemoteSigner" id="nip46ConnectBtn">
         <i class="icon icon-wallet"></i> Connect Remote Signer
       </button>
       <div id="nip46Status" style="display:none;margin-top:10px;text-align:center">
         <div id="nip46Spinner" style="display:none;margin:8px auto;width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite"></div>
         <p id="nip46StatusText" style="font-size:13px;color:var(--text-dim)"></p>
         <div id="nip46BunkerUrl" style="display:none;margin:8px 0">
-          <input type="text" id="nip46BunkerInput" readonly style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--glass-bg);color:var(--text);font-size:12px;font-family:monospace" onclick="this.select()">
-          <button onclick="copyNip46Url()" style="margin-top:6px;padding:6px 16px;border-radius:6px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:12px">Copy Link</button>
+          <input type="text" id="nip46BunkerInput" readonly style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--glass-bg);color:var(--text);font-size:12px;font-family:monospace" data-action="this.select()">
+          <button data-action="copyNip46Url" style="margin-top:6px;padding:6px 16px;border-radius:6px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:12px">Copy Link</button>
         </div>
-        <button id="nip46DisconnectBtn" onclick="disconnectNip46()" style="display:none;margin-top:8px;padding:6px 16px;border-radius:6px;background:rgba(255,68,68,0.15);color:#ff4444;border:1px solid rgba(255,68,68,0.3);cursor:pointer;font-size:12px">Disconnect</button>
+        <button id="nip46DisconnectBtn" data-action="disconnectNip46" style="display:none;margin-top:8px;padding:6px 16px;border-radius:6px;background:rgba(255,68,68,0.15);color:#ff4444;border:1px solid rgba(255,68,68,0.3);cursor:pointer;font-size:12px">Disconnect</button>
       </div>
       <div id="nip07LoginSection" style="margin-top:10px;display:none">
         <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin:8px 0">
@@ -644,7 +644,7 @@
           <span style="font-size:11px;color:var(--text-dim)">or</span>
           <div style="flex:1;height:1px;background:var(--border)"></div>
         </div>
-        <button class="nip07-login-btn" onclick="loginWithExtension()" id="nip07LoginBtn">
+        <button class="nip07-login-btn" data-action="loginWithExtension" id="nip07LoginBtn">
           <i class="icon icon-fox"></i> Войти через расширение
         </button>
         <div style="font-size:11px;color:var(--text-dim);margin-top:6px;text-align:center">
@@ -659,11 +659,11 @@
     <div id="loggedInProfile" class="damus-profile" style="display:none">
       <!-- Header bar with logout -->
       <div class="profile-header-bar">
-        <button class="btn-icon" onclick="nsecLogout()" title="Выйти" style="color:#ff6b6b">
+        <button class="btn-icon" data-action="nsecLogout" title="Выйти" style="color:#ff6b6b">
           <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M16 17v-3H9v-4h7V7l5 5-5 5M14 2a2 2 0 012 2v2h-2V4H5v16h9v-2h2v2a2 2 0 01-2 2H5a2 2 0 01-2-2V4a2 2 0 012-2h9z"/></svg>
           <span>Выйти</span>
         </button>
-        <button class="btn-icon" onclick="switchAccount()" title="Сменить аккаунт" style="color:#00d4ff">
+        <button class="btn-icon" data-action="switchAccount" title="Сменить аккаунт" style="color:#00d4ff">
           <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 3c1.7 0 3 1.3 3 3s-1.3 3-3 3-3-1.3-3-3 1.3-3 3-3zm0 14.2c-2.5 0-4.7-1.3-6-3.2.03-2 4-3.1 6-3.1s5.97 1.1 6 3.1c-1.3 1.9-3.5 3.2-6 3.2z"/></svg>
           <span>Сменить</span>
         </button>
@@ -677,7 +677,7 @@
       <div class="profile-name-xl" id="profileName"></div>
       <div class="profile-npub-row">
         <span id="profileNpub"></span>
-        <button class="btn-copy" onclick="copyNpub()" title="Copy npub"><i class="icon icon-copy"></i></button>
+        <button class="btn-copy" data-action="copyNpub" title="Copy npub"><i class="icon icon-copy"></i></button>
       </div>
       
       <!-- Bio -->
@@ -685,7 +685,7 @@
       
       <!-- Stats row -->
       <div class="profile-stats-damus">
-        <div class="stat-item" onclick="showTab('tab-following')">
+        <div class="stat-item" data-action="showTab:tab-following">
           <span class="stat-val" id="profileFollowing">-</span>
           <span class="stat-label">Подписки</span>
         </div>
@@ -720,11 +720,11 @@
       <div class="dm-sidebar" id="dmSidebar">
         <div class="dm-sidebar-header">
           <h3 data-i18n="messages">Сообщения</h3>
-          <button class="btn-text" onclick="loadDMChats()" title="Refresh"><i class="icon icon-refresh"></i></button>
+          <button class="btn-text" data-action="loadDMChats" title="Refresh"><i class="icon icon-refresh"></i></button>
         </div>
         <div class="dm-search-box">
           <input type="text" id="dmSearchUser" placeholder="Поиск по pubkey...">
-          <button class="btn-primary btn-sm" onclick="openDMWith(document.getElementById('dmSearchUser').value)" data-i18n="chat">Чат</button>
+          <button class="btn-primary btn-sm" data-action="openDMWith:document,getElementById,dmSearchUser,value" data-i18n="chat">Чат</button>
         </div>
         <div id="dmConversationList" class="dm-conv-list">
           <div class="skeleton skeleton-text" style="height:40px;margin:8px"></div>
@@ -738,16 +738,16 @@
           <p>Выберите диалог<br>или введите pubkey чтобы начать чат</p>
         </div>
         <div class="dm-chat-header hidden" id="dmChatHeader">
-          <button class="btn-text" onclick="closeDMChat()" data-i18n="back">← Назад</button>
+          <button class="btn-text" data-action="closeDMChat" data-i18n="back">← Назад</button>
           <span id="dmChatPeer"></span>
         </div>
         <div class="dm-messages" id="dmMessages"></div>
         <div class="dm-compose hidden" id="dmCompose">
-          <textarea id="dmInput" rows="2" placeholder="Сообщение (NIP-04)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDM()}"></textarea>
+          <textarea id="dmInput" rows="2" placeholder="Сообщение (NIP-04)"></textarea>
           <div style="display:flex;gap:4px">
-            <button class="btn-secondary" onclick="attachDMFile()" title="Attach image" style="padding:6px 8px">+</button>
-            <button class="btn-secondary" onclick="openDMGallery()" title="Media gallery" style="padding:6px 8px">🖼</button>
-            <button class="btn-primary" onclick="sendDM()">Send</button>
+            <button class="btn-secondary" data-action="attachDMFile" title="Attach image" style="padding:6px 8px">+</button>
+            <button class="btn-secondary" data-action="openDMGallery" title="Media gallery" style="padding:6px 8px">🖼</button>
+            <button class="btn-primary" data-action="sendDM">Send</button>
           </div>
         </div>
       </div>
@@ -760,7 +760,7 @@
       <!-- Profile -->
       <div class="settings-section">
         <h3 class="settings-heading"><i class="icon icon-user"></i>Профиль</h3>
-        <div class="settings-option" onclick="closeAllModals();showProfile(signerPubkey)">
+        <div class="settings-option" data-action="closeAllModals|showProfile:signerPubkey">
           <span>Редактировать профиль</span>
           <svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
         </div>
@@ -771,14 +771,14 @@
         <h3 class="settings-heading"><i class="icon icon-palette"></i>Оформление</h3>
         <div class="settings-option">
           <span data-i18n="language">Язык</span>
-          <select id="settingsLang" onchange="I18N.setLang(this.value);document.getElementById('langToggle').textContent=this.value==='ru'?'RU':'EN';this.value==='ru'?document.documentElement.lang='ru':document.documentElement.lang='en'">
+          <select id="settingsLang" data-action="I18N.setLang(this.value)|document.getElementById('langToggle').textContent=this.value==='ru'?'RU':'EN'|this.value==='ru'?document.documentElement.lang='ru':document.documentElement.lang='en'">
             <option value="ru">🇷🇺 Русский</option>
             <option value="en">🇬🇧 English</option>
           </select>
         </div>
         <div class="settings-option">
           <span data-i18n="themeLabel">Тема</span>
-          <select id="settingsTheme" onchange="setTheme(this.value)">
+          <select id="settingsTheme" data-action="setTheme:this,value">
             <option value="dark">🌙 Тёмная</option>
             <option value="light">☀️ Светлая</option>
           </select>
@@ -786,14 +786,14 @@
         <div class="settings-option">
           <span>Автозагрузка медиа</span>
           <label class="settings-toggle">
-            <input type="checkbox" id="settingsAutoplayMedia" checked onchange="toggleSetting('autoplayMedia')">
+            <input type="checkbox" id="settingsAutoplayMedia" checked data-action="toggleSetting:autoplayMedia">
             <span class="toggle-slider"></span>
           </label>
         </div>
         <div class="settings-option">
           <span>Сворачивать длинные посты</span>
           <label class="settings-toggle">
-            <input type="checkbox" id="settingsCollapseLong" checked onchange="toggleSetting('collapseLong')">
+            <input type="checkbox" id="settingsCollapseLong" checked data-action="toggleSetting:collapseLong">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -805,28 +805,28 @@
         <div class="settings-option">
           <span>Лайки</span>
           <label class="settings-toggle">
-            <input type="checkbox" id="settingsNotifyLikes" checked onchange="toggleSetting('notifyLikes')">
+            <input type="checkbox" id="settingsNotifyLikes" checked data-action="toggleSetting:notifyLikes">
             <span class="toggle-slider"></span>
           </label>
         </div>
         <div class="settings-option">
           <span>Ответы</span>
           <label class="settings-toggle">
-            <input type="checkbox" id="settingsNotifyReplies" checked onchange="toggleSetting('notifyReplies')">
+            <input type="checkbox" id="settingsNotifyReplies" checked data-action="toggleSetting:notifyReplies">
             <span class="toggle-slider"></span>
           </label>
         </div>
         <div class="settings-option">
           <span>Репосты</span>
           <label class="settings-toggle">
-            <input type="checkbox" id="settingsNotifyReposts" checked onchange="toggleSetting('notifyReposts')">
+            <input type="checkbox" id="settingsNotifyReposts" checked data-action="toggleSetting:notifyReposts">
             <span class="toggle-slider"></span>
           </label>
         </div>
         <div class="settings-option">
           <span>Запы</span>
           <label class="settings-toggle">
-            <input type="checkbox" id="settingsNotifyZaps" checked onchange="toggleSetting('notifyZaps')">
+            <input type="checkbox" id="settingsNotifyZaps" checked data-action="toggleSetting:notifyZaps">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -838,7 +838,7 @@
         <div id="mutedList" class="settings-relay-list">
           <div class="settings-empty-relays">Загрузка...</div>
         </div>
-        <button class="btn-text btn-sm" onclick="renderMutedList()" style="margin-top:6px"><i class="icon icon-refresh icon-sm"></i> Обновить</button>
+        <button class="btn-text btn-sm" data-action="renderMutedList" style="margin-top:6px"><i class="icon icon-refresh icon-sm"></i> Обновить</button>
       </div>
 
       <!-- Relays -->
@@ -850,7 +850,7 @@
         </div>
         <div class="settings-relay-add">
           <input type="text" id="newRelayUrlSettings" placeholder="wss://relay.example.com" class="edit-input" style="flex:1;font-size:12px">
-          <button class="btn-primary btn-sm" onclick="addRelayToSettings()">+ Добавить</button>
+          <button class="btn-primary btn-sm" data-action="addRelayToSettings">+ Добавить</button>
         </div>
       </div>
 
@@ -860,8 +860,8 @@
         <h3 class="settings-heading"><i class="icon icon-key icon-sm"></i>Key Management</h3>
         <p style="font-size:12px;color:var(--text-dim);margin:0 0 8px">Export or import Nostr keys and profiles</p>
         <div style="display:flex;gap:8px">
-          <button class="btn-primary btn-sm" onclick="exportKeys()">📥 Export Keys</button>
-          <button class="btn-secondary btn-sm" onclick="importKeys()">📤 Import Keys</button>
+          <button class="btn-primary btn-sm" data-action="exportKeys">📥 Export Keys</button>
+          <button class="btn-secondary btn-sm" data-action="importKeys">📤 Import Keys</button>
         </div>
       </div>
 
@@ -892,11 +892,11 @@
       <h3 class="tab-heading">Relay Management</h3>
       <div style="display:flex;gap:8px;margin-bottom:12px">
         <input type="url" id="newRelayUrl" placeholder="wss://relay.example.com" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--glass-bg);color:var(--text);font-size:13px">
-        <button class="btn-primary" onclick="addRelay()" style="white-space:nowrap">+ Add</button>
+        <button class="btn-primary" data-action="addRelay" style="white-space:nowrap">+ Add</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:16px">
         <span style="font-size:12px;color:var(--text-dim)" id="relaysStatus">Loading...</span>
-        <button class="text-btn" onclick="testAllRelays()" style="font-size:11px;color:var(--accent);margin-left:auto">Test All</button>
+        <button class="text-btn" data-action="testAllRelays" style="font-size:11px;color:var(--accent);margin-left:auto">Test All</button>
       </div>
       <div id="relaysList" class="relay-list">
         <div class="skeleton skeleton-card"></div>
@@ -913,12 +913,12 @@
           <h2 class="tab-heading" style="margin:0">🏛️ DAO</h2>
           <p style="font-size:12px;color:var(--text-dim);margin:4px 0 0">Governance & Proposals</p>
         </div>
-        <button class="btn-primary" onclick="showDaoCreate()" style="padding:8px 16px;font-size:13px">+ Proposal</button>
+        <button class="btn-primary" data-action="showDaoCreate" style="padding:8px 16px;font-size:13px">+ Proposal</button>
       </div>
       <div style="display:flex;gap:0;margin-bottom:12px;overflow:hidden;border-radius:10px">
-        <button class="dao-tab-btn active" data-filter="all" onclick="switchDaoTab('all',this)">All</button>
-        <button class="dao-tab-btn" data-filter="active" onclick="switchDaoTab('active',this)">Active</button>
-        <button class="dao-tab-btn" data-filter="passed" onclick="switchDaoTab('passed',this)">Passed</button>
+        <button class="dao-tab-btn active" data-filter="all" data-action="switchDaoTab:all,this">All</button>
+        <button class="dao-tab-btn" data-filter="active" data-action="switchDaoTab:active,this">Active</button>
+        <button class="dao-tab-btn" data-filter="passed" data-action="switchDaoTab:passed,this">Passed</button>
       </div>
       <div id="daoProposalsList">
         <div class="skeleton skeleton-card"></div>
@@ -952,11 +952,11 @@
 </main>
 
 <!-- ═══ Profile Modal Overlay ═══ -->
-<div class="modal-overlay" id="profileModal" style="display:none" onclick="if(event.target===this)closeProfile()">
+<div class="modal-overlay" id="profileModal" style="display:none" data-action="if:event,target,this,closeProfile">
   <div class="modal-sheet" id="profileSheet">
     <div class="modal-handle"></div>
     <div class="modal-header">
-      <button class="icon-btn" onclick="closeProfile()">
+      <button class="icon-btn" data-action="closeProfile">
         <svg width="22" height="22" viewBox="0 0 24 24"><use href="#icon-close"/></svg>
       </button>
       <span class="modal-title" data-i18n="account">Профиль</span>
@@ -969,11 +969,11 @@
 </div>
 
 <!-- ═══ Zap Modal Overlay ═══ -->
-<div class="modal-overlay" id="zapModal" style="display:none" onclick="if(event.target===this)closeZap()">
+<div class="modal-overlay" id="zapModal" style="display:none" data-action="if:event,target,this,closeZap">
   <div class="modal-sheet" id="zapSheet">
     <div class="modal-handle"></div>
     <div class="modal-header">
-      <button class="icon-btn" onclick="closeZap()">
+      <button class="icon-btn" data-action="closeZap">
         <svg width="22" height="22" viewBox="0 0 24 24"><use href="#icon-close"/></svg>
       </button>
       <span class="modal-title">⚡ Zap</span>
@@ -992,7 +992,7 @@
     <div class="modal-header">
       <span class="modal-title" id="onboardTitle">⚡ Welcome to SNIN</span>
       <div style="flex:1"></div>
-      <button class="text-btn" id="onboardSkipBtn" onclick="closeOnboard()" style="color:var(--text-dim);font-size:13px">Skip</button>
+      <button class="text-btn" id="onboardSkipBtn" data-action="closeOnboard" style="color:var(--text-dim);font-size:13px">Skip</button>
     </div>
 
     <!-- Step indicators -->
@@ -1006,11 +1006,11 @@
     <div class="modal-body onboard-step" id="onboardStep1">
       <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;text-align:center">To get started, you need a Nostr key — your identity in the network</p>
       <div style="display:flex;flex-direction:column;gap:10px">
-        <button class="btn-primary" onclick="onboardCreateKey()" style="width:100%;padding:14px;font-size:15px">
+        <button class="btn-primary" data-action="onboardCreateKey" style="width:100%;padding:14px;font-size:15px">
           <span style="font-size:20px">🔑</span><br>Create New Key
           <div style="font-size:11px;opacity:0.7;margin-top:2px">Generate a brand new Nostr identity</div>
         </button>
-        <button class="btn-secondary" onclick="onboardImportKey()" style="width:100%;padding:14px;font-size:15px;background:var(--glass-bg);border:1px solid var(--border);color:var(--text);border-radius:12px;cursor:pointer">
+        <button class="btn-secondary" data-action="onboardImportKey" style="width:100%;padding:14px;font-size:15px;background:var(--glass-bg);border:1px solid var(--border);color:var(--text);border-radius:12px;cursor:pointer">
           <span style="font-size:20px">📋</span><br>Import Existing Key
           <div style="font-size:11px;opacity:0.5;margin-top:2px">Paste your nsec or hex private key</div>
         </button>
@@ -1018,8 +1018,8 @@
       <div id="onboardImportPanel" style="display:none;margin-top:12px">
         <input id="onboardNsecInput" type="password" placeholder="nsec1… or hex key" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-family:monospace;font-size:13px;margin-bottom:8px">
         <div style="display:flex;gap:8px">
-          <button class="btn-primary" onclick="onboardDoImport()" style="flex:1">Import</button>
-          <button class="text-btn" onclick="document.getElementById('onboardImportPanel').style.display='none'" style="color:var(--text-dim)">Back</button>
+          <button class="btn-primary" data-action="onboardDoImport" style="flex:1">Import</button>
+          <button class="text-btn" data-action="document.getElementById('onboardImportPanel').style.display='none'" style="color:var(--text-dim)">Back</button>
         </div>
         <div id="onboardImportError" style="color:#ff6b6b;font-size:11px;margin-top:6px;display:none"></div>
       </div>
@@ -1042,7 +1042,7 @@
           <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px">Avatar URL (optional)</label>
           <input id="onboardPicture" type="text" placeholder="https://…" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:14px;margin-top:4px">
         </div>
-        <button class="btn-primary" onclick="onboardSaveProfile()" style="width:100%;margin-top:4px">Продолжить →</button>
+        <button class="btn-primary" data-action="onboardSaveProfile" style="width:100%;margin-top:4px">Продолжить →</button>
       </div>
       <div id="onboardStep2Status" style="text-align:center;font-size:12px;color:var(--text-dim);margin-top:10px;display:none"></div>
     </div>
@@ -1054,17 +1054,17 @@
       </div>
     </div>
     <div class="modal-footer" id="onboardFooter" style="display:none">
-      <button class="btn-primary" id="onboardFollowBtn" onclick="bulkFollowOnboard()">Подписаться на выбранные →</button>
+      <button class="btn-primary" id="onboardFollowBtn" data-action="bulkFollowOnboard">Подписаться на выбранные →</button>
     </div>
   </div>
 </div>
 
 <!-- ═══ Thread Modal Overlay ═══ -->
-<div class="modal-overlay" id="threadModal" style="display:none" onclick="if(event.target===this)closeThread()">
+<div class="modal-overlay" id="threadModal" style="display:none" data-action="if:event,target,this,closeThread">
   <div class="modal-sheet" id="threadSheet">
     <div class="modal-handle"></div>
     <div class="modal-header">
-      <button class="icon-btn" onclick="closeThread()">
+      <button class="icon-btn" data-action="closeThread">
         <svg width="22" height="22" viewBox="0 0 24 24"><use href="#icon-close"/></svg>
       </button>
       <span class="modal-title" data-i18n="thread">Тред</span>
@@ -1076,26 +1076,26 @@
     <div class="thread-reply-box" id="threadReplyBox" style="display:none">
       <div class="thread-reply-avatar" id="threadReplyAvatar"></div>
       <textarea id="threadReplyInput" placeholder="Написать ответ…" rows="2"></textarea>
-      <button class="btn-send-reply" id="threadReplyBtn" onclick="submitThreadReply()">Send</button>
+      <button class="btn-send-reply" id="threadReplyBtn" data-action="submitThreadReply">Send</button>
     </div>
   </div>
 </div>
 
 <!-- ═══ Article Editor Modal -->
-<div class="modal-overlay" id="articleModal" style="display:none" onclick="if(event.target===this)closeArticleEditor()">
+<div class="modal-overlay" id="articleModal" style="display:none" data-action="if:event,target,this,closeArticleEditor">
   <div class="modal-sheet" id="articleSheet" style="max-width:680px;height:90vh">
     <div class="modal-handle"></div>
     <div class="modal-header">
-      <button class="icon-btn" onclick="closeArticleEditor()">
+      <button class="icon-btn" data-action="closeArticleEditor">
         <svg width="22" height="22" viewBox="0 0 24 24"><use href="#icon-close"/></svg>
       </button>
       <span class="modal-title"><i class="icon icon-article"></i>Article</span>
       <div style="flex:1"></div>
-      <button class="text-btn" id="articlePreviewToggle" onclick="toggleArticlePreview()" style="color:var(--text-dim);font-size:13px">Preview</button>
+      <button class="text-btn" id="articlePreviewToggle" data-action="toggleArticlePreview" style="color:var(--text-dim);font-size:13px">Preview</button>
     </div>
     <div class="modal-body" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:12px">
       <input type="text" id="articleTitle" placeholder="Заголовок статьи..." style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--glass-bg);color:var(--text);font-size:18px;font-weight:700" maxlength="200">
-      <textarea id="articleBody" placeholder="Пишите в Markdown..." style="width:100%;min-height:280px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--glass-bg);color:var(--text);font-size:14px;font-family:monospace;resize:vertical;line-height:1.6" oninput="updateArticleCharCount()"></textarea>
+      <textarea id="articleBody" placeholder="Пишите в Markdown..." style="width:100%;min-height:280px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--glass-bg);color:var(--text);font-size:14px;font-family:monospace;resize:vertical;line-height:1.6" data-action="updateArticleCharCount"></textarea>
       <div id="articlePreview" style="display:none;min-height:280px;padding:12px;border-radius:8px;line-height:1.8;font-size:15px;word-break:break-word"></div>
       <div class="char-meter">
         <span class="char-count" id="articleCharCount">0 / 50 000</span>
@@ -1106,7 +1106,7 @@
       <input type="text" id="articleTags" placeholder="Хэштеги: bitcoin, nostr, philosophy" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--glass-bg);color:var(--text);font-size:13px">
     </div>
     <div class="modal-footer">
-      <button class="btn-primary" id="articlePublishBtn" onclick="publishArticle()">Publish Article</button>
+      <button class="btn-primary" id="articlePublishBtn" data-action="publishArticle">Publish Article</button>
       <div id="articleStatus" class="compose-status" style="margin-top:4px"></div>
     </div>
   </div>
@@ -1194,6 +1194,7 @@
 </nav>
 
 <!-- i18n -->
+    <script src="static/js/csp-delegate.js?v=1785305400"></script>
     <script src="/static/js/nostr-tools.min.js?v=1785221248"></script>
     <!-- ZK crypto for badge verification -->
     <script src="https://cdn.jsdelivr.net/npm/@noble/secp256k1@2.2.3/index.js"></script>
@@ -1251,8 +1252,8 @@
     <div id="version-badge" style="position:fixed;top:4px;right:8px;font-size:10px;color:var(--text-dim);z-index:9999;opacity:0.4;pointer-events:none">V9.13.0 · Profile fix (CSS) + cache-bust unified
     
     <!-- Lightbox -->
-    <div id="sninLightbox" class="lightbox-overlay" onclick="closeLightbox()">
-      <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    <div id="sninLightbox" class="lightbox-overlay" data-action="closeLightbox">
+      <button class="lightbox-close" data-action="closeLightbox">✕</button>
       <img id="sninLightboxImg" class="lightbox-image" src="" alt="">
     </div>
 
