@@ -5,6 +5,66 @@
 // ─── WebSocket to Relay (Nostr protocol) ───
 let wsReconnectAttempts = 0;
 const MAX_RECONNECT_DELAY = 30000;
+const WS_HEARTBEAT_INTERVAL = 30000;    // Send ping every 30s
+const WS_HEARTBEAT_TIMEOUT = 10000;     // Wait 10s for pong, else reconnect
+let wsHeartbeatTimer = null;
+let wsHeartbeatTimeoutTimer = null;
+let outgoingQueue = [];                  // Events queued while disconnected
+const MAX_QUEUE_SIZE = 50;
+
+// ─── Unified send: WS if connected, queue if offline ───
+function wsSend(msg) {
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+    state.ws.send(msg);
+    return true;
+  }
+  // Queue for later delivery
+  if (outgoingQueue.length < MAX_QUEUE_SIZE) {
+    outgoingQueue.push(msg);
+  }
+  // Trigger reconnect if not already connecting
+  if (!state.ws || (state.ws.readyState !== WebSocket.CONNECTING && state.ws.readyState !== WebSocket.OPEN)) {
+    scheduleReconnect();
+  }
+  return false;
+}
+
+// ─── Heartbeat: ping relay, force reconnect if silent ───
+function startHeartbeat() {
+  stopHeartbeat();
+  wsHeartbeatTimer = setInterval(() => {
+    if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+      // Use a lightweight Nostr REQ as keep-alive ping
+      state.ws.send(JSON.stringify(["REQ", "hb", {"kinds":[0],"limit":1}]));
+      // Expect any response within timeout; if none, connection is dead
+      wsHeartbeatTimeoutTimer = setTimeout(() => {
+        console.log('[WS] Heartbeat timeout — force reconnect');
+        if (state.ws) { state.ws.close(); state.ws = null; }
+        state.wsConnected = false;
+        scheduleReconnect();
+      }, WS_HEARTBEAT_TIMEOUT);
+    }
+  }, WS_HEARTBEAT_INTERVAL);
+}
+
+function stopHeartbeat() {
+  if (wsHeartbeatTimer) { clearInterval(wsHeartbeatTimer); wsHeartbeatTimer = null; }
+  if (wsHeartbeatTimeoutTimer) { clearTimeout(wsHeartbeatTimeoutTimer); wsHeartbeatTimeoutTimer = null; }
+}
+
+// ─── Flush outgoing queue after reconnect ───
+function flushOutgoingQueue() {
+  if (outgoingQueue.length === 0) return;
+  const batch = outgoingQueue.splice(0, outgoingQueue.length);
+  for (const msg of batch) {
+    if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+      state.ws.send(msg);
+    }
+  }
+  if (batch.length > 0) {
+    console.log('[WS] Flushed ' + batch.length + ' queued events');
+  }
+}
 
 function connectWS() {
   // Update status from HTTP too (fallback)
@@ -35,10 +95,15 @@ function connectWS() {
       state.ws.send(JSON.stringify(sub));
       // Only flash "синхр…" on first connect, not reconnect
       if (wsReconnectAttempts === 0) updateRelayIndicator('connected');
+      
+      // Start heartbeat + flush queued events
+      startHeartbeat();
+      flushOutgoingQueue();
     };
 
     state.ws.onclose = () => {
       state.wsConnected = false;
+      stopHeartbeat();
       // Don't flash "reconnecting" instantly — wait 3s first
       if (!state._disconnectTimer) {
         state._disconnectTimer = setTimeout(() => {
