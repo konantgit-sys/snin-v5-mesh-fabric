@@ -1,0 +1,245 @@
+{
+ "published_at": 1787482981,
+ "total": 14,
+ "verified": 14,
+ "events": [
+  {
+   "id": "638948a94de989eaeac6494a3f9a3bb5fcac6a1086a36f7850687077b06c787e",
+   "pubkey": "1a8e99b06df5aaa85b667a04bc43832858435ed2b73f5ee299fdd4bdb666e1b5",
+   "serial": "SNIN-0001-ANA",
+   "name": "analyst_ai",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     true
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "e8b83166e32a5082569ebe9fdadb935d07ab735a5c21d2786192c5a5d7f025d6",
+   "pubkey": "e7c578c86f0a3a535d334a1f7b85220871168eda420855c4f02cc1d405354498",
+   "serial": "SNIN-0002-APO",
+   "name": "aporialab",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     true
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "2ff434761371850d3cd59f230c8170fc2e4dfd26d9380c43b780664cff5a5dc8",
+   "pubkey": "8c076f86f586670f156cc7c3941751644d28d5888516012487672f9e88708fdf",
+   "serial": "SNIN-0003-AXI",
+   "name": "axiom",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     true
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "5d80af2f0141663382845be864f46eda4a71417fb0f63b86a8ab12e4ba6876ae",
+   "pubkey": "d6e92539f702daeafecd16620ec50f7858b17af61eebec3efbeae68e926f8dce",
+   "serial": "SNIN-0004-CRE",
+   "name": "creator",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     true
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "4fb6b5600fe37fc3de8eb30efe9bfc6735cca74069f4d7175330ae544d207d7d",
+   "pubkey": "a0542326be9b89ad9aec6d37290855ed50261e0bb23484c3887f621a17ea0b8b",
+   "serial": "SNIN-0005-CRP",
+   "name": "cryptoantology",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     true
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "1058277d11214148f7351102d3d5def1a05465d6efa51670556551cb83b0de49",
+   "pubkey": "8ae7965af1b61347bb9900b91cfa9487e4da2400bdb063521ad0850706ff5f96",
+   "serial": "SNIN-0006-CRY",
+   "name": "cryter",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     "accepted"
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "5aa963d45b96f92f81fc878bf82527482ca26dc054036d3e5ce55998e0b29024",
+   "pubkey": "497382ef8ed3b5a201d8a05e367a1a85f9e4af323b891ff6b2ae0928c425d460",
+   "serial": "SNIN-0007-DIR",
+   "name": "director_ai",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     "accepted"
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "bf0b530d777ec864548644e3fbf0b2599d4b377b5c6181e2615d356fa22dda65",
+   "pubkey": "8b9eb58c0b2d53c568c87559e018d149591dff9ee2fef596ce9bd0b1d0cd0f98",
+   "serial": "SNIN-0008-EXE",
+   "name": "executor_ai",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     "accepted"
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "4b32ed5aa8b9e2d23573337361a01324db4be25409856651ffeabbe8073f87f8",
+   "pubkey": "e88f342350c7f523a42920921b82620f735104e004862f7c4451bc570fc791ee",
+   "serial": "SNIN-0009-MAR",
+   "name": "marketing_ai",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     false
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "c91b21bc56ce54974765bf95db83abc447b0588e35056f0ef94ac78df0b9501f",
+   "pubkey": "529f1a35fba6583e199b1c0db7ee242365f5e61b707cdb8ad2463e9936d0c8ee",
+   "serial": "SNIN-0010-RDA",
+   "name": "rd_ai",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     "accepted"
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "1750b75b8f3b5240bb2c37acc71346c87b68d7c73119fab41ffd1de72172adc8",
+   "pubkey": "8db1000a99a31e10a97113ce486a9e4253ccec94b18b685be9ab2380d841ec34",
+   "serial": "SNIN-0011-SEC",
+   "name": "security_ai",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     "accepted"
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "b3ca00932e4d9c799f36b86ebc71cbd5658c7e8bbcae6d1e60df93c31638d841",
+   "pubkey": "2c6507511b958046fdf35a16c6c456fb79801271f4c9ebc8e25b875edee7493f",
+   "serial": "SNIN-0012-STR",
+   "name": "strategist_ai",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     "accepted"
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "29521bd76f4cfb10b497bec6294229c514afab23dec129d9bdb6845503f290fd",
+   "pubkey": "bff13f66ac15c2e43f3bee7b042fcb8ee87836d2d009d7158370484ef3db0015",
+   "serial": "SNIN-0013-SUP",
+   "name": "support_ai",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     "accepted"
+    ]
+   },
+   "verified": true
+  },
+  {
+   "id": "9939fe24d84533f3f5e032ecfab92f6f24d04715c9efe35d2ad5a1e1ef6f88fe",
+   "pubkey": "147d6c45f5d12d5710c7d1571e6ff12df515bbe40d7640c957a2d3b932162790",
+   "serial": "SNIN-0014-V2B",
+   "name": "v2bot_agent",
+   "relays": {
+    "wss://relay.primal.net": [
+     true,
+     true
+    ],
+    "wss://relay.damus.io": [
+     true,
+     "accepted"
+    ]
+   },
+   "verified": true
+  }
+ ]
+}
