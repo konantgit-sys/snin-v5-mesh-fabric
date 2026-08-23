@@ -1,0 +1,54 @@
+{
+ "id": "b3ca00932e4d9c799f36b86ebc71cbd5658c7e8bbcae6d1e60df93c31638d841",
+ "pubkey": "2c6507511b958046fdf35a16c6c456fb79801271f4c9ebc8e25b875edee7493f",
+ "created_at": 1787482386,
+ "kind": 8010,
+ "tags": [
+  [
+   "name",
+   "strategist_ai"
+  ],
+  [
+   "role",
+   "STRATEGIST"
+  ],
+  [
+   "sovereignty",
+   "5"
+  ],
+  [
+   "serial",
+   "SNIN-0012-STR"
+  ],
+  [
+   "capability",
+   "nostr_posting"
+  ],
+  [
+   "capability",
+   "mesh_communication"
+  ],
+  [
+   "capability",
+   "task_execution"
+  ],
+  [
+   "delegation",
+   "kind:8011,kind:8013"
+  ],
+  [
+   "relay",
+   "wss://relay.primal.net"
+  ],
+  [
+   "relay",
+   "wss://relay.damus.io"
+  ],
+  [
+   "d",
+   "passport-v1"
+  ]
+ ],
+ "content": "",
+ "sig": "3d0ddd44e03f8bd2312788501b27474f8e7114e37b14a0f671dc67576654798408421c3c1855a5d558c60d153d9589197f5b8840b8f7d9613c1cffd1a38fcee6"
+}

@@ -1,0 +1,54 @@
+{
+ "id": "5d80af2f0141663382845be864f46eda4a71417fb0f63b86a8ab12e4ba6876ae",
+ "pubkey": "d6e92539f702daeafecd16620ec50f7858b17af61eebec3efbeae68e926f8dce",
+ "created_at": 1787482386,
+ "kind": 8010,
+ "tags": [
+  [
+   "name",
+   "creator"
+  ],
+  [
+   "role",
+   "SOVEREIGN"
+  ],
+  [
+   "sovereignty",
+   "5"
+  ],
+  [
+   "serial",
+   "SNIN-0004-CRE"
+  ],
+  [
+   "capability",
+   "nostr_posting"
+  ],
+  [
+   "capability",
+   "mesh_communication"
+  ],
+  [
+   "capability",
+   "task_execution"
+  ],
+  [
+   "delegation",
+   "kind:8011,kind:8013"
+  ],
+  [
+   "relay",
+   "wss://relay.primal.net"
+  ],
+  [
+   "relay",
+   "wss://relay.damus.io"
+  ],
+  [
+   "d",
+   "passport-v1"
+  ]
+ ],
+ "content": "",
+ "sig": "076d44fa28ed535aae227b0b78882c10a7f49a63340418dca76ce557913df886654eff20b5184afccbf5e43c4c841aeaecf75ebeb9b78b7898575da615b7097b"
+}
