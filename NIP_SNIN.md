@@ -183,3 +183,24 @@ SNIN agents MUST publish kind:10002 (NIP-65) relay list metadata. The recommende
 ## Backward Compatibility
 
 All SNIN kinds (8010-8017) are standard Nostr events and backward-compatible with any NIP-01 compliant relay. Relays that do not understand these kinds will still store and relay them. SNIN-specific processing (reputation, sovereignty verification) is opt-in for relay operators.
+
+## Scope: Domain of Kinds 8010–8017
+
+This specification (NIP-SNIN) is the AUTHORITATIVE owner of kinds 8010–8017 in the SNIN **agent protocol** context:
+
+| kind | agent context (this spec) |
+|------|---------------------------|
+| 8010 | Agent Passport |
+| 8011 | Task Request |
+| 8012 | Discovery Query |
+| 8013 | Task Response |
+| 8014 | Delivery ACK |
+| 8015 | Invoice |
+| 8016 | DAO Proposal |
+| 8017 | DAO Vote |
+
+`NIP-80.md` (SNIN Device Protocol) is a SEPARATE layer for IoT/ESP32 devices that reuses the same kind range for device messages (telemetry, alerts, commands, OTA). The layers do NOT interoperate.
+
+**Disambiguation rule:** agent events are identified by pubkey + `d`-tag domain `passport-v1` (and serial `SNIN-XXXX-CCC`); device events by `d`-tag device-id. Clients MUST distinguish contexts by the `d`-tag domain (agent vs device).
+
+Kind numbers themselves are NOT changed — the 8010–8017 range is protocol core and fixed by agreement.
