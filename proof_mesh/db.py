@@ -18,7 +18,14 @@ import sqlite3
 import time
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+
+# Миграции: {версия: [ALTER-операции]}
+_MIGRATIONS = {
+    2: [
+        "ALTER TABLE audit_events ADD COLUMN signer_pub TEXT NOT NULL DEFAULT ''",
+    ],
+}
 
 # Атрибуция (идея из AEGIS: не выдумывать владельца)
 ATTRIBUTION = ("confirmed", "inferred", "unattributed")
@@ -38,6 +45,7 @@ _DDL = [
         prev_hash     TEXT NOT NULL,
         block_hash    TEXT NOT NULL,
         signature     TEXT NOT NULL DEFAULT '',
+        signer_pub    TEXT NOT NULL DEFAULT '',
         attribution   TEXT NOT NULL DEFAULT 'unattributed',
         evidence_code TEXT NOT NULL DEFAULT 'UNKNOWN',
         created_at    TEXT NOT NULL DEFAULT (datetime('now'))
@@ -107,11 +115,24 @@ def _conn(db_path: str) -> sqlite3.Connection:
 
 
 def init_db(db_path: str) -> None:
-    """Создать snin_audit.db со всеми таблицами и schema_version=1."""
+    """Создать snin_audit.db со всеми таблицами, schema_version=2, миграции."""
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     with _conn(db_path) as c:
         for ddl in _DDL:
             c.executescript(ddl)
+        ver = c.execute("PRAGMA user_version").fetchone()[0]
+        existing = {r[1] for r in c.execute("PRAGMA table_info(audit_events)")}
+        for target in sorted(_MIGRATIONS):
+            if ver < target:
+                for stmt in _MIGRATIONS[target]:
+                    # защита от дубликата: ALTER только если колонки ещё нет
+                    if "ADD COLUMN" in stmt:
+                        words = stmt.split()
+                        col = words[words.index("COLUMN") + 1]
+                        if col in existing:
+                            continue
+                    c.execute(stmt)
+                c.execute(f"PRAGMA user_version = {target}")
         c.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 
@@ -132,13 +153,15 @@ def append_event(
     attribution: str = "unattributed",
     evidence_code: str = "UNKNOWN",
     signature: str = "",
+    signer_pub: str = "",
     ts: int | None = None,
 ) -> str:
     """
     Добавить событие в хэш-цепочку. Возвращает block_hash нового блока.
 
     block_hash = sha256(prev_hash | content_hash(payload) | ts | signature)
-    Плюс обновление chain_state: height+1, last_hash.
+    signer_pub — pubkey подписанта (Ф2, chain.py). Плюс обновление
+    chain_state: height+1, last_hash.
     """
     if attribution not in ATTRIBUTION:
         raise ValueError(f"attribution must be one of {ATTRIBUTION}, got {attribution!r}")
@@ -152,10 +175,10 @@ def append_event(
         c.execute(
             """INSERT INTO audit_events
                (ts, agent_id, instance_id, action, payload, payload_hash,
-                prev_hash, block_hash, signature, attribution, evidence_code)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                prev_hash, block_hash, signature, signer_pub, attribution, evidence_code)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
             (ts, agent_id, instance_id, action, payload, content_hash,
-             prev, block_hash, signature, attribution, evidence_code),
+             prev, block_hash, signature, signer_pub, attribution, evidence_code),
         )
         c.execute(
             """INSERT INTO chain_state (chain_id, last_hash, height, updated_at)

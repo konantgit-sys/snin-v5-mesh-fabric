@@ -55,13 +55,13 @@ def test_init_db_creates_all_tables(audit_db):
     assert {"audit_events", "agent_instances", "payment_events",
             "wallet_profiles", "chain_state"} <= tables
     with sqlite3.connect(audit_db) as c:
-        assert c.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert c.execute("PRAGMA user_version").fetchone()[0] == 2
 
 
 def test_init_db_idempotent(audit_db):
     db.init_db(audit_db)  # повторный вызов не должен падать
     with sqlite3.connect(audit_db) as c:
-        assert c.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert c.execute("PRAGMA user_version").fetchone()[0] == 2
 
 
 # ── hash-chain ──────────────────────────────────────────────────────────────
