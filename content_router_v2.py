@@ -6,6 +6,7 @@ import asyncio
 # import uvloop (disabled)
 # asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 import json, time, os, sys, hashlib, math, socket
+import serialization as ser  # V6: msgpack transport
 from collections import defaultdict, deque
 
 # ─── Bloom Filter (pure Python, zero false negatives, 1% FP rate) ──────────
@@ -698,7 +699,7 @@ class ContentRouterV2:
         self.writer_idx += 1
         w = self.writers[idx]
         try:
-            w.write((json.dumps(event) + "\n").encode())
+            w.write(ser.pack(event) + b"\n")
             await asyncio.wait_for(w.drain(), timeout=0.5)
             self.stats["forwarded"] += 1
             print(f"[CR] ➡️ fwd kind={event.get('kind',0)} id={event.get('id','?')[:16]} to RE")
@@ -733,13 +734,15 @@ class ContentRouterV2:
                     reader.readline(), timeout=30
                 )
                 if not line: break
-                line = line.decode().strip()
+                line = line.rstrip(b'\r\n')
                 if not line: continue
-                await self.process(json.loads(line))
+                ev = ser.unpack(line)
+                await self.process(ev)
+                await self._audit_forward(ev)
             except asyncio.TimeoutError:
                 # 30 сек без данных — закрыть неактивное соединение
                 break
-            except (json.JSONDecodeError, ConnectionResetError, BrokenPipeError) as e:
+            except (ValueError, json.JSONDecodeError, ConnectionResetError, BrokenPipeError) as e:
                 print(f"[CR] 💥 connection error: {type(e).__name__}: {e}")
                 break
             except Exception as e:
@@ -749,6 +752,23 @@ class ContentRouterV2:
             writer.close()
             await asyncio.wait_for(writer.wait_closed(), timeout=2)
         except:
+            pass
+
+    async def _audit_forward(self, event):
+        """SPM Ф4: дублировать принятое событие в /tmp/snin/audit.sock,
+        если туда подключён слушатель proof_mesh (audit-chain). Не ломает
+        работу при отсутствии сокета — silent."""
+        AUDIT_SOCK = "/tmp/snin/audit.sock"
+        if not os.path.exists(AUDIT_SOCK):
+            return
+        try:
+            r, w = await asyncio.wait_for(
+                asyncio.open_unix_connection(AUDIT_SOCK), timeout=1)
+            w.write(ser.pack(event) + b"\n")
+            await w.drain()
+            w.close()
+            await w.wait_closed()
+        except Exception:
             pass
 
     async def clean_stale(self):
