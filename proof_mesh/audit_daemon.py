@@ -34,6 +34,7 @@ AUDIT_DB = "/home/agent/data/sites/relay-mesh/proof_mesh/snin_audit.db"
 SNAPSHOT_OUT = "/home/agent/data/sites/sentinel-dash/snapshot.json"
 DAEMON_INTERVAL = 60          # с
 SOCKET_DURATION = 4           # с прослушивания сокетов за цикл
+PULSE_INTERVAL = 300          # с — пульс демона: heartbeat+cgroup+relay-health
 CERT_BLOCKS = 50              # порог по блокам
 CERT_MIN_INTERVAL = 600       # с — минимальный интервал публикации
 NSEC_PATH = "/home/agent/data/sites/chrono/keystore/agent_keys.json.old"
@@ -60,6 +61,7 @@ def should_publish(height: int, last_height: int, last_ts: int,
 
 def run_cycle(audit_db: str, nsec: str, relay_db: str = mesh_int.RELAY_DB,
               snapshot_out: str = SNAPSHOT_OUT,
+              pulse_interval: int = PULSE_INTERVAL,
               log=print) -> dict:
     """Один цикл демона: собрать → подписать → (при пороге) опубликовать."""
     t0 = time.time()
@@ -70,8 +72,10 @@ def run_cycle(audit_db: str, nsec: str, relay_db: str = mesh_int.RELAY_DB,
     s = mesh_int.listen_sockets(audit_db, nsec, duration=SOCKET_DURATION)
     # 3. dead-letter
     d = mesh_int.check_dead_letters(audit_db, nsec, relay_db=relay_db)
+    # 4. собственный пульс (heartbeat + cgroup + relay-health) — раз в 5 мин
+    p = mesh_int.pulse(audit_db, nsec, interval=pulse_interval, log=log)
 
-    stored = r.get("stored", 0) + s.get("stored", 0) + d.get("deadletters_stored", 0)
+    stored = r.get("stored", 0) + s.get("stored", 0) + d.get("deadletters_stored", 0) + p.get("stored", 0)
     height = get_height(audit_db)
 
     # 4. сертификат + snapshot по порогу
@@ -90,7 +94,7 @@ def run_cycle(audit_db: str, nsec: str, relay_db: str = mesh_int.RELAY_DB,
 
     log(f"[daemon] цикл {time.time()-t0:.1f}с | новых {stored} "
         f"(relay {r.get('stored',0)}, sock {s.get('stored',0)}, "
-        f"dl {d.get('deadletters_stored',0)}) | height {height} | "
+        f"dl {d.get('deadletters_stored',0)}, pulse {p.get('stored',0)}) | height {height} | "
         f"cert {'OK' if cert else '-'}")
     return {"stored": stored, "height": height, "cert": bool(cert)}
 
