@@ -40,6 +40,7 @@ except ImportError:
 
 import asyncio
 import orjson as json
+import serialization as ser  # V6: msgpack transport layer
 import time
 import os
 import sys
@@ -222,7 +223,16 @@ class SmartRouter:
         # ═══ Phase: ZeroMQ Transport (FUTURE) — groundwork laid ═══
         self._zmq_router = None
         self._zmq_publisher = None
-        if ZMQ_AVAILABLE:
+        _zmq_enabled = os.environ.get("SNIN_USE_ZMQ", "0") == "1"
+        if ZMQ_AVAILABLE and _zmq_enabled:
+            from zmq_transport import ZmqTransportFactory
+            self._zmq_router = ZmqTransportFactory.create_router_sync()
+            self._zmq_publisher = ZmqTransportFactory.create_publisher_sync()
+            if self._zmq_router:
+                print(f"[Router] ⚡ ZMQ Router activated → :{self._zmq_router.port}")
+            if self._zmq_publisher:
+                print(f"[Router] ⚡ ZMQ Publisher activated → :{self._zmq_publisher.port}")
+        elif ZMQ_AVAILABLE:
             print("[Router] ⚡ ZMQ transport available (set SNIN_USE_ZMQ=1 to activate)")
         self._last_cr_reconnect = 0.0  # rate-limit reconnect
         # ═══ Фаза 1: DHT Kademlia ═══
@@ -670,7 +680,7 @@ class SmartRouter:
         self._pending_mesh_queue.clear()
         
         if self._cr_writer:
-            payload = b"".join(json.dumps(m) + b"\n" for m in to_send)
+            payload = b"".join(ser.pack(m) + b"\n" for m in to_send)
             try:
                 self._cr_writer.write(payload)
                 await asyncio.wait_for(self._cr_writer.drain(), timeout=5)
@@ -698,7 +708,7 @@ class SmartRouter:
             connected = 0
             for pk_hex, raw in all_agents.items():
                 try:
-                    agent = json.loads(raw)
+                    agent = ser.unpack(raw)
                 except:
                     continue
 
@@ -748,7 +758,7 @@ class SmartRouter:
         try:
             if channel == "mesh" and self._cr_writer:
                 # Фаза 6.7: Batch drain — буферизируем, drain каждые 10ms
-                self._mesh_buf.extend(json.dumps(message) + b"\n")
+                self._mesh_buf.extend(ser.pack(message) + b"\n")
                 # ═══ Сообщение буферизировано — считаем успехом, даже если drain не сейчас ═══
                 # Если не поставить ok=True, fail_rate всегда = 100% (сообщения сыпятся быстрее 10ms)
                 result["ok"] = True
@@ -769,17 +779,20 @@ class SmartRouter:
                             self._cb_recovery_count["mesh"] = 0
                     except (ConnectionResetError, BrokenPipeError, OSError, asyncio.TimeoutError) as _eb:
                         # Не чистим буфер — сохраняем сообщение в pending queue
-                        pending_msg = json.loads(self._mesh_buf.decode())
-                        self._mesh_buf.clear()
+                        # (буфер мог быть уже очищен → unpack пустоты даёт ValueError)
+                        if self._mesh_buf:
+                            pending_msg = ser.unpack(self._mesh_buf)
+                            self._mesh_buf.clear()
+                            if len(self._pending_mesh_queue) < self._pending_mesh_max:
+                                self._pending_mesh_queue.append(pending_msg)
+                                print(f"[Router] 📥 Saved to pending queue ({len(self._pending_mesh_queue)})")
+                            else:
+                                print(f"[Router] ⚠️ Pending queue full, dropping message")
+                        else:
+                            print(f"[Router] ⚠️ mesh drain failed, буфер пуст — пропуск")
                         self._cr_writer = None
                         self.stats["mesh_error"] += 1
                         result["error"] = f"mesh writer dead: {_eb}"
-                        # ═══ Сохраняем в очередь неотправленных ═══
-                        if len(self._pending_mesh_queue) < self._pending_mesh_max:
-                            self._pending_mesh_queue.append(pending_msg)
-                            print(f"[Router] 📥 Saved to pending queue ({len(self._pending_mesh_queue)})")
-                        else:
-                            print(f"[Router] ⚠️ Pending queue full, dropping message")
                         asyncio.ensure_future(self._reconnect_mesh())
                 
                 # ═══ Форвард подписчикам (агентам) — ВСЕГДА, не только при успешном drain ═══
@@ -893,7 +906,7 @@ class SmartRouter:
                     print(f"[Router] 🔴 nostr send FAILED: {alive_count} alive, {len(dead_shards)} new dead")
 
             elif channel == "content_router" and self._cr_v2_writer:
-                payload = json.dumps(message) + b"\n"
+                payload = ser.pack(message) + b"\n"
                 try:
                     self._cr_v2_writer.write(payload)
                     await asyncio.wait_for(self._cr_v2_writer.drain(), timeout=3)
@@ -923,7 +936,7 @@ class SmartRouter:
                     except ImportError:
                         # fallback: direct HTTP
                         import urllib.request
-                        payload = json.dumps(message)  # orjson returns bytes
+                        payload = ser.pack(message)  # orjson returns bytes, msgpack returns bytes
                         req = urllib.request.Request(
                             "http://127.0.0.1:9916/api/v1/payment",
                             data=payload,
@@ -946,7 +959,7 @@ class SmartRouter:
 
                 # Фаза 3: Consistent Hashing — выбираем шард по pubkey если есть
                 target_pubkey = message.get("to") or message.get("pubkey", "")
-                gossip_payload = json.dumps(gossip_msg) + b"\n"
+                gossip_payload = ser.pack(gossip_msg) + b"\n"
                 if target_pubkey and len(target_pubkey) > 8:
                     # Directed: шлём в 1 шард (по хешу pubkey)
                     shard_idx = gossip_shard_for(target_pubkey)
@@ -996,7 +1009,7 @@ class SmartRouter:
                     gossip_msg["meta"] = {}
                 if isinstance(gossip_msg["meta"], dict):
                     gossip_msg["meta"] = {**gossip_msg["meta"], "origin": "smart_router", "channel": "fire-and-forget"}
-                gossip_payload = json.dumps(gossip_msg) + b"\n"
+                gossip_payload = ser.pack(gossip_msg) + b"\n"
                 
                 ok_count = 0
                 for idx, w in enumerate(self._gossip_writers):
@@ -1024,7 +1037,7 @@ class SmartRouter:
                     payload = message.get("payload", message.get("content", {}))
                     if isinstance(payload, str):
                         try:
-                            payload = json.loads(payload)
+                            payload = ser.unpack(payload)
                         except:
                             payload = {"text": payload}
                     bcast = await self._gossip_stream.broadcast(payload)
@@ -1055,7 +1068,7 @@ class SmartRouter:
                             r2, w2 = await asyncio.wait_for(
                                 asyncio.open_connection(ip, int(port)), timeout=2
                             )
-                            w2.write(json.dumps(message) + b"\n")
+                            w2.write(ser.pack(message) + b"\n")
                             await w2.drain()
                             w2.close()
                             result["ok"] = True
@@ -1070,7 +1083,7 @@ class SmartRouter:
                 to_agent = message.get("to", "")
                 payload = message.get("payload", message.get("content", ""))
                 if isinstance(payload, dict):
-                    payload = json.dumps(payload)
+                    payload = ser.pack(payload)
                 kind = message.get("kind", 39002)
                 hresult = await self._hybrid_channel.send(
                     target=to_agent, payload=payload, kind=kind,
@@ -1086,6 +1099,21 @@ class SmartRouter:
                     self.stats["hybrid_failed"] = self.stats.get("hybrid_failed", 0) + 1
             elif channel == "hybrid":  # not available
                 result["error"] = "hybrid channel not available"
+
+            elif channel == "zmq" and self._zmq_router:
+                # ═══ Phase 1b: ZeroMQ Transport — ROUTER/DEALER ═══
+                to_agent = message.get("to", "")
+                if not to_agent:
+                    result["error"] = "zmq requires 'to' field"
+                else:
+                    zmq_ok = self._zmq_router.send_sync(to_agent, message)
+                    result["ok"] = zmq_ok
+                    if zmq_ok:
+                        self.stats["zmq_delivered"] = self.stats.get("zmq_delivered", 0) + 1
+                    else:
+                        self.stats["zmq_failed"] = self.stats.get("zmq_failed", 0) + 1
+            elif channel == "zmq":  # not available
+                result["error"] = "zmq channel not activated (set SNIN_USE_ZMQ=1)"
 
             else:
                 result["error"] = f"unknown channel '{channel}'"
@@ -1585,7 +1613,7 @@ class SmartRouter:
                         self.stats["congestion_reroute"] += 1
                 elif health["avg_ms"] > 200:
                     self.stats["congestion_slow"] += 1
-        elif channel_pref in ("direct", "mesh", "gossip", "nostr", "content_router", "chequebook", "gossip_data", "nostr_data", "fire-and-forget", "hybrid"):
+        elif channel_pref in ("direct", "mesh", "gossip", "nostr", "content_router", "chequebook", "gossip_data", "nostr_data", "fire-and-forget", "hybrid", "zmq"):
             channel = channel_pref
             # Фаза 2: если явно запрошенный канал зациркуичен — mesh fallback
             if self._cb.is_blocked(channel):
@@ -1705,7 +1733,7 @@ class SmartRouter:
         if self._cr_v2_writer:
             print(f"[Router] 🔁 CR multicast for kind={msg.get('kind',0)} from={msg.get('from','?')[:12]}")
             try:
-                cr_payload = json.dumps(msg) + b"\n"  # orjson returns bytes, no .encode()
+                cr_payload = ser.pack(msg) + b"\n"  # msgpack for mesh transport
                 self._cr_v2_writer.write(cr_payload)
                 await asyncio.wait_for(self._cr_v2_writer.drain(), timeout=1)
                 self.stats["cr_v2_multicast"] += 1
@@ -1807,7 +1835,7 @@ class SmartRouter:
             try:
                 bp = {"retry_after": BP_RETRY_AFTER_SEC, "error": "backpressure",
                       "concurrent": self._concurrent, "max": BP_MAX_CONCURRENT}
-                writer.write(json.dumps(bp) + b"\n")
+                writer.write(ser.pack(bp) + b"\n")
                 await writer.drain()
             except Exception:
                 pass
@@ -1823,13 +1851,13 @@ class SmartRouter:
                 line = await asyncio.wait_for(reader.readline(), timeout=30)
                 if not line:
                     break
-                line = line.decode().strip()
+                line = line.rstrip(b'\r\n')
                 if not line:
                     continue
                 try:
-                    msg = json.loads(line)
-                except json.JSONDecodeError:
-                    self.stats["bad_json"] += 1
+                    msg = ser.unpack(line)
+                except (json.JSONDecodeError, ValueError, UnicodeDecodeError) as e:
+                    self.stats["bad_msg"] = self.stats.get("bad_msg", 0) + 1
                     continue
 
                 # ═══ Фаза 0: verify_sig (optional, 0.05ms) ═══
@@ -1894,7 +1922,7 @@ class SmartRouter:
                                         "payload": payload,
                                         "dlq_hash": dlq_msg.hash,
                                     }
-                                    data = json.dumps(push_event) + b"\n"
+                                    data = ser.pack(push_event) + b"\n"
                                     writer.write(data)
                                 await writer.drain()
                                 print(f"[Router] 📬 Flushed {len(pending)} DLQ messages to {agent_name[:16]}...")

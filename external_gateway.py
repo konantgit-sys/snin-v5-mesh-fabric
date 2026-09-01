@@ -4,13 +4,14 @@
   1. TCP Gateway (9931) — для ESP32, curl, любых TCP-клиентов
 # import uvloop (disabled)
 # asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-  2. Nostr Gateway — подписка на 101 релей, kind:1 → mesh kind:39002
+  2. Nostr Gateway — подписка на 85 релей (реальный список), kind:1 → mesh kind:39002
 
 Всё отправляется в Smart Router (localhost:9932) → выбор канала → дальше по конвейеру.
 """
 
 import asyncio
 import json
+import serialization as ser  # V6: msgpack transport
 import os
 import sys
 import time
@@ -41,30 +42,15 @@ GATEWAY_ID = os.path.basename(__file__).replace(".py", "")
 # Критерии: живые NIP-11, разные домены, разный софт, гео-баланс
 NOSTR_RELAYS = [
     "wss://relay.damus.io",
-    "wss://relay.primal.net",
-    "wss://relay.nostr.info",
-    "wss://nostr.wine",
+    "wss://nos.lol",
+    "wss://purplepag.es",
     "wss://nostr.oxtr.dev",
-    "wss://nostr-pub.wellorder.net",
-    "wss://relay.f7z.io",
-    "wss://relay.nostrati.com",
-    "wss://relay.azzamo.net",              # 67 NIP — лучший в мире
-    "wss://relay.nostrcheck.me",           # 28 NIP — khatru
-    "wss://relay.nostriches.club",         # 28 NIP
-    "wss://relay.npubhaus.com",            # 28 NIP
-    "wss://relay.nosflare.com",            # 19 NIP
-    "wss://relay.mostro.network",          # 16 NIP — mostro
-    "wss://relay.nostr.moe",              # 19 NIP
-    "wss://nostr.bond",                    # 33 NIP — shugur
-    "wss://relay.aidatanorge.no",          # 20 NIP — Норвегия
-    "wss://nostr.einundzwanzig.space",     # Германия
-    "wss://soloco.nl",                     # Нидерланды
-    "wss://relay.degmods.com",             # EU
-    "wss://relay.nostrplebs.com",          # US
-    "wss://purplepag.es",                  # US
-    "wss://relay.minibits.cash",           # US
-    "wss://nostr.mom",                     # Япония/Азия
-    "wss://airchat.nostr1.com",            # nostr1.com (1 из 759)
+    "wss://nostr.mom",
+    "wss://nostr.data.haus",
+    "wss://relay.snort.social",
+    "wss://relay.nostr.net",
+    "wss://relay.0xchat.com",
+    "wss://relay.contextvm.org",
 ]
 
 # ─── Счётчики ──────────────────────────────────────────────────────────
@@ -159,8 +145,8 @@ class TCPGateway:
             self.stats["sr_errors"] += 1
             return False
         try:
-            line = json.dumps(event) + "\n"
-            self.sr_writer.write(line.encode())
+            line = ser.pack(event) + b"\n"
+            self.sr_writer.write(line)  # line уже bytes (ser.pack)
             await self.sr_writer.drain()
             self.stats["sent_to_sr"] += 1
             return True
@@ -184,15 +170,15 @@ class TCPGateway:
                 line = await reader.readline()
                 if not line:
                     break
-                line = line.decode().strip()
+                line = line.rstrip(b'\r\n')
                 if not line:
                     continue
 
-                # Парсинг JSON
+                # Auto-detect JSON or msgpack
                 try:
-                    data = json.loads(line)
-                except json.JSONDecodeError:
-                    self.stats["bad_json"] += 1
+                    data = ser.unpack(line)
+                except (json.JSONDecodeError, ValueError):
+                    self.stats["bad_msg"] = self.stats.get("bad_msg", 0) + 1
                     continue
 
                 # Nostr протокол: данные могут быть списком ["EVENT", {...}]
@@ -220,7 +206,7 @@ class TCPGateway:
 
                 # Нормализация kind:1 (Nostr текст) → kind:39002 (mesh content)
                 if kind == 1:
-                    mesh_content = json.dumps({
+                    mesh_content = ser.pack({
                         "from": f"ext_{pubkey[:8]}",
                         "seq": self.stats["kind1_received"],
                         "payload": {
@@ -337,7 +323,7 @@ class NostrGateway:
 
                 while True:
                     try:
-                        msg = await asyncio.wait_for(ws.recv(), timeout=30)
+                        msg = await asyncio.wait_for(ws.recv(), timeout=60)
                     except asyncio.TimeoutError:
                         try:
                             pong = await ws.ping()
@@ -377,7 +363,7 @@ class NostrGateway:
                                     "original_kind": kind,
                                     "original_pubkey": pubkey,
                                 },
-                            })
+                            }, ensure_ascii=False)
                             event_mesh = await mesh_event_async(pubkey, mesh_content, 39002, created_at)
                             if self.tcp_gw:
                                 ok = await self.tcp_gw.send_to_sr(event_mesh)
@@ -395,7 +381,7 @@ class NostrGateway:
                                     "reaction": short,
                                     "original_kind": kind,
                                 },
-                            })
+                            }, ensure_ascii=False)
                             event_mesh = await mesh_event_async(pubkey, mesh_content, 39003, created_at)
                             if self.tcp_gw:
                                 ok = await self.tcp_gw.send_to_sr(event_mesh)
