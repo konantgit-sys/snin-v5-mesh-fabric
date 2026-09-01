@@ -29,7 +29,7 @@
 | `reputation_gate.py`, `snin_adapter.py` | NIP-80, kind 8010-8017 | протокольные кинды для сертификатов |
 | `zk_prover.py` (Merkle tree) | КОД ЕСТЬ, слой OFF, /dev/shm пуст | Merkle-корень для публикации |
 | `virtual_agents.py`, `tests/coalition_test.py` | есть | симуляция роя для тестов |
-| **relay-mesh процессы** | **НЕ ЗАПУЩЕНЫ** (SmartRouter/ContentRouter/Supervisor в ps отсутствуют) | Фаза 4 зависит от оживления mesh — делаем после |
+| **relay-mesh процессы** | **ЗАПУЩЕНЫ** (SmartRouter :9932, ContentRouterV2 :9920, RouteEngine :9910, ExternalGateway :9931, NostrBridge :9941, CrossMesh :9946, GossipStream :9105, релеи :8197/:8198) | mesh_int.py: события → audit-chain (attribution=inferred, PARENT_CHAIN) |
 
 ## 3. АРХИТЕКТУРА
 
@@ -156,10 +156,39 @@ PID reuse не сливает разных агентов в одного.
 - дашборд `sentinel-dash.v2.site` (статический, по правилам website-builder + design-rules.md):
   chain height, последний root, экономика роя (граф платежей), health агентов
 **Done-when:**
-- [ ] kind 30000 + 8010 события найдены на 3+ релеях по pubkey ноды
-- [ ] Внешняя проверка: fetch kind 8010 → verify chain по root → OK
-- [ ] Дашборд открывается, показывает реальные цифры из БД (не заглушки)
+- [x] kind 30000 + 8010 события найдены на 3+ релеях по pubkey ноды
+- [x] Внешняя проверка: fetch kind 8010 → verify chain по root → OK
+- [x] Дашборд открывается, показывает реальные цифры из БД (не заглушки)
 **Коммит:** `SPM-F5: publisher + certificates + sentinel-dash`
+
+### ФАЗА 6 — Демон аудита (постоянный сбор → цепочка → сертификаты)
+**Цель:** цепочка растёт сама, без ручных скриптов; корни публикуются регулярно.
+**Делаем:**
+- `proof_mesh/audit_daemon.py`: цикл 60 с — дельта relay_v2.db (по received_at, идемпотентно
+  через sync_state) + UNIX-сокеты mesh (cr.sock/nostr.sock) + dead-letter kind 9000
+- подпись BIP340 → append в цепочку; порог публикации: +50 блоков ИЛИ 600 с и рост →
+  kind 30000+8010 (publisher.publish_cert) + snapshot дашборда
+- состояние в sync_state (daemon_cert_ts/height) — переживает рестарт; start.sh relay-mesh
+  (замена DashUpdater) — автозапуск при рестарте пода
+**Done-when (проверено живым запуском 2026-09-01):**
+- [x] демон поднят, цикл ~49 с, первый проход влил 300 накопленных событий
+- [x] цепочка выросла 203 → 503 → 1103 → 4506 (реальные события релея, не тест)
+- [x] сертификаты публикуются (cert OK в логе), root обновляется
+- [x] дашборд показывает height = cert height (snapshot от демона)
+- [x] test_architecture: регрессий нет; 79/79 тестов SPM прошли
+**Коммит:** `SPM-F6: демон аудита — постоянный сбор событий в цепочку`
+
+## 7. ИНТЕГРАЦИЯ В SNIN (карта, где это живёт)
+
+| Куда встроено | Что именно | Ссылка |
+|---|---|---|
+| Визуальный граф кода | `graphify-snin.v2.site` — комьюнити **c16 «SPM Proof Mesh»** (7 файлов, 62 узла: файлы+классы+функции, цвет #ff4757) | https://graphify-snin.v2.site |
+| SNIN Hub | вкладка **SPM** (кнопка с цепочкой): высота, root, сертификаты, события 24ч/7д, топ действий, последние события, статус демона; API `/api/spm` на :9950, автообновление 30 с | https://snin-hub.v2.site |
+| Дашборд | `sentinel-dash.v2.site` — height, root, сертификаты, экономика | https://sentinel-dash.v2.site |
+| Nostr | kind 30000 (root) + kind 8010 (NIP-80 сертификаты) по pubkey ноды | релеи: nos.lol, oxtr.dev |
+
+**В графе:** `rebuild_graph_v2.py` выделяет `proof_mesh/*.py` (relay-mesh) в community 16;
+`regenerate_data.py` — имя группы; перегенерация: `rebuild_graph_v2.py → regenerate_data.py`.
 
 ## 5. ЧЕСТНЫЕ ОГРАНИЧЕНИЯ (по правилу «не врать»)
 
@@ -174,10 +203,16 @@ PID reuse не сливает разных агентов в одного.
 
 ## 6. ПОРЯДОК РАБОТ (приоритет)
 
-1. Фаза 0 → 1 → 2 (фундамент, независимы от внешних сервисов — как в правиле «Фазы 1-2 на 100% без внешних»)
-2. Фаза 3 (зависит только от релеев — доступны)
-3. Фаза 5 (дашборд + publisher — можно параллельно с 3)
-4. Фаза 4 — ПОСЛЕ оживления relay-mesh (отдельная задача, блокер)
+✅ Фазы 0-6 реализованы (коммиты SPM-F0 → SPM-F6, 79 тестов). Демон аудита работает,
+цепочка растёт автоматически (4506 блоков на 2026-09-01), сертификаты публикуются в Nostr,
+модуль встроен в граф кода (c16) и SNIN Hub (вкладка SPM).
+
+Осталось (открытые хвосты):
+- NWC (Nostr Wallet Connect) — подключение кошелька Крайтера (WoS): код готов
+  (snin-client /api/nwc/*), нужна NWC-строка от пользователя; после — баланс и платежи
+  в цепочку (wallet:balance / wallet:tx)
+- mesh: добить 7 провалов test_architecture (шарды NB 2-5, MeshAPI)
+- экономика: zap-ы уже в цепочке (Ф3); при наличии NWC — связать с балансом
 
 Каждая фаза: бэкап БД → код → pytest → коммит в snin-v5-mesh-fabric.
 Финальный сквозной тест перед «готово»: python3 /home/agent/data/scripts/test_architecture.py.
