@@ -420,10 +420,10 @@
   "unknown"
  ],
  "39001": [
-  "dht-39001",
-  "?",
-  "DHT listener (kind 39001?)",
-  "L1",
-  "unknown"
+  "p2p-dash",
+  "p2p-dash/app.py",
+  "P2P Agent Mesh Dashboard",
+  "web",
+  "cert"
  ]
 }
