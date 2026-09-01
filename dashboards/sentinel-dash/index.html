@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNIN Sentinel — Proof Mesh</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/index.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/index.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0b0e14;
+    --bg-card: rgba(255 255 255 / 0.035);
+    --bg-card-border: rgba(255 255 255 / 0.07);
+    --text: #e7ecf1;
+    --text-muted: #7d8794;
+    --accent: #5eead4;
+    --accent-dim: rgba(94 234 212 / 0.12);
+    --warn: #fbbf24;
+    --radius: 16px;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .orb {
+    position: fixed; border-radius: 50%; filter: blur(90px); opacity: 0.35;
+    pointer-events: none; z-index: 0;
+  }
+  .orb--1 { width: 520px; height: 520px; top: -160px; right: -120px;
+    background: radial-gradient(circle, #0f766e 0%, transparent 70%); }
+  .orb--2 { width: 420px; height: 420px; bottom: -140px; left: -100px;
+    background: radial-gradient(circle, #155e75 0%, transparent 70%); }
+  .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+  header { padding: 64px 0 32px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 16px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 12px var(--accent); }
+  h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { color: var(--text-muted); margin-top: 12px; max-width: 560px; font-size: 1.02rem; }
+  .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; padding: 24px 0 80px; }
+  .card {
+    grid-column: span 4;
+    background: var(--bg-card);
+    border: 1px solid var(--bg-card-border);
+    border-radius: var(--radius);
+    padding: 26px 26px 24px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 240ms var(--ease-out), background 240ms var(--ease-out), border-color 240ms var(--ease-out);
+  }
+  .card:hover { background: rgba(255 255 255 / 0.06); border-color: rgba(94 234 212 / 0.25); transform: translateY(-3px); }
+  .card:active { transform: scale(0.97); }
+  .card--wide { grid-column: span 6; }
+  .card--full { grid-column: span 12; }
+  .card-label { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .card-label svg { width: 16px; height: 16px; color: var(--accent); }
+  .big { font-size: clamp(2.4rem, 5vw, 3.4rem); font-weight: 700; letter-spacing: -0.03em; margin-top: 14px; font-variant-numeric: tabular-nums; }
+  .mono { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; color: var(--text-muted); word-break: break-all; margin-top: 10px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; font-size: 0.9rem; }
+  .stat-row .k { color: var(--text-muted); }
+  .stat-row .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .bars { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .bar-row { display: grid; grid-template-columns: 110px 1fr 48px; align-items: center; gap: 12px; font-size: 0.82rem; }
+  .bar-row .name { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-row .val { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+  .bar { height: 8px; border-radius: 99px; background: rgba(255 255 255 / 0.06); overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #0d9488, var(--accent));
+    width: 0; transition: width 700ms var(--ease-out); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px;
+    background: var(--accent-dim); color: var(--accent); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; }
+  footer { padding: 28px 0 48px; color: var(--text-muted); font-size: 0.82rem; border-top: 1px solid var(--bg-card-border); }
+  .reveal { opacity: 0; transform: translateY(22px); transition: opacity 520ms var(--ease-out), transform 520ms var(--ease-out); }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  @media (max-width: 860px) {
+    .card, .card--wide { grid-column: span 12; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="orb orb--1"></div>
+<div class="orb orb--2"></div>
+
+<div class="container">
+  <header>
+    <div class="tag"><span class="dot"></span> SNIN Proof Mesh — внешний наблюдатель</div>
+    <h1>Sentinel <em>dash</em></h1>
+    <p class="sub">Публично проверяемая hash-chain доказательств: корень цепочки публикуется в Nostr (kind 30000 + NIP-80 8010), экономика роя и health агентов — из подписанного журнала.</p>
+  </header>
+
+  <div class="grid">
+    <div class="card reveal">
+      <div class="card-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        Высота цепочки
+      </div>
+      <div class="big" id="height">—</div>
+      <div class="stat-row"><span class="k">Событий в журнале</span><span class="v" id="events">—</span></div>
+    </div>
+
+    <div class="card reveal">
+      <div class="card-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Последний корень
+      </div>
+      <div class="mono" id="root" style="margin-top:18px; font-size:0.86rem;">—</div>
+      <div class="stat-row"><span class="k">Подпись</span><span class="v"><span class="pill">BIP340 / nsec</span></span></div>
+    </div>
+
+    <div class="card reveal">
+      <div class="card-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-4z"/><path d="m9 12 2 2 4-4"/></svg>
+        Сертификат честности
+      </div>
+      <div class="stat-row" style="margin-top:18px"><span class="k">NIP-80 / kind 8010</span><span class="v" id="cert_status">—</span></div>
+      <div class="stat-row"><span class="k">Высота</span><span class="v" id="cert_height">—</span></div>
+      <div class="mono" id="cert_root">—</div>
+    </div>
+
+    <div class="card card--wide reveal">
+      <div class="card-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>
+        Экономика роя
+      </div>
+      <div class="stat-row"><span class="k">LN-кошельки в реестре</span><span class="v" id="wallets">—</span></div>
+      <div class="stat-row"><span class="k">Zap-и (kind 9735)</span><span class="v" id="zaps">—</span></div>
+      <div class="stat-row"><span class="k">Счета (kind 9734)</span><span class="v" id="invoices">—</span></div>
+    </div>
+
+    <div class="card card--wide reveal">
+      <div class="card-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Health агентов
+      </div>
+      <div class="bars" id="bars"></div>
+    </div>
+
+    <div class="card card--full reveal">
+      <div class="card-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h7"/></svg>
+        Журнал аудита — последние события
+      </div>
+      <div class="mono" id="log" style="margin-top:14px; max-height:200px; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <footer>SNIN Proof Mesh · корень публикуется как kind 30000, сертификаты — kind 8010 (NIP-80) · <span id="year"></span></footer>
+</div>
+
+<script>
+  const ease = "cubic-bezier(0.23,1,0.32,1)";
+  const $ = (id) => document.getElementById(id);
+
+  const fmtSats = (msat) => {
+    const s = msat / 1000;
+    return s >= 1e6 ? (s/1e6).toFixed(2) + "M sats" : s >= 1e3 ? (s/1e3).toFixed(1) + "k sats" : Math.round(s) + " sats";
+  };
+  const fmtTs = (ts) => new Date(ts * 1000).toLocaleString("ru-RU");
+
+  async function load() {
+    let data;
+    try {
+      const r = await fetch("snapshot.json", { cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      data = await r.json();
+    } catch (e) {
+      $("height").textContent = "нет данных";
+      $("root").textContent = "snapshot.json недоступен (" + e.message + ")";
+      return;
+    }
+    $("height").textContent = (data.chain.height ?? 0).toLocaleString("ru-RU");
+    $("events").textContent = (data.chain.events_total ?? 0).toLocaleString("ru-RU");
+    $("root").textContent = data.chain.last_root || "—";
+
+    const cert = data.last_cert;
+    if (cert) {
+      $("cert_status").innerHTML = '<span class="pill">verified · ' + fmtTs(cert.ts) + '</span>';
+      $("cert_height").textContent = (cert.height ?? 0).toLocaleString("ru-RU");
+      $("cert_root").textContent = cert.root || "—";
+    } else {
+      $("cert_status").textContent = "нет сертификата";
+    }
+
+    const econ = data.economy || {};
+    $("wallets").textContent = (econ.wallets ?? 0).toLocaleString("ru-RU");
+    const zap = (econ.payments || []).find(p => p.kind === 9735);
+    const inv = (econ.payments || []).find(p => p.kind === 9734);
+    $("zaps").textContent = zap ? (zap.count + " · " + fmtSats(zap.total_msat)) : "0";
+    $("invoices").textContent = inv ? (inv.count + " · " + fmtSats(inv.total_msat)) : "0";
+
+    const agents = data.agents || [];
+    const max = Math.max(1, ...agents.map(a => a.events));
+    const bars = $("bars");
+    bars.innerHTML = "";
+    agents.forEach((a, i) => {
+      const row = document.createElement("div");
+      row.className = "bar-row";
+      row.style.opacity = "0";
+      row.style.transform = "translateY(8px)";
+      row.style.transition = "opacity 320ms " + ease + ", transform 320ms " + ease;
+      row.innerHTML = '<span class="name">' + a.agent_id + '</span>' +
+        '<span class="bar"><i></i></span><span class="val">' + a.events + '</span>';
+      bars.appendChild(row);
+      requestAnimationFrame(() => {
+        row.style.opacity = "1";
+        row.style.transform = "translateY(0)";
+        row.querySelector("i").style.width = Math.max(3, (a.events / max) * 100) + "%";
+      });
+    });
+
+    const logEl = $("log");
+    logEl.textContent = "generated_at: " + fmtTs(data.generated_at) +
+      " · last_root: " + (data.chain.last_root || "").slice(0, 24) + "…";
+  }
+
+  // reveal on scroll (stagger 60ms)
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add("visible"), i * 60);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll(".reveal").forEach(el => obs.observe(el));
+
+  document.getElementById("year").textContent = new Date().getFullYear();
+  load();
+  setInterval(load, 60000);
+</script>
+</body>
+</html>
