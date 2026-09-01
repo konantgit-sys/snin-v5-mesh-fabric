@@ -53,6 +53,11 @@ def _sync_state(audit_db: str, key: str) -> int:
 def _save_state(audit_db: str, key: str, last_ts: int) -> None:
     with _audit_conn(audit_db) as c:
         c.execute(
+            """CREATE TABLE IF NOT EXISTS sync_state (
+                key TEXT PRIMARY KEY, last_id TEXT NOT NULL DEFAULT '',
+                last_ts INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL)"""
+        )
+        c.execute(
             """INSERT INTO sync_state (key, last_id, last_ts, updated_at)
                VALUES (?, '', ?, ?)
                ON CONFLICT(key) DO UPDATE SET last_ts=excluded.last_ts,
