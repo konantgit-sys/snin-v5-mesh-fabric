@@ -255,3 +255,75 @@ def check_dead_letters(audit_db: str, nsec: str,
                         limit=50, kinds=(9000,))
     return {"deadletters_seen": res.get("seen", 0),
             "deadletters_stored": res.get("stored", 0)}
+
+
+# ── 4. Пульс демона: heartbeat + cgroup-метрики + health релеев ──────────────
+def pulse(audit_db: str, nsec: str, interval: int = 300, log=print) -> dict:
+    """Собственный пульс цепочки: раз в `interval` секунд добавляет
+    daemon:heartbeat, sensor:cgroup (только cgroup-лимиты контейнера,
+    НЕ free/host) и relay:health (:8197/:8198). Работает даже при
+    нулевом внешнем трафике — цепочка и сертификаты живут всегда."""
+    import socket as _socket
+    now = int(time.time())
+    last = _sync_state(audit_db, "pulse_ts")
+    if last and (now - last) < interval:
+        return {"stored": 0, "skipped": True}
+    if not last and interval > 0:
+        # первый запуск: фиксируем точку отсчёта, пульсируем через interval
+        _save_state(audit_db, "pulse_ts", now)
+        return {"stored": 0, "skipped": True}
+
+    # ── cgroup-метрики (правило: только /sys/fs/cgroup, не host) ──
+    def _cgroup(path: str) -> str:
+        try:
+            with open(path) as f:
+                return f.read().strip()
+        except Exception:
+            return "n/a"
+
+    mem_max = _cgroup("/sys/fs/cgroup/memory.max")
+    mem_cur = _cgroup("/sys/fs/cgroup/memory.current")
+    cpu_max = _cgroup("/sys/fs/cgroup/cpu.max")
+    payload_sensor = (f"mem_max={mem_max} mem_cur={mem_cur} "
+                      f"cpu_max={cpu_max}")
+
+    # ── health релеев :8197/:8198 ──
+    relay_health = {}
+    for port in (8197, 8198):
+        try:
+            with _socket.create_connection(("127.0.0.1", port), timeout=2):
+                relay_health[port] = "up"
+        except Exception:
+            relay_health[port] = "down"
+    payload_relay = " ".join(f"{p}={s}" for p, s in sorted(relay_health.items()))
+
+    # ── heartbeat: высота + uptime демона ──
+    st = db.get_chain_state(audit_db) or {}
+    height = st.get("height", 0)
+    try:
+        with open(f"/proc/{os.getpid()}/stat") as f:
+            parts = f.read().split()
+        start_ticks = int(parts[21]) / float(os.sysconf("SC_CLK_TCK"))
+        uptime_s = int(time.time() - start_ticks)
+    except Exception:
+        uptime_s = 0
+    payload_hb = f"height={height} uptime={uptime_s}s"
+
+    stored = 0
+    for action, payload, ev in (
+        ("daemon:heartbeat", payload_hb, "SIG_MATCH"),
+        ("sensor:cgroup", payload_sensor, "CGROUP"),
+        ("relay:health", payload_relay, "SOCK_PROBE"),
+    ):
+        try:
+            chain.append_signed(
+                audit_db, nsec=nsec, agent_id="audit_daemon",
+                action=action, payload=payload,
+                attribution="confirmed", evidence_code=ev,
+            )
+            stored += 1
+        except Exception as e:
+            log(f"[pulse] {action} не записан: {e}")
+    _save_state(audit_db, "pulse_ts", now)
+    log(f"[pulse] +{stored} событий (heartbeat/sensor/relay-health)")
+    return {"stored": stored, "skipped": False}

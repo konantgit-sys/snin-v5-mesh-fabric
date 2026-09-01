@@ -83,7 +83,7 @@ def test_run_cycle_empty_sources(audit_db, nsec, tmp_path, monkeypatch):
                         lambda *a, **k: {})
     empty = _make_relay_db(tmp_path, n_events=0)
     r = audit_daemon.run_cycle(audit_db, nsec, relay_db=empty,
-                               snapshot_out="")
+                               pulse_interval=10**9, snapshot_out="")
     assert r["stored"] == 0
     assert r["height"] == 0
     assert r["cert"] is False  # пустая цепочка → сертификат не публикуем
@@ -97,7 +97,7 @@ def test_run_cycle_writes_events(audit_db, nsec, tmp_path, monkeypatch):
                         lambda *a, **k: {})
     relay_db = _make_relay_db(tmp_path, n_events=2)
     r = audit_daemon.run_cycle(audit_db, nsec, relay_db=relay_db,
-                               snapshot_out="")
+                               pulse_interval=10**9, snapshot_out="")
     assert r["stored"] == 2
     assert r["height"] == 2
     ok, count, reason, broken = chain.verify_chain_signed(audit_db)
@@ -113,10 +113,10 @@ def test_run_cycle_idempotent(audit_db, nsec, tmp_path, monkeypatch):
                         lambda *a, **k: {})
     relay_db = _make_relay_db(tmp_path, n_events=3)
     r1 = audit_daemon.run_cycle(audit_db, nsec, relay_db=relay_db,
-                                snapshot_out="")
+                                pulse_interval=10**9, snapshot_out="")
     assert r1["stored"] == 3
     r2 = audit_daemon.run_cycle(audit_db, nsec, relay_db=relay_db,
-                                snapshot_out="")
+                                pulse_interval=10**9, snapshot_out="")
     assert r2["stored"] == 0, "повторный проход не должен дублировать"
     assert r2["height"] == 3
 
@@ -141,3 +141,27 @@ def test_run_cycle_snapshot_written(audit_db, nsec, tmp_path, monkeypatch):
     # 3 события < 50 блоков, но 600с прошло (last_ts=0) и цепочка выросла
     assert r["cert"] is True
     assert written["snap"] == snap
+
+
+def test_run_cycle_pulse_heartbeat(audit_db, nsec, tmp_path, monkeypatch):
+    """Пульс: при pulse_interval=0 цикл добавляет heartbeat+cgroup+relay-health
+    даже при пустых внешних источниках — цепочка живёт всегда."""
+    monkeypatch.setattr(audit_daemon.publisher, "publish_cert",
+                        lambda *a, **k: {"cert": {}})
+    monkeypatch.setattr(audit_daemon.publisher, "build_snapshot",
+                        lambda *a, **k: {})
+    empty = _make_relay_db(tmp_path, n_events=0)
+    r = audit_daemon.run_cycle(audit_db, nsec, relay_db=empty,
+                               pulse_interval=0, snapshot_out="")
+    assert r["stored"] == 3, f"пульс должен дать 3 события, дал {r['stored']}"
+    assert r["height"] == 3
+    ok, count, reason, broken = chain.verify_chain_signed(audit_db)
+    assert ok is True and count == 3
+    with sqlite3.connect(audit_db) as c:
+        actions = [row[0] for row in c.execute(
+            "SELECT action FROM audit_events ORDER BY id").fetchall()]
+    assert actions == ["daemon:heartbeat", "sensor:cgroup", "relay:health"]
+    # второй прогон с интервалом → пульс пропущен (0 новых)
+    r2 = audit_daemon.run_cycle(audit_db, nsec, relay_db=empty,
+                                pulse_interval=10**9, snapshot_out="")
+    assert r2["stored"] == 0
