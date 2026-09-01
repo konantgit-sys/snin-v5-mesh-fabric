@@ -1,0 +1,429 @@
+{
+ "6379": [
+  "redis",
+  "redis-server",
+  "Graph Memory / \u043a\u044d\u0448 SR",
+  "system",
+  "cert"
+ ],
+ "8080": [
+  "system-reserved",
+  "\u2014",
+  "\u0437\u0430\u0440\u0435\u0437\u0435\u0440\u0432\u0438\u0440\u043e\u0432\u0430\u043d \u043f\u043b\u0430\u0442\u0444\u043e\u0440\u043c\u043e\u0439",
+  "system",
+  "cert"
+ ],
+ "8191": [
+  "snin-pay",
+  "snin-pay/",
+  "SNIN Payment Gateway v0.1.0",
+  "L4/\u044d\u043a\u043e\u043d\u043e\u043c\u0438\u043a\u0430",
+  "conflict"
+ ],
+ "8197": [
+  "snin-relay",
+  "relay_gateway.py",
+  "Nostr relay gateway",
+  "L0",
+  "cert"
+ ],
+ "8198": [
+  "relay-v2",
+  "relay_server_v2.py",
+  "Nostr relay (22 NIP, SQLite WAL)",
+  "L0",
+  "conflict"
+ ],
+ "9910": [
+  "route-engine",
+  "route_engine.py",
+  "\u041f\u043e\u0438\u0441\u043a \u043a\u0440\u0430\u0442\u0447\u0430\u0439\u0448\u0435\u0433\u043e \u043f\u0443\u0442\u0438, \u0432\u044b\u0431\u043e\u0440 \u043a\u0430\u043d\u0430\u043b\u0430",
+  "L1",
+  "cert"
+ ],
+ "9920": [
+  "content-router",
+  "content_router_v2.py",
+  "\u0414\u0435\u0434\u0443\u043f\u043b\u0438\u043a\u0430\u0446\u0438\u044f, \u0441\u0435\u043c\u0430\u043d\u0442\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u043c\u0430\u0440\u0448\u0440\u0443\u0442\u0438\u0437\u0430\u0446\u0438\u044f",
+  "L1",
+  "cert"
+ ],
+ "9931": [
+  "external-gateway",
+  "external_gateway.py",
+  "WSS\u2194TCP \u043c\u043e\u0441\u0442, Nostr\u2192mesh (kind 39002/39003)",
+  "L1/L3",
+  "cert"
+ ],
+ "9932": [
+  "smart-router",
+  "smart_router.py",
+  "\u0415\u0414\u0418\u041d\u0421\u0422\u0412\u0415\u041d\u041d\u0410\u042f \u0442\u043e\u0447\u043a\u0430 \u0432\u0445\u043e\u0434\u0430, 4 \u043a\u0430\u043d\u0430\u043b\u0430",
+  "L1",
+  "cert"
+ ],
+ "9933": [
+  "mesh-api",
+  "relay_mesh_api.py",
+  "Mesh API: channels/redis/dht/stats",
+  "L1",
+  "cert"
+ ],
+ "9941": [
+  "nostr-bridge-0",
+  "nostr_bridge.py --shard 0",
+  "\u041f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044f \u0448\u0430\u0440\u0434 0/5",
+  "L1/L3",
+  "cert"
+ ],
+ "9942": [
+  "nostr-bridge-1",
+  "nostr_bridge.py --shard 1",
+  "\u041f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044f \u0448\u0430\u0440\u0434 1/5",
+  "L1/L3",
+  "cert"
+ ],
+ "9943": [
+  "nostr-bridge-2",
+  "nostr_bridge.py --shard 2",
+  "\u041f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044f \u0448\u0430\u0440\u0434 2/5",
+  "L1/L3",
+  "cert"
+ ],
+ "9944": [
+  "nostr-bridge-3",
+  "nostr_bridge.py --shard 3",
+  "\u041f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044f \u0448\u0430\u0440\u0434 3/5",
+  "L1/L3",
+  "cert"
+ ],
+ "9945": [
+  "nostr-bridge-4",
+  "nostr_bridge.py --shard 4",
+  "\u041f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044f \u0448\u0430\u0440\u0434 4/5",
+  "L1/L3",
+  "cert"
+ ],
+ "9946": [
+  "cross-mesh",
+  "cross_mesh_bridge.py",
+  "Mesh-to-mesh \u0444\u0435\u0434\u0435\u0440\u0430\u0446\u0438\u044f (kind 30002-30004)",
+  "L1",
+  "cert"
+ ],
+ "9105": [
+  "gossip-shard",
+  "gossip_shard.py",
+  "Gossip-\u0448\u0430\u0440\u0434 (\u0433\u0440\u0443\u043f\u043f\u0430)",
+  "L1",
+  "unknown"
+ ],
+ "9961": [
+  "zmq-publisher",
+  "zmq_transport.py",
+  "ZeroMQ Publisher",
+  "L2",
+  "cert"
+ ],
+ "9962": [
+  "zmq-pipeline",
+  "zmq_transport.py",
+  "ZeroMQ Pipeline",
+  "L2",
+  "cert"
+ ],
+ "9963": [
+  "zmq-subscriber",
+  "zmq_transport.py",
+  "ZeroMQ Subscriber",
+  "L2",
+  "cert"
+ ],
+ "9964": [
+  "zmq-extra-1",
+  "zmq_transport.py",
+  "ZeroMQ (\u0440\u0435\u0437\u0435\u0440\u0432)",
+  "L2",
+  "unknown"
+ ],
+ "9965": [
+  "zmq-extra-2",
+  "zmq_transport.py",
+  "ZeroMQ (\u0440\u0435\u0437\u0435\u0440\u0432)",
+  "L2",
+  "unknown"
+ ],
+ "9900": [
+  "graphify-api",
+  "graphify-snin/rebuild_graph_v2.py",
+  "\u0412\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u044b\u0439 \u0433\u0440\u0430\u0444 \u043a\u043e\u0434\u0430 API",
+  "L3",
+  "conflict"
+ ],
+ "9901": [
+  "dash-9901",
+  "remora-dash|tie-mesh|upload",
+  "\u041a\u041e\u041d\u0424\u041b\u0418\u041a\u0422: 4 \u0441\u0435\u0440\u0432\u0438\u0441\u0430",
+  "L3",
+  "conflict"
+ ],
+ "9902": [
+  "cryter-dash",
+  "api_server.py 9902",
+  "\u0414\u0430\u0448\u0431\u043e\u0440\u0434 Cryter",
+  "L3",
+  "cert"
+ ],
+ "9907": [
+  "gossip-api",
+  "snin-gossip/",
+  "Mesh API (\u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442) \u2014 \u0444\u0430\u043a\u0442\u0438\u0447\u0435\u0441\u043a\u0438 gossip",
+  "L3",
+  "conflict"
+ ],
+ "9950": [
+  "snin-hub",
+  "hub_fastapi.py",
+  "\u0415\u0434\u0438\u043d\u044b\u0439 \u0434\u0430\u0448\u0431\u043e\u0440\u0434 + API (/api/spm)",
+  "L3",
+  "cert"
+ ],
+ "9951": [
+  "snin-mcp",
+  "gateway.py",
+  "MCP Gateway (\u0432\u043d\u0435\u0448\u043d\u0438\u0435 AI-\u0430\u0433\u0435\u043d\u0442\u044b)",
+  "L3",
+  "conflict"
+ ],
+ "9970": [
+  "hcoor",
+  "hybrid.hcoor",
+  "\u0413\u0438\u0431\u0440\u0438\u0434\u043d\u044b\u0439 \u043a\u043e\u043e\u0440\u0434\u0438\u043d\u0430\u0442\u043e\u0440",
+  "L3",
+  "cert"
+ ],
+ "9980": [
+  "snin-network",
+  "snin-network/",
+  "\u0410\u0434\u043c\u0438\u043d-\u043f\u0430\u043d\u0435\u043b\u044c SNIN Network",
+  "L3",
+  "cert"
+ ],
+ "9200": [
+  "l4-payment",
+  "l4_payment_layer.py",
+  "L4 Payment layer",
+  "L4",
+  "cert"
+ ],
+ "8083": [
+  "api-gateway",
+  "api_gateway.py",
+  "REST API Gateway",
+  "L3",
+  "cert"
+ ],
+ "8085": [
+  "relay-mesh-site",
+  "relay-mesh/",
+  "\u041a\u041e\u041d\u0424\u041b\u0418\u041a\u0422: relay-mesh + snin-health-api",
+  "web",
+  "conflict"
+ ],
+ "8086": [
+  "relay-dash",
+  "relay-dash/",
+  "\u0414\u0430\u0448\u0431\u043e\u0440\u0434 \u0440\u0435\u043b\u0435\u044f",
+  "web",
+  "cert"
+ ],
+ "8089": [
+  "triplet-test",
+  "triplet-test/",
+  "\u0422\u0435\u0441\u0442\u043e\u0432\u0430\u044f \u0442\u0440\u043e\u0439\u043a\u0430",
+  "web",
+  "cert"
+ ],
+ "8090": [
+  "p2p-dash",
+  "p2p-dash/",
+  "P2P Agent Mesh \u0434\u0430\u0448\u0431\u043e\u0440\u0434",
+  "web",
+  "cert"
+ ],
+ "8091": [
+  "archivist",
+  "archivist-ai/",
+  "Archivist (\u0437\u0430\u043a\u0440\u044b\u0442\u0430\u044f \u0431\u0430\u0437\u0430)",
+  "web",
+  "cert"
+ ],
+ "8092": [
+  "factory",
+  "factory/app.py",
+  "V2Bot Content Factory",
+  "web",
+  "cert"
+ ],
+ "8095": [
+  "snin-client",
+  "snin-client/app.py",
+  "\u0415\u0434\u0438\u043d\u044b\u0439 \u043a\u043b\u0438\u0435\u043d\u0442 (NWC-\u043a\u043e\u0434)",
+  "web",
+  "cert"
+ ],
+ "8096": [
+  "app-8096",
+  "app.py 8096",
+  "\u0412\u0435\u0431-\u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435",
+  "web",
+  "unknown"
+ ],
+ "8101": [
+  "confluence",
+  "confluence/",
+  "Confluence: \u0423\u0440\u0430\u043d\u0442\u0438\u044f\u00b7\u0411\u0438\u0431\u043b\u0438\u044f\u00b7\u041a\u043e\u0440\u0430\u043d",
+  "web",
+  "cert"
+ ],
+ "8111": [
+  "analion-site",
+  "analion-site/",
+  "\u0421\u0430\u0439\u0442 Analion",
+  "web",
+  "cert"
+ ],
+ "8123": [
+  "snin-mail",
+  "cryter-mail/",
+  "SNIN Mail (uvicorn)",
+  "web",
+  "cert"
+ ],
+ "9767": [
+  "mesh-relay-test",
+  "mesh-relay-test|peer-relay",
+  "\u041a\u041e\u041d\u0424\u041b\u0418\u041a\u0422: 2 \u0441\u0435\u0440\u0432\u0438\u0441\u0430",
+  "web",
+  "conflict"
+ ],
+ "9770": [
+  "lenin-book",
+  "lenin-book/api_v2.py",
+  "\u041b\u0435\u043d\u0438\u043d \u2014 \u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u043e\u0440",
+  "web",
+  "cert"
+ ],
+ "9776": [
+  "passport-api",
+  "passport_api.py",
+  "API \u043f\u0430\u0441\u043f\u043e\u0440\u0442\u043e\u0432",
+  "web",
+  "cert"
+ ],
+ "9777": [
+  "mesh-hub",
+  "mesh-hub|mesh55",
+  "\u041a\u041e\u041d\u0424\u041b\u0418\u041a\u0422: 2 \u0441\u0435\u0440\u0432\u0438\u0441\u0430",
+  "web",
+  "conflict"
+ ],
+ "9780": [
+  "lenin-oracle",
+  "lenin-oracle/",
+  "\u041e\u0440\u0430\u043a\u0443\u043b \u041b\u0435\u043d\u0438\u043d\u0430",
+  "web",
+  "cert"
+ ],
+ "9880": [
+  "api-lenin",
+  "api-lenin/",
+  "API-\u043a\u043b\u044e\u0447\u0438 \u041b\u0435\u043d\u0438\u043d\u0430",
+  "web",
+  "cert"
+ ],
+ "12345": [
+  "unknown-12345",
+  "?",
+  "\u041d\u0415 \u0418\u0414\u0415\u041d\u0422\u0418\u0424\u0418\u0426\u0418\u0420\u041e\u0412\u0410\u041d",
+  "?",
+  "unknown"
+ ],
+ "19910": [
+  "urantia-19910",
+  "urantia-crossref/",
+  "Urantia crossref (BaseHTTP)",
+  "web",
+  "unknown"
+ ],
+ "19920": [
+  "urantia-19920",
+  "urantia-crossref/",
+  "Urantia crossref",
+  "web",
+  "unknown"
+ ],
+ "19931": [
+  "urantia-19931",
+  "urantia-crossref/",
+  "Urantia crossref",
+  "web",
+  "unknown"
+ ],
+ "19932": [
+  "urantia-19932",
+  "urantia-crossref/",
+  "Urantia crossref",
+  "web",
+  "unknown"
+ ],
+ "19941": [
+  "urantia-19941",
+  "urantia-crossref/",
+  "Urantia crossref",
+  "web",
+  "unknown"
+ ],
+ "19942": [
+  "urantia-19942",
+  "urantia-crossref/",
+  "Urantia crossref",
+  "web",
+  "unknown"
+ ],
+ "19943": [
+  "urantia-19943",
+  "urantia-crossref/",
+  "Urantia crossref",
+  "web",
+  "unknown"
+ ],
+ "19944": [
+  "urantia-19944",
+  "urantia-crossref/",
+  "Urantia crossref",
+  "web",
+  "unknown"
+ ],
+ "19945": [
+  "urantia-19945",
+  "urantia-crossref/",
+  "Urantia crossref",
+  "web",
+  "unknown"
+ ],
+ "19946": [
+  "urantia-19946",
+  "urantia-crossref/",
+  "Urantia crossref",
+  "web",
+  "unknown"
+ ],
+ "39001": [
+  "dht-39001",
+  "?",
+  "DHT listener (kind 39001?)",
+  "L1",
+  "unknown"
+ ]
+}
