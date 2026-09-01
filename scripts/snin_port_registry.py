@@ -83,7 +83,7 @@ MAP = {
     19944: ("urantia-19944", "urantia-crossref/", "Urantia crossref", "web", "unknown"),
     19945: ("urantia-19945", "urantia-crossref/", "Urantia crossref", "web", "unknown"),
     19946: ("urantia-19946", "urantia-crossref/", "Urantia crossref", "web", "unknown"),
-    39001: ("dht-39001", "?", "DHT listener (kind 39001?)", "L1", "unknown"),
+    39001: ("p2p-dash", "p2p-dash/app.py", "P2P Agent Mesh Dashboard", "web", "cert"),
 }
 
 def listen_ports():

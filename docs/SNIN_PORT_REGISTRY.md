@@ -1,6 +1,6 @@
 # SNIN PORT REGISTRY — единый стандарт портов
 
-*Сгенерировано: 2026-09-01 20:29 · Источник: /proc/net/tcp (LISTEN) · Версия стандарта: 1.0*
+*Сгенерировано: 2026-09-01 20:40 · Источник: /proc/net/tcp (LISTEN) · Версия стандарта: 1.0*
 
 ## Правила
 1. **Один порт = один сервис.** Назначение порта — в этой таблице, не в port.txt.
@@ -86,7 +86,7 @@
 | :19944 | urantia-19944 | urantia-crossref/ | Urantia crossref | web | unknown |
 | :19945 | urantia-19945 | urantia-crossref/ | Urantia crossref | web | unknown |
 | :19946 | urantia-19946 | urantia-crossref/ | Urantia crossref | web | unknown |
-| :39001 | dht-39001 | ? | DHT listener (kind 39001?) | L1 | unknown |
+| :39001 | p2p-dash | p2p-dash/app.py | P2P Agent Mesh Dashboard | web | cert |
 
 ## Конфликты port.txt (требуют решения)
 
