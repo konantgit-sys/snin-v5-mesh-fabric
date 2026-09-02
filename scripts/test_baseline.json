@@ -1,0 +1,20 @@
+{
+  "date": "2026-07-25T16:11:00+03:00",
+  "phase": "SNIN V6 Restructuring Complete",
+  "ports": {
+    "9932": "up",
+    "9931": "up",
+    "9920": "up",
+    "9910": "up",
+    "9907": "down",
+    "9946": "up",
+    "9941": "up",
+    "9942": "down",
+    "9943": "down",
+    "9944": "down",
+    "9945": "down",
+    "8198": "up",
+    "9900": "up"
+  },
+  "note": "Pre-existing failures (MeshAPI, NostrBridge 2-5) unrelated to V6 restructuring"
+}
