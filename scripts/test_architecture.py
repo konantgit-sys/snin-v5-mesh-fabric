@@ -40,7 +40,7 @@ PORTS = [
     (9944, "NostrBridge-4"),
     (9945, "NostrBridge-5"),
     (8198, "TIERelay"),
-    (9900, "Supervisor"),
+    (9909, "MeshSupervisor"),
 ]
 
 # Пороги для delta-анализа
@@ -225,7 +225,7 @@ def test_external_gateway():
 def test_supervisor():
     """Supervisor L9 статус."""
     try:
-        r = urllib.request.urlopen("http://localhost:9900/health", timeout=3)
+        r = urllib.request.urlopen("http://localhost:9909/health", timeout=3)
         d = json.loads(r.read())
         alive = d.get("alive", 0)
         total = d.get("total", 0)
