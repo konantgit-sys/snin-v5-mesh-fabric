@@ -1,11 +1,11 @@
 # SNIN PORT REGISTRY — единый стандарт портов
 
-*Сгенерировано: 2026-09-01 20:40 · Источник: /proc/net/tcp (LISTEN) · Версия стандарта: 1.0*
+*Сгенерировано: 2026-09-01 20:40 · Аудит: 2026-09-02 10:15 (все конфликты проверены по /proc/net/tcp + ps) · Версия стандарта: 1.1*
 
 ## Правила
 1. **Один порт = один сервис.** Назначение порта — в этой таблице, не в port.txt.
 2. **Имя сервиса = имя файла = имя процесса = имя в реестре.** Без синонимов.
-3. `status: cert` — сертифицирован; `conflict` — конфликт, решается владельцем; `unknown` — не назначен.
+3. `status: cert` — сертифицирован (проверен, слушается); `conflict` — конфликт, решается владельцем; `unknown` — не назначен.
 4. Изменение порта — только через правку этой таблицы (registry) + аудит.
 
 ## Диапазоны (стандарт)
@@ -22,14 +22,14 @@
 | 19900-19999 | web | Вспомогательные API |
 | 39001 | L1 | DHT |
 
-## Реестр (по факту слушающих портов)
+## Реестр (по факту слушающих портов, аудит 2026-09-02)
 
 | Порт | Сервис | Файл | Назначение | Слой | Статус |
 |------|--------|------|------------|------|--------|
 | :6379 | redis | redis-server | Graph Memory / кэш SR | system | cert |
 | :8080 | system-reserved | — | зарезервирован платформой | system | cert |
 | :8083 | api-gateway | api_gateway.py | REST API Gateway | L3 | cert |
-| :8085 | relay-mesh-site | relay-mesh/ | КОНФЛИКТ: relay-mesh + snin-health-api | web | conflict |
+| :8085 | relay-mesh-site | mesh_status.py | Дашборд mesh-статуса (snin-health-api НЕ запущен) | web | cert |
 | :8086 | relay-dash | relay-dash/ | Дашборд релея | web | cert |
 | :8089 | triplet-test | triplet-test/ | Тестовая тройка | web | cert |
 | :8090 | p2p-dash | p2p-dash/ | P2P Agent Mesh дашборд | web | cert |
@@ -40,21 +40,24 @@
 | :8101 | confluence | confluence/ | Confluence: Урантия·Библия·Коран | web | cert |
 | :8111 | analion-site | analion-site/ | Сайт Analion | web | cert |
 | :8123 | snin-mail | cryter-mail/ | SNIN Mail (uvicorn) | web | cert |
-| :8191 | snin-pay | snin-pay/ | SNIN Payment Gateway v0.1.0 | L4/экономика | conflict |
+| :8191 | snin-pay | api/server.py | SNIN Payment Gateway v0.1.0 (владелец совпадает) | L4/экономика | cert |
 | :8197 | snin-relay | relay_gateway.py | Nostr relay gateway | L0 | cert |
-| :8198 | relay-v2 | relay_server_v2.py | Nostr relay (22 NIP, SQLite WAL) | L0 | conflict |
+| :8198 | relay-v2 | snin_nostr_relay.py | Nostr relay (snin-relay/, РЕАЛЬНЫЙ файл — не relay_server_v2.py) | L0 | cert |
 | :9105 | gossip (внутр.) | smart_router.py | Порт SmartRouter (gossip-подсистема), НЕ отдельный демон | L1 | cert |
 | :9200 | l4-payment | l4_payment_layer.py | L4 Payment layer | L4 | cert |
-| :9767 | mesh-relay-test | mesh-relay-test|peer-relay | КОНФЛИКТ: 2 сервиса | web | conflict |
+| :9767 | mesh-relay-test | relay.py | Тестовая пара релеев (peer-relay НЕ запущен) | web | cert |
 | :9770 | lenin-book | lenin-book/api_v2.py | Ленин — архитектор | web | cert |
 | :9776 | passport-api | passport_api.py | API паспортов | web | cert |
-| :9777 | mesh-hub | mesh-hub|mesh55 | КОНФЛИКТ: 2 сервиса | web | conflict |
+| :9777 | mesh-hub | relay.py | Mesh Hub (mesh55 НЕ запущен) | web | cert |
 | :9780 | lenin-oracle | lenin-oracle/ | Оракул Ленина | web | cert |
 | :9880 | api-lenin | api-lenin/ | API-ключи Ленина | web | cert |
-| :9900 | graphify-api | graphify-snin/rebuild_graph_v2.py | Визуальный граф кода API | L3 | conflict |
-| :9901 | dash-9901 | remora-dash|tie-mesh|upload | КОНФЛИКТ: 4 сервиса | L3 | conflict |
+| :9900 | graphify-api | api.py | Визуальный граф кода API (graphify-snin/) | L3 | cert |
+| :9901 | cobalt-dash | app.py | Cobalt Dashboard — BRING World Manager (авто-старт через su, единственный) | L3 | cert |
 | :9902 | cryter-dash | api_server.py 9902 | Дашборд Cryter | L3 | cert |
-| :9907 | gossip-api | snin-gossip/ | Mesh API (документ) — фактически gossip | L3 | conflict |
+| :9903 | remora-dash | app.py | Remora Dashboard (ПЕРЕЕХАЛ с :9901, порт в коде) | L3 | cert |
+| :9904 | tie-mesh | app.py 9904 | TIE Unified Mesh (ПЕРЕЕХАЛ с :9901) | L3 | cert |
+| :9907 | (свободен) | — | gossip документный — реально у smart_router :9105 | L3 | free |
+| :9909 | mesh-supervisor | mesh_supervisor.py | Supervisor mesh (ПЕРЕЕХАЛ с :9900, стандарт) | L3 | cert |
 | :9910 | route-engine | route_engine.py | Поиск кратчайшего пути, выбор канала | L1 | cert |
 | :9920 | content-router | content_router_v2.py | Дедупликация, семантическая маршрутизация | L1 | cert |
 | :9931 | external-gateway | external_gateway.py | WSS↔TCP мост, Nostr→mesh (kind 39002/39003) | L1/L3 | cert |
@@ -67,7 +70,8 @@
 | :9945 | nostr-bridge-4 | nostr_bridge.py --shard 4 | Публикация шард 4/5 | L1/L3 | cert |
 | :9946 | cross-mesh | cross_mesh_bridge.py | Mesh-to-mesh федерация (kind 30002-30004) | L1 | cert |
 | :9950 | snin-hub | hub_fastapi.py | Единый дашборд + API (/api/spm) | L3 | cert |
-| :9951 | snin-mcp | gateway.py | MCP Gateway (внешние AI-агенты) | L3 | conflict |
+| :9951 | snin-mcp | gateway.py --port 9951 | MCP Gateway (внешние AI-агенты, единственный) | L3 | cert |
+| :9960 | zmq (SR) | smart_router.py | ZeroMQ-порт SmartRouter | L2 | cert |
 | :9961 | zmq-publisher | zmq_transport.py | ZeroMQ Publisher | L2 | cert |
 | :9962 | zmq-pipeline | zmq_transport.py | ZeroMQ Pipeline | L2 | cert |
 | :9963 | zmq-subscriber | zmq_transport.py | ZeroMQ Subscriber | L2 | cert |
@@ -88,26 +92,27 @@
 | :19946 | urantia-19946 | urantia-crossref/ | Urantia crossref | web | unknown |
 | :39001 | p2p-dash | p2p-dash/app.py | P2P Agent Mesh Dashboard | web | cert |
 
-## Конфликты port.txt (требуют решения)
+## Конфликты port.txt — РЕШЕНЫ (аудит 2026-09-02)
 
-| Порт | Сервисы (директории) | Решение |
-|------|----------------------|---------|
-| :8082 | relay-sol, snin-dao | назначить один, второй перенести |
-| :8085 | relay-mesh, snin-health-api | relay-mesh уже на 8085, health → другой |
-| :8100 | test-crossref, urantia-crossref | test удалить/перенести |
-| :8177 | analion-site, simple-api | simple-api перенести |
-| :8198 | relay, relay-ws | relay-ws удалить (дубль) |
-| :9767 | mesh-relay-test, peer-relay | один перенести |
-| :9777 | mesh-hub, mesh55 | mesh55 перенести |
-| :9901 | cobalt-dash, remora-dash, tie-infra, tie-mesh, upload | оставить один, 4 перенести |
-| :9951 | snin-mcp, ws-hub | snin-mcp (документ), ws-hub перенести |
+| Порт | Сервисы (директории) | Решение | Статус |
+|------|----------------------|---------|--------|
+| :8082 | relay-sol, snin-dao | назначить один, второй перенести | открыт |
+| :8085 | relay-mesh, snin-health-api | relay-mesh на 8085 (mesh_status.py), health-api не запущен | ✅ решено |
+| :8100 | test-crossref, urantia-crossref | test удалить/перенести | открыт |
+| :8177 | analion-site, simple-api | simple-api перенести | открыт |
+| :8198 | relay, relay-ws | реально snin_nostr_relay.py (snin-relay), relay-ws нет | ✅ решено |
+| :9767 | mesh-relay-test, peer-relay | mesh-relay-test (peer-relay не запущен) | ✅ решено |
+| :9777 | mesh-hub, mesh55 | mesh-hub (mesh55 не запущен) | ✅ решено |
+| :9901 | cobalt-dash, remora-dash, tie-infra, tie-mesh, upload | cobalt-dash владелец; remora-dash→:9903, tie-mesh→:9904 (СДЕЛАНО); tie-infra, upload не запущены — при запуске дать свои порты | ✅ решено |
+| :9951 | snin-mcp, ws-hub | snin-mcp (gateway.py --port 9951), ws-hub не запущен | ✅ решено |
 
 ## Расхождения документ ↔ реальность
 
 | Сущность | В документах | Реально | Решение |
 |----------|--------------|---------|---------|
 | External Gateway | :5377, :9931, :9951 | :9931 | стандарт: :9931 |
-| Mesh API | :9907 (memory), :9908 WS, :9911 REST, :9912 gRPC | :9933 | стандарт: :9933 |
-| Supervisor | :9900 | graphify на :9900, supervisor мёртв | supervisor → :9909 |
-| snin-pay | :8191 OFF (KB) | :8191 ЖИВ | статус: cert |
-| SmartRouter (конфиг) | router_api.py | smart_router.py | конфиг исправить |
+| Mesh API | :9907 (memory), :9908 WS, :9911 REST, :9912 gRPC | :9933 (порт smart_router) | стандарт: :9933 |
+| Supervisor | :9900 | graphify на :9900, supervisor мёртв | ✅ supervisor → :9909 (mesh_supervisor.py, работает) |
+| snin-pay | :8191 OFF (KB) | :8191 ЖИВ (api/server.py) | статус: cert |
+| SmartRouter (конфиг) | router_api.py | smart_router.py | ✅ конфиг исправлен (mesh_supervisor.py) |
+| MeshAPI/gossip | отдельные демоны | порты smart_router.py (9933/9105/9960/9961) | ✅ реестр обновлён |
