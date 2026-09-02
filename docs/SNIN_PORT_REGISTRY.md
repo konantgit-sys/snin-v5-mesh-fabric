@@ -43,7 +43,7 @@
 | :8191 | snin-pay | snin-pay/ | SNIN Payment Gateway v0.1.0 | L4/экономика | conflict |
 | :8197 | snin-relay | relay_gateway.py | Nostr relay gateway | L0 | cert |
 | :8198 | relay-v2 | relay_server_v2.py | Nostr relay (22 NIP, SQLite WAL) | L0 | conflict |
-| :9105 | gossip-shard | gossip_shard.py | Gossip-шард (группа) | L1 | unknown |
+| :9105 | gossip (внутр.) | smart_router.py | Порт SmartRouter (gossip-подсистема), НЕ отдельный демон | L1 | cert |
 | :9200 | l4-payment | l4_payment_layer.py | L4 Payment layer | L4 | cert |
 | :9767 | mesh-relay-test | mesh-relay-test|peer-relay | КОНФЛИКТ: 2 сервиса | web | conflict |
 | :9770 | lenin-book | lenin-book/api_v2.py | Ленин — архитектор | web | cert |
@@ -59,7 +59,7 @@
 | :9920 | content-router | content_router_v2.py | Дедупликация, семантическая маршрутизация | L1 | cert |
 | :9931 | external-gateway | external_gateway.py | WSS↔TCP мост, Nostr→mesh (kind 39002/39003) | L1/L3 | cert |
 | :9932 | smart-router | smart_router.py | ЕДИНСТВЕННАЯ точка входа, 4 канала | L1 | cert |
-| :9933 | mesh-api | relay_mesh_api.py | Mesh API: channels/redis/dht/stats | L1 | cert |
+| :9933 | mesh-api (внутр.) | smart_router.py | HTTP-API порт SmartRouter (channels/stats), НЕ отдельный демон | L1 | cert |
 | :9941 | nostr-bridge-0 | nostr_bridge.py --shard 0 | Публикация шард 0/5 | L1/L3 | cert |
 | :9942 | nostr-bridge-1 | nostr_bridge.py --shard 1 | Публикация шард 1/5 | L1/L3 | cert |
 | :9943 | nostr-bridge-2 | nostr_bridge.py --shard 2 | Публикация шард 2/5 | L1/L3 | cert |
