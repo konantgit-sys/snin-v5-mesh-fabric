@@ -243,11 +243,12 @@ def main():
     ).fetchone()[0]
     our_zaps = [
         {"ts": r["ts"], "sender": (r["sender_pub"] or "")[:16],
+         "recv": (r["receiver_pub"] or "")[:16],
          "sats": round((r["amount_msat"] or 0) / 1000),
          "post": (r["post_id"] or "")[:16]}
         for r in db.execute(
-            "SELECT ts, sender_pub, amount_msat, post_id FROM zaps_incoming "
-            "ORDER BY ts DESC LIMIT 25")
+            "SELECT ts, sender_pub, receiver_pub, amount_msat, post_id "
+            "FROM zaps_incoming ORDER BY ts DESC LIMIT 25")
     ]
     our_tot = db.execute(
         "SELECT count(*), coalesce(sum(amount_msat),0) FROM zaps_incoming"

@@ -43,12 +43,15 @@ def main() -> None:
     ours = econ.sync_ours(DB, since=since_our)
     # fanout новых квитанций на основные релеи (видны на странице Nostr)
     fan = econ.fanout_zaps(DB) if ours['stored'] > 0 else {"fanned": 0}
+    # авто-благодарность за новые подтверждённые zap-ы на Cryter
+    th = econ.auto_thank(DB) if (ours['stored'] > 0 or fan.get('fanned', 0) > 0) else {"thanked": 0}
     secs = round(time.time() - t0, 1)
     logging.info(
         f"sync: zaps={r['zaps_stored']} reqs={r['reqs_stored']} "
         f"wallets={r['wallets_updated']} ours={ours['stored']} "
         f"(seen {r['zaps_seen']}/{r['reqs_seen']}, since={since}, "
-        f"ours_since={since_our}, fanout={fan.get('fanned', 0)}, {secs}s)")
+        f"ours_since={since_our}, fanout={fan.get('fanned', 0)}, "
+        f"thanks={th.get('thanked', 0)}, {secs}s)")
 
 if __name__ == "__main__":
     try:

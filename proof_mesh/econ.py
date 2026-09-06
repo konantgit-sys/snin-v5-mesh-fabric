@@ -351,6 +351,12 @@ def _ensure_zaps_incoming(db_path: str) -> None:
         cols = [r[1] for r in c.execute("PRAGMA table_info(zaps_incoming)")]
         if "published" not in cols:
             c.execute("ALTER TABLE zaps_incoming ADD COLUMN published INTEGER DEFAULT 0")
+        cols = [r[1] for r in c.execute("PRAGMA table_info(zaps_incoming)")]
+        if "receiver_pub" not in cols:
+            c.execute("ALTER TABLE zaps_incoming ADD COLUMN receiver_pub TEXT DEFAULT ''")
+        cols = [r[1] for r in c.execute("PRAGMA table_info(zaps_incoming)")]
+        if "thanked" not in cols:
+            c.execute("ALTER TABLE zaps_incoming ADD COLUMN thanked INTEGER DEFAULT 0")
 
 
 def fetch_ours(relays: list[str], pubkeys: list[str], since: int,
@@ -358,49 +364,56 @@ def fetch_ours(relays: list[str], pubkeys: list[str], since: int,
     """Квитанции 9735 с #p = наши ключи (кто-то заzпал нас)."""
     import websocket
     out: list[dict] = []
-    req = json.dumps(["REQ", "ours", {"kinds": [9735], "#p": pubkeys,
-                                      "since": since, "limit": 300}])
-    for url in relays:
-        try:
-            ws = websocket.create_connection(url, timeout=timeout)
-        except Exception:
-            continue
-        try:
-            ws.send(req)
-            while True:
-                try:
-                    msg = json.loads(ws.recv())
-                except Exception:
-                    break
-                if msg[0] == "EVENT":
-                    ev = msg[2]
-                    bolt11 = ""
-                    post_id = ""
-                    for t in ev.get("tags", []):
-                        if t and t[0] == "bolt11":
-                            bolt11 = t[1] if len(t) > 1 else ""
-                        elif t and t[0] == "e" and len(t) > 1 and not post_id:
-                            post_id = t[1]
-                    amount = decode_bolt11_msat(bolt11)
-                    if not amount:
-                        continue
-                    out.append({
-                        "sender_pub": ev.get("pubkey", ""),
-                        "amount_msat": amount,
-                        "post_id": post_id,
-                        "event_id": ev.get("id", ""),
-                        "ts": int(ev.get("created_at", 0)),
-                        "relay": url,
-                    })
-                elif msg[0] == "EOSE":
-                    break
-        except Exception:
-            pass
-        finally:
+    # отдельный REQ на КАЖДЫЙ ключ: многие релеи по #p-списку отдают
+    # только часть (nostr.mom терял v2bot-квитанции при списке из 3 ключей)
+    for pk in pubkeys:
+        req = json.dumps(["REQ", "ours", {"kinds": [9735], "#p": [pk],
+                                          "since": since, "limit": 300}])
+        for url in relays:
             try:
-                ws.close()
+                ws = websocket.create_connection(url, timeout=timeout)
+            except Exception:
+                continue
+            try:
+                ws.send(req)
+                while True:
+                    try:
+                        msg = json.loads(ws.recv())
+                    except Exception:
+                        break
+                    if msg[0] == "EVENT":
+                        ev = msg[2]
+                        bolt11 = ""
+                        post_id = ""
+                        receiver = pk
+                        for t in ev.get("tags", []):
+                            if t and t[0] == "bolt11":
+                                bolt11 = t[1] if len(t) > 1 else ""
+                            elif t and t[0] == "e" and len(t) > 1 and not post_id:
+                                post_id = t[1]
+                            elif t and t[0] == "p" and len(t) > 1:
+                                receiver = t[1]
+                        amount = decode_bolt11_msat(bolt11)
+                        if not amount:
+                            continue
+                        out.append({
+                            "sender_pub": ev.get("pubkey", ""),
+                            "receiver_pub": receiver,
+                            "amount_msat": amount,
+                            "post_id": post_id,
+                            "event_id": ev.get("id", ""),
+                            "ts": int(ev.get("created_at", 0)),
+                            "relay": url,
+                        })
+                    elif msg[0] == "EOSE":
+                        break
             except Exception:
                 pass
+            finally:
+                try:
+                    ws.close()
+                except Exception:
+                    pass
     return out
 
 
@@ -423,10 +436,11 @@ def sync_ours(db_path: str, since: int | None = None) -> dict:
                 continue
             c.execute(
                 """INSERT INTO zaps_incoming
-                   (ts, sender_pub, amount_msat, post_id, event_id, relay)
-                   VALUES (?,?,?,?,?,?)""",
-                (p["ts"], p["sender_pub"], p["amount_msat"], p["post_id"],
-                 p["event_id"], p["relay"]))
+                   (ts, sender_pub, receiver_pub, amount_msat, post_id,
+                    event_id, relay)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (p["ts"], p["sender_pub"], p.get("receiver_pub", ""),
+                 p["amount_msat"], p["post_id"], p["event_id"], p["relay"]))
             n += 1
     return {"seen": len(events), "stored": n, "since": since}
 
@@ -514,3 +528,93 @@ def fanout_zaps(db_path: str) -> dict:
                 "UPDATE zaps_incoming SET published=1 WHERE event_id=?",
                 [(e,) for e in ok_ids])
     return {"fanned": len(ok_ids), "ids": ok_ids}
+
+
+# ── авто-благодарность за подтверждённые zap-ы ──────────────────────────────
+
+CRYTER_NSEC_CFG = "/home/agent/data/agents/core/cryter/config/config.yaml"
+THANK_MIN_MSAT = 1000  # < 1 sat не благодарим
+
+
+def _cryter_keys():
+    """(nsec, pubkey_hex) Cryter из его config.yaml."""
+    import yaml
+    cfg = yaml.safe_load(open(CRYTER_NSEC_CFG))
+    nsec = cfg["nostr"]["nsec"]
+    from nostr_sdk import Keys
+    k = Keys.parse(nsec)
+    return nsec, k.public_key().to_hex()
+
+
+def auto_thank(db_path: str) -> dict:
+    """Поблагодарить отправителя за каждый новый подтверждённый zap.
+
+    Срабатывает только для квитанций, которые уже разосланы на основные
+    релеи (published=1) и ещё не отблагодарены (thanked=0), адресованных
+    Cryter (у нас есть его ключ для подписи). Публикуется kind 1 reply
+    на заzпанный пост с p-тегом отправителя — отправитель получает
+    уведомление. Старые квитанции (thanked=1) не трогаем.
+    """
+    import hashlib
+    import threading
+    import websocket
+    import yaml
+    from coincurve import PrivateKey
+    from nostr_sdk import Keys
+
+    with sqlite3.connect(db_path) as c:
+        rows = c.execute(
+            "SELECT event_id, sender_pub, receiver_pub, amount_msat, post_id, ts "
+            "FROM zaps_incoming WHERE published=1 AND thanked=0 "
+            "ORDER BY ts LIMIT 20").fetchall()
+    if not rows:
+        return {"thanked": 0}
+    nsec, cry_pub = _cryter_keys()
+    k = Keys.parse(nsec)
+    privhex = k.secret_key().to_hex()
+
+    thanked_ids = []
+    for eid, sender, receiver, msat, post_id, ts in rows:
+        if not post_id or not sender:
+            continue
+        if receiver and receiver != cry_pub:
+            continue  # zap на v2bot/Remora — у нас нет их ключей для подписи
+        if (msat or 0) < THANK_MIN_MSAT:
+            continue
+        sats = round((msat or 0) / 1000)
+        text = (f"Thanks for the zap! \u26a1 Just received +{sats} sat"
+                f" and confirmed it on-chain. Much appreciated!")
+        tags = [["e", post_id, "", "root"], ["p", sender]]
+        ev = [0, cry_pub, int(time.time()), 1, tags, text]
+        ser = json.dumps(ev, separators=(",", ":"), ensure_ascii=False).encode()
+        ev_id = hashlib.sha256(ser).hexdigest()
+        sig = PrivateKey(bytes.fromhex(privhex)).sign_schnorr(
+            bytes.fromhex(ev_id)).hex()
+        event = {"id": ev_id, "pubkey": cry_pub, "created_at": ev[2],
+                 "kind": 1, "tags": tags, "content": text, "sig": sig}
+        got = 0
+        for url in PUB_RELAYS:
+            try:
+                ws = websocket.create_connection(url, timeout=10)
+                ws.send(json.dumps(["EVENT", event]))
+                ws.settimeout(4)
+                while True:
+                    try:
+                        m = json.loads(ws.recv())
+                    except Exception:
+                        break
+                    if isinstance(m, list) and m[0] == "OK":
+                        if m[1]:
+                            got += 1
+                        break
+                ws.close()
+            except Exception:
+                pass
+        if got > 0:
+            thanked_ids.append((eid, ev_id))
+    if thanked_ids:
+        with sqlite3.connect(db_path) as c:
+            for eid, ev_id in thanked_ids:
+                c.execute("UPDATE zaps_incoming SET thanked=1 WHERE event_id=?",
+                          (eid,))
+    return {"thanked": len(thanked_ids)}
