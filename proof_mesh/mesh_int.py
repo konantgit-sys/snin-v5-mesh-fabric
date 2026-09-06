@@ -297,6 +297,24 @@ def pulse(audit_db: str, nsec: str, interval: int = 300, log=print) -> dict:
             relay_health[port] = "down"
     payload_relay = " ".join(f"{p}={s}" for p, s in sorted(relay_health.items()))
 
+    # ── failures-as-events: переходы up→down / down→up пишутся ОТДЕЛЬНЫМИ
+    #    событиями (relay:down / relay:recover), а не тонут в payload
+    #    relay:health. По KEEP glitchfox (#10673) и ADD just-nik (#10869):
+    #    «минимум один красный» в окне, заявляющем здоровье, ЛИБО явное
+    #    no_failures_observed. Первый запуск фиксирует baseline без событий:
+    #    состояние известно, переходов ещё не было (не фабрикуем красные). ──
+    transition_events = []
+    for port in sorted(relay_health):
+        prev = _sync_state(audit_db, f"relay_state_{port}")
+        cur = relay_health[port]
+        if prev == 0:
+            _save_state(audit_db, f"relay_state_{port}", 1 if cur == "up" else 2)
+        elif (prev == 1 and cur == "down") or (prev == 2 and cur == "up"):
+            action = "relay:down" if cur == "down" else "relay:recover"
+            transition_events.append((action, str(port), "SOCK_PROBE_TRANSITION"))
+            _save_state(audit_db, f"relay_state_{port}", 2 if cur == "down" else 1)
+            log(f"[pulse] ПЕРЕХОД {port}: {action}")
+
     # ── heartbeat: высота + uptime демона ──
     st = db.get_chain_state(audit_db) or {}
     height = st.get("height", 0)
@@ -310,11 +328,12 @@ def pulse(audit_db: str, nsec: str, interval: int = 300, log=print) -> dict:
     payload_hb = f"height={height} uptime={uptime_s}s"
 
     stored = 0
-    for action, payload, ev in (
+    base_events = [
         ("daemon:heartbeat", payload_hb, "SIG_MATCH"),
         ("sensor:cgroup", payload_sensor, "CGROUP"),
         ("relay:health", payload_relay, "SOCK_PROBE"),
-    ):
+    ] + transition_events
+    for action, payload, ev in base_events:
         try:
             chain.append_signed(
                 audit_db, nsec=nsec, agent_id="audit_daemon",
