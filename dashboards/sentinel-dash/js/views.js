@@ -293,6 +293,14 @@ function buildPayTop(top) {
   });
 }
 
+function whoName(p) {
+  if (!p) return "";
+  if (p.startsWith("8ae7965a")) return "Cryter";
+  if (p.startsWith("8d468694")) return "Remora";
+  if (p.startsWith("39c15ed9")) return "v2bot";
+  return p.slice(0, 8) + "…";
+}
+
 /* ── запы НАМ (входящие на наши ключи) ── */
 function buildOurZaps(oz) {
   const el = $("ourZaps");
@@ -315,7 +323,7 @@ function buildOurZaps(oz) {
     row.style.opacity = "0";
     row.style.transition = `opacity 380ms ${ease} ${Math.min(i * 60, 400)}ms`;
     row.innerHTML = `
-      <span class="pay-who">${esc(z.sender)}</span>
+      <span class="pay-who">${esc(z.sender)}<small style="opacity:.55;margin-left:4px">→ ${whoName(z.recv)}</small></span>
       <span class="pay-n">${fmtTs(z.ts)}</span>
       <span class="pay-s" style="color:var(--ok)">+${z.sats} sat</span>
       <span class="pay-bar-wrap"><i style="--w:100%;background:linear-gradient(90deg,var(--ok),transparent)"></i></span>`;
