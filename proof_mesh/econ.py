@@ -348,6 +348,9 @@ def _ensure_zaps_incoming(db_path: str) -> None:
         c.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_zaps_in_ev "
             "ON zaps_incoming(event_id)")
+        cols = [r[1] for r in c.execute("PRAGMA table_info(zaps_incoming)")]
+        if "published" not in cols:
+            c.execute("ALTER TABLE zaps_incoming ADD COLUMN published INTEGER DEFAULT 0")
 
 
 def fetch_ours(relays: list[str], pubkeys: list[str], since: int,
@@ -426,3 +429,88 @@ def sync_ours(db_path: str, since: int | None = None) -> dict:
                  p["event_id"], p["relay"]))
             n += 1
     return {"seen": len(events), "stored": n, "since": since}
+
+
+# Релеи, куда фан-аутим наши zap-квитанции, чтобы они были видны
+# на странице Nostr Cryter в клиентах (primal/damus/oxtr/snort).
+PUB_RELAYS = [
+    "wss://relay.primal.net",
+    "wss://relay.damus.io",
+    "wss://nostr.oxtr.dev",
+    "wss://relay.snort.social",
+]
+
+
+def fanout_zaps(db_path: str) -> dict:
+    """Разослать неопубликованные квитанции zaps_incoming на PUB_RELAYS.
+
+    Квитанции уже существуют на nostr.mom/nos.lol (их опубликовал кошелёк
+    отправителя) — мы лишь ретранслируем их на основные релеи, чтобы zap-ы
+    были видны на странице профиля. Ничего нового не создаём.
+    """
+    import websocket
+    with sqlite3.connect(db_path) as c:
+        ids = [r[0] for r in c.execute(
+            "SELECT event_id FROM zaps_incoming WHERE published=0 "
+            "ORDER BY ts LIMIT 50")]
+    if not ids:
+        return {"fanned": 0, "ids": []}
+    # забрать полные события (nostr.mom/nos.lol держат их)
+    full: dict[str, dict] = {}
+    req = json.dumps(["REQ", "fan", {"ids": ids}])
+    for url in ("wss://nostr.mom", "wss://nos.lol"):
+        try:
+            ws = websocket.create_connection(url, timeout=10)
+        except Exception:
+            continue
+        try:
+            ws.send(req)
+            while True:
+                try:
+                    msg = json.loads(ws.recv())
+                except Exception:
+                    break
+                if msg[0] == "EVENT":
+                    full[msg[2]["id"]] = msg[2]
+                elif msg[0] == "EOSE":
+                    break
+        except Exception:
+            pass
+        finally:
+            try:
+                ws.close()
+            except Exception:
+                pass
+        if full:
+            break
+    ok_ids: list[str] = []
+    for eid in ids:
+        ev = full.get(eid)
+        if not ev:
+            continue
+        got = 0
+        for url in PUB_RELAYS:
+            try:
+                ws = websocket.create_connection(url, timeout=10)
+                ws.send(json.dumps(["EVENT", ev]))
+                ws.settimeout(4)
+                while True:
+                    try:
+                        m = json.loads(ws.recv())
+                    except Exception:
+                        break
+                    if isinstance(m, list) and m[0] == "OK":
+                        if m[1]:
+                            got += 1
+                        break
+                ws.close()
+            except Exception:
+                pass
+        if got > 0:
+            ok_ids.append(eid)
+    if ok_ids:
+        with sqlite3.connect(db_path) as c:
+            c.executemany(
+                "UPDATE zaps_incoming SET published=1 WHERE event_id=?",
+                [(e,) for e in ok_ids])
+    return {"fanned": len(ok_ids), "ids": ok_ids}
