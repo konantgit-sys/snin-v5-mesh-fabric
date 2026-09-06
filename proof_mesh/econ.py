@@ -307,3 +307,120 @@ def aggregate(db_path: str, days: int = 7) -> dict:
 def fmt_msat(msat: int) -> str:
     """msat → sat (1 sat = 1000 msat)."""
     return f"{msat / 1000:,.0f} sat"
+
+
+# ── #p-мониторинг: запы В АДРЕС наших ключей ────────────────────────────────
+
+# Публичные ключи роя (hex). Кому мы хотим видеть входящие zap-ы.
+OUR_PUBKEYS = [
+    "8ae7965af1b61347bb9900b91cfa9487e4da2400bdb063521ad0850706ff5f96",  # Cryter
+]
+
+# Расширенный список для #p-скана: квитанции публикуются на релеи,
+# указанные ОТПРАВИТЕЛЕМ в zap-request, поэтому нужен широкий охват.
+OUR_RELAYS = [
+    "wss://relay.primal.net",
+    "wss://relay.damus.io",
+    "wss://nos.lol",
+    "wss://nostr.oxtr.dev",
+    "wss://nostr.mom",
+    "wss://relay.snort.social",
+    "wss://offchain.pub",
+    "ws://127.0.0.1:8197",
+]
+
+BACKFILL_DAYS = 90  # первый прогон: сканируем 90 дней вглубь
+
+
+def _ensure_zaps_incoming(db_path: str) -> None:
+    with sqlite3.connect(db_path) as c:
+        c.execute("""CREATE TABLE IF NOT EXISTS zaps_incoming (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            ts         INTEGER NOT NULL,
+            sender_pub TEXT NOT NULL DEFAULT '',
+            amount_msat INTEGER NOT NULL DEFAULT 0,
+            post_id    TEXT NOT NULL DEFAULT '',
+            event_id   TEXT NOT NULL DEFAULT '',
+            relay      TEXT NOT NULL DEFAULT ''
+        )""")
+        c.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_zaps_in_ev "
+            "ON zaps_incoming(event_id)")
+
+
+def fetch_ours(relays: list[str], pubkeys: list[str], since: int,
+               timeout: int = 10) -> list[dict]:
+    """Квитанции 9735 с #p = наши ключи (кто-то заzпал нас)."""
+    import websocket
+    out: list[dict] = []
+    req = json.dumps(["REQ", "ours", {"kinds": [9735], "#p": pubkeys,
+                                      "since": since, "limit": 300}])
+    for url in relays:
+        try:
+            ws = websocket.create_connection(url, timeout=timeout)
+        except Exception:
+            continue
+        try:
+            ws.send(req)
+            while True:
+                try:
+                    msg = json.loads(ws.recv())
+                except Exception:
+                    break
+                if msg[0] == "EVENT":
+                    ev = msg[2]
+                    bolt11 = ""
+                    post_id = ""
+                    for t in ev.get("tags", []):
+                        if t and t[0] == "bolt11":
+                            bolt11 = t[1] if len(t) > 1 else ""
+                        elif t and t[0] == "e" and len(t) > 1 and not post_id:
+                            post_id = t[1]
+                    amount = decode_bolt11_msat(bolt11)
+                    if not amount:
+                        continue
+                    out.append({
+                        "sender_pub": ev.get("pubkey", ""),
+                        "amount_msat": amount,
+                        "post_id": post_id,
+                        "event_id": ev.get("id", ""),
+                        "ts": int(ev.get("created_at", 0)),
+                        "relay": url,
+                    })
+                elif msg[0] == "EOSE":
+                    break
+        except Exception:
+            pass
+        finally:
+            try:
+                ws.close()
+            except Exception:
+                pass
+    return out
+
+
+def sync_ours(db_path: str, since: int | None = None) -> dict:
+    """Сканировать 9735 по нашим ключам → zaps_incoming (дедуп event_id)."""
+    _ensure_zaps_incoming(db_path)
+    if since is None:
+        last = sqlite3.connect(db_path).execute(
+            "SELECT MAX(ts) FROM zaps_incoming").fetchone()[0]
+        since = int(last) - 900 if last else \
+            int(time.time()) - BACKFILL_DAYS * 86400
+    events = fetch_ours(OUR_RELAYS, OUR_PUBKEYS, since)
+    n = 0
+    with sqlite3.connect(db_path) as c:
+        for p in events:
+            cur = c.execute(
+                "SELECT 1 FROM zaps_incoming WHERE event_id=?",
+                (p["event_id"],))
+            if cur.fetchone():
+                continue
+            c.execute(
+                """INSERT INTO zaps_incoming
+                   (ts, sender_pub, amount_msat, post_id, event_id, relay)
+                   VALUES (?,?,?,?,?,?)""",
+                (p["ts"], p["sender_pub"], p["amount_msat"], p["post_id"],
+                 p["event_id"], p["relay"]))
+            n += 1
+    return {"seen": len(events), "stored": n, "since": since}

@@ -241,6 +241,21 @@ def main():
     n_certs24 = db.execute(
         "SELECT count(*) FROM cert_state WHERE kind=8010 AND ts > ?", (NOW - 24 * H,)
     ).fetchone()[0]
+    our_zaps = [
+        {"ts": r["ts"], "sender": (r["sender_pub"] or "")[:16],
+         "sats": round((r["amount_msat"] or 0) / 1000),
+         "post": (r["post_id"] or "")[:16]}
+        for r in db.execute(
+            "SELECT ts, sender_pub, amount_msat, post_id FROM zaps_incoming "
+            "ORDER BY ts DESC LIMIT 25")
+    ]
+    our_tot = db.execute(
+        "SELECT count(*), coalesce(sum(amount_msat),0) FROM zaps_incoming"
+    ).fetchone()
+    our_30 = db.execute(
+        "SELECT coalesce(sum(amount_msat),0) FROM zaps_incoming WHERE ts > ?",
+        (NOW - 30 * D,),
+    ).fetchone()[0]
     db.close()
 
     data = {
@@ -270,6 +285,10 @@ def main():
         "zaps_daily": zaps_daily,
         "econ_last_ts": econ_last or 0,
         "invoices_30d": {"count": invoices_30[0], "sats": round((invoices_30[1] or 0) / 1000)},
+        "our_zaps": our_zaps,
+        "our_zaps_total": {"count": our_tot[0] or 0,
+                           "sats_all": round((our_tot[1] or 0) / 1000),
+                           "sats_30d": round(our_30 / 1000)},
         "supervisor": sup_status,
     }
     os.makedirs(os.path.dirname(OUT), exist_ok=True)

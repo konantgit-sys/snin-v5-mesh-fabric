@@ -28,16 +28,25 @@ logging.basicConfig(
 )
 
 def main() -> None:
+    econ._ensure_zaps_incoming(DB)  # таблица our_zaps до чтения
     last = sqlite3.connect(DB).execute(
         "SELECT MAX(ts) FROM payment_events").fetchone()[0]
     since = int(last) - 900 if last else int(time.time()) - 14 * 86400
     t0 = time.time()
     r = econ.sync_econ(DB, since=since)
+    # #p-мониторинг: запы в адрес НАШИХ ключей (Cryter и др.)
+    last_our = sqlite3.connect(DB).execute(
+        "SELECT MAX(ts) FROM zaps_incoming").fetchone()[0]
+    since_our = int(last_our) - 900 if last_our else \
+        int(time.time()) - econ.BACKFILL_DAYS * 86400
+    t1 = time.time()
+    ours = econ.sync_ours(DB, since=since_our)
     secs = round(time.time() - t0, 1)
     logging.info(
         f"sync: zaps={r['zaps_stored']} reqs={r['reqs_stored']} "
-        f"wallets={r['wallets_updated']} "
-        f"(seen {r['zaps_seen']}/{r['reqs_seen']}, since={since}, {secs}s)")
+        f"wallets={r['wallets_updated']} ours={ours['stored']} "
+        f"(seen {r['zaps_seen']}/{r['reqs_seen']}, since={since}, "
+        f"ours_since={since_our}, {secs}s)")
 
 if __name__ == "__main__":
     try:
