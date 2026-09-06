@@ -221,7 +221,11 @@ def verify_from(db_path: str, start_id: int) -> tuple[bool, int, int | None]:
             prev = rows[0]["prev_hash"]
         for r in rows:
             content_hash = _sha256(r["payload"])
-            expect = _sha256(f"{prev}|{content_hash}|{r['ts']}|{r['signature']}")
+            # формула chain.py: unsigned = sha256(prev|content|ts),
+            # block_hash = sha256(unsigned | signature). db.py раньше
+            # сверял по sha256(prev|content|ts|sig) — ложные обрывы.
+            unsigned = _sha256(f"{prev}|{content_hash}|{r['ts']}")
+            expect = _sha256(f"{unsigned}|{r['signature']}")
             if expect != r["block_hash"]:
                 return False, len(rows), r["id"]
             prev = r["block_hash"]
