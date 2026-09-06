@@ -99,7 +99,38 @@ def run_cycle(audit_db: str, nsec: str, relay_db: str = mesh_int.RELAY_DB,
     return {"stored": stored, "height": height, "cert": bool(cert)}
 
 
+def _already_running() -> bool:
+    """Дубль-защита: если другой экземпляр audit_daemon уже запущен — выйти.
+
+    Два демона, пишущих в одну snin_audit.db, разветвляют hash-chain
+    (разные last_hash) — это ломает proof mesh. Защита сканирует /proc
+    по cmdline (без shell-обёрток, чтобы pgrep не ловил сам себя).
+    """
+    me = os.getpid()
+    try:
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit() or int(pid) == me:
+                continue
+            try:
+                with open(f"/proc/{pid}/cmdline", "rb") as f:
+                    argv = f.read().decode(errors="ignore").split("\x00")
+            except Exception:
+                continue
+            # только настоящие python-процессы с audit_daemon.py аргументом;
+            # shell-обёртки (sh -c "...audit_daemon.py...") не считаем
+            if len(argv) > 1 and "audit_daemon.py" in argv[1] \
+                    and os.path.basename(argv[0] or "").startswith("python"):
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def main() -> None:
+    if _already_running():
+        print(f"{time.strftime('%F %T')} audit_daemon уже запущен — выхожу "
+              f"(pid={os.getpid()})", flush=True)
+        sys.exit(0)
     nsec = load_nsec()
     log_path = Path("/home/agent/data/sites/relay-mesh/logs/audit_daemon.log")
     log_path.parent.mkdir(parents=True, exist_ok=True)
