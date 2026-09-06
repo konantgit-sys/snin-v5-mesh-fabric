@@ -81,11 +81,18 @@ function buildDaily(daily) {
   $("dailyChart").appendChild(barChart(daily, 820, 160, { axis: "d" }));
 }
 
-function buildZaps(zaps) {
+function buildZaps(zaps, lastTs) {
   const el = $("zapsChart");
   if (!zaps || !zaps.length) { el.innerHTML = '<div style="color:var(--muted);padding:10px">нет данных</div>'; return; }
   const pts = zaps.map(z => ({ t: z.t, n: z.n, sats: z.sats }));
-  $("zapsHint").textContent = `${fmtN(pts.reduce((s, p) => s + p.n, 0))} zap-ов · ${fmtN(pts.reduce((s, p) => s + p.sats, 0))} sat`;
+  let hint = `${fmtN(pts.reduce((s, p) => s + p.n, 0))} zap-ов · ${fmtN(pts.reduce((s, p) => s + p.sats, 0))} sat`;
+  if (lastTs) {
+    const age = Date.now() / 1000 - lastTs;
+    if (age < 0) age = 0;
+    const alive = age < 3600;
+    hint += ` · <span style="color:${alive ? "var(--ok)" : "var(--warn)"}">последний ${fmtAgo(age)}</span>`;
+  }
+  $("zapsHint").innerHTML = hint;
   el.innerHTML = "";
   el.appendChild(barChart(pts, 820, 160, { axis: "d", mode: "zap", unit: "zap-ов", sub: p => "сумма " + fmtN(p.sats) + " sat" }));
 }
@@ -383,7 +390,7 @@ function applyHist(h) {
   buildGrowth(c.certs);
   buildRate(c.hourly_48h);
   buildDaily(c.daily_30d);
-  buildZaps(h.zaps_daily || []);
+  buildZaps(h.zaps_daily || [], h.econ_last_ts || 0);
   buildTimeline(c);
   if (!liveActive) {
     buildJournal(h.journal);

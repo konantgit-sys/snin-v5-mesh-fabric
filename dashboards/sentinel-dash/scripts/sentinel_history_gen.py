@@ -113,16 +113,14 @@ def main():
         "SELECT ts FROM audit_events WHERE ts > ?", (NOW - 48 * H,)
     ).fetchall()
     hourly = Counter((e["ts"] // H) * H for e in evs_48)
-    hours = sorted(hourly)
-    t0h = hours[0] if hours else NOW - 48 * H
+    t0h = ((NOW - 48 * H) // H) * H
     hourly_series = [{"t": t, "n": hourly.get(t, 0)} for t in range(t0h, t0h + 48 * H, H)]
 
     evs_30 = db.execute(
         "SELECT ts FROM audit_events WHERE ts > ?", (NOW - 30 * D,)
     ).fetchall()
     daily = Counter((e["ts"] // D) * D for e in evs_30)
-    days = sorted(daily)
-    t0d = days[0] if days else NOW - 30 * D
+    t0d = ((NOW - 30 * D) // D) * D
     daily_series = [{"t": t, "n": daily.get(t, 0)} for t in range(t0d, t0d + 30 * D, D)]
 
     # ── Разрывы >3ч за 30д ──
@@ -223,7 +221,7 @@ def main():
     for z in zaps_30:
         zday[(z["ts"] // D) * D][0] += 1
         zday[(z["ts"] // D) * D][1] += z["amount_msat"]
-    z_t0 = min(zday) if zday else NOW - 30 * D
+    z_t0 = ((NOW - 30 * D) // D) * D
     zaps_daily = [
         {"t": t, "n": zday.get(t, [0, 0])[0], "sats": round(zday.get(t, [0, 0])[1] / 1000)}
         for t in range(z_t0, z_t0 + 30 * D, D)
@@ -232,6 +230,9 @@ def main():
         "SELECT count(*), coalesce(sum(amount_msat),0) FROM payment_events WHERE kind=9734 AND ts > ?",
         (NOW - 30 * D,),
     ).fetchone()
+    econ_last = db.execute(
+        "SELECT max(ts) FROM payment_events WHERE kind=9735"
+    ).fetchone()[0]
 
     # ── Сводка ──
     first_row = db.execute("SELECT min(ts) t, count(*) n FROM audit_events").fetchone()
@@ -267,6 +268,7 @@ def main():
         "pay_top": pay_top,
         "relays": relays,
         "zaps_daily": zaps_daily,
+        "econ_last_ts": econ_last or 0,
         "invoices_30d": {"count": invoices_30[0], "sats": round((invoices_30[1] or 0) / 1000)},
         "supervisor": sup_status,
     }
