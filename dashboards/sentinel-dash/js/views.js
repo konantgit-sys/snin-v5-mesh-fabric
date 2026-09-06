@@ -293,6 +293,37 @@ function buildPayTop(top) {
   });
 }
 
+/* ── запы НАМ (входящие на наши ключи) ── */
+function buildOurZaps(oz) {
+  const el = $("ourZaps");
+  const hint = $("ourZapsHint");
+  const total = oz?.total || { count: 0, sats_all: 0, sats_30d: 0 };
+  const list = oz?.list || [];
+  hint.textContent = total.count
+    ? `${total.count} zap · ${fmtSats(total.sats_all * 1000)} всего · ${fmtSats(total.sats_30d * 1000)} за 30д`
+    : "входящие · пока 0";
+  if (!total.count) {
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:10px;color:var(--muted);padding:6px 0">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z"/></svg>
+      <span>Пока 0 — приёмник настроен (brashfoster340@walletofsatoshi.com). Первый zap появится здесь.</span></div>`;
+    return;
+  }
+  el.innerHTML = "";
+  list.forEach((z, i) => {
+    const row = document.createElement("div");
+    row.className = "pay-row";
+    row.style.opacity = "0";
+    row.style.transition = `opacity 380ms ${ease} ${Math.min(i * 60, 400)}ms`;
+    row.innerHTML = `
+      <span class="pay-who">${esc(z.sender)}</span>
+      <span class="pay-n">${fmtTs(z.ts)}</span>
+      <span class="pay-s" style="color:var(--ok)">+${z.sats} sat</span>
+      <span class="pay-bar-wrap"><i style="--w:100%;background:linear-gradient(90deg,var(--ok),transparent)"></i></span>`;
+    el.appendChild(row);
+    requestAnimationFrame(() => { row.style.opacity = "1"; });
+  });
+}
+
 /* ── supervisor ── */
 function buildSupervisor(sup) {
   const el = $("supervisor");
@@ -400,6 +431,7 @@ function applyHist(h) {
   buildAgents(h.agents);
   buildRelays(h.relays || []);
   buildPayTop(h.pay_top || []);
+  buildOurZaps({ list: h.our_zaps || [], total: h.our_zaps_total });
   buildGaps(c.gaps_30d);
   buildSupervisor(h.supervisor);
 }
