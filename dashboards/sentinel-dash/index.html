@@ -3,245 +3,233 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNIN Sentinel — Proof Mesh</title>
+<title>SNIN Sentinel — Proof Mesh Chain</title>
+<meta name="theme-color" content="#05070e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%2305070e'/%3E%3Cpath d='M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-4z' fill='none' stroke='%235eead4' stroke-width='1.6'/%3E%3Cpath d='m8.5 12 2.4 2.4L15.8 9.5' fill='none' stroke='%2334d399' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/index.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/index.min.css">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0b0e14;
-    --bg-card: rgba(255 255 255 / 0.035);
-    --bg-card-border: rgba(255 255 255 / 0.07);
-    --text: #e7ecf1;
-    --text-muted: #7d8794;
-    --accent: #5eead4;
-    --accent-dim: rgba(94 234 212 / 0.12);
-    --warn: #fbbf24;
-    --radius: 16px;
-    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: "Inter", system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.55;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-  .orb {
-    position: fixed; border-radius: 50%; filter: blur(90px); opacity: 0.35;
-    pointer-events: none; z-index: 0;
-  }
-  .orb--1 { width: 520px; height: 520px; top: -160px; right: -120px;
-    background: radial-gradient(circle, #0f766e 0%, transparent 70%); }
-  .orb--2 { width: 420px; height: 420px; bottom: -140px; left: -100px;
-    background: radial-gradient(circle, #155e75 0%, transparent 70%); }
-  .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
-  header { padding: 64px 0 32px; }
-  .tag {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
-    color: var(--accent); font-weight: 600; margin-bottom: 16px;
-  }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
-    box-shadow: 0 0 12px var(--accent); }
-  h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; }
-  h1 em { font-style: normal; color: var(--accent); }
-  .sub { color: var(--text-muted); margin-top: 12px; max-width: 560px; font-size: 1.02rem; }
-  .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; padding: 24px 0 80px; }
-  .card {
-    grid-column: span 4;
-    background: var(--bg-card);
-    border: 1px solid var(--bg-card-border);
-    border-radius: var(--radius);
-    padding: 26px 26px 24px;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    transition: transform 240ms var(--ease-out), background 240ms var(--ease-out), border-color 240ms var(--ease-out);
-  }
-  .card:hover { background: rgba(255 255 255 / 0.06); border-color: rgba(94 234 212 / 0.25); transform: translateY(-3px); }
-  .card:active { transform: scale(0.97); }
-  .card--wide { grid-column: span 6; }
-  .card--full { grid-column: span 12; }
-  .card-label { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 8px; }
-  .card-label svg { width: 16px; height: 16px; color: var(--accent); }
-  .big { font-size: clamp(2.4rem, 5vw, 3.4rem); font-weight: 700; letter-spacing: -0.03em; margin-top: 14px; font-variant-numeric: tabular-nums; }
-  .mono { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; color: var(--text-muted); word-break: break-all; margin-top: 10px; }
-  .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; font-size: 0.9rem; }
-  .stat-row .k { color: var(--text-muted); }
-  .stat-row .v { font-weight: 600; font-variant-numeric: tabular-nums; }
-  .bars { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
-  .bar-row { display: grid; grid-template-columns: 110px 1fr 48px; align-items: center; gap: 12px; font-size: 0.82rem; }
-  .bar-row .name { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bar-row .val { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
-  .bar { height: 8px; border-radius: 99px; background: rgba(255 255 255 / 0.06); overflow: hidden; }
-  .bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #0d9488, var(--accent));
-    width: 0; transition: width 700ms var(--ease-out); }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px;
-    background: var(--accent-dim); color: var(--accent); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; }
-  footer { padding: 28px 0 48px; color: var(--text-muted); font-size: 0.82rem; border-top: 1px solid var(--bg-card-border); }
-  .reveal { opacity: 0; transform: translateY(22px); transition: opacity 520ms var(--ease-out), transform 520ms var(--ease-out); }
-  .reveal.visible { opacity: 1; transform: translateY(0); }
-  @media (max-width: 860px) {
-    .card, .card--wide { grid-column: span 12; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation: none !important; transition: none !important; }
-    .reveal { opacity: 1; transform: none; }
-  }
-</style>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<canvas id="particles"></canvas>
+<div class="bg-grid"></div>
 <div class="orb orb--1"></div>
 <div class="orb orb--2"></div>
+<div class="orb orb--3"></div>
 
 <div class="container">
   <header>
-    <div class="tag"><span class="dot"></span> SNIN Proof Mesh — внешний наблюдатель</div>
-    <h1>Sentinel <em>dash</em></h1>
-    <p class="sub">Публично проверяемая hash-chain доказательств: корень цепочки публикуется в Nostr (kind 30000 + NIP-80 8010), экономика роя и health агентов — из подписанного журнала.</p>
+    <nav class="nav">
+      <div class="logo"><span class="logo-mark">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 3.8 8.4 9 9 5.2-.6 9-4 9-9V7l-9-5z"/><path d="m9 12 2 2 4-4"/></svg>
+      </span>SNIN Sentinel</div>
+      <div class="nav-right">
+        <button class="btn" id="btnRefresh" title="Обновить">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
+          <span id="refreshTxt">30с</span>
+        </button>
+        <button class="btn" id="btnExport" title="Скачать history.json">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          JSON
+        </button>
+        <span class="live" id="livePill"><span class="pulse"></span><span id="liveText">проверка…</span></span>
+      </div>
+    </nav>
+
+    <div class="tabbar" id="tabBar" role="tablist">
+      <button class="tab on" data-tab="overview" role="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg>Обзор</button>
+      <button class="tab" data-tab="chain" role="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v6H4zM4 14h16v6H4z"/><path d="M12 4v6M12 14v6"/></svg>Цепочка</button>
+      <button class="tab" data-tab="agents" role="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>Рой</button>
+      <button class="tab" data-tab="economy" role="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Экономика</button>
+      <button class="tab" data-tab="journal" role="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h7"/></svg>Журнал</button>
+    </div>
   </header>
 
-  <div class="grid">
-    <div class="card reveal">
-      <div class="card-label">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
-        Высота цепочки
+  <!-- ══ ВКЛАДКА: ОБЗОР ══ -->
+  <section class="tabpage on" id="tab-overview">
+    <div class="hero">
+      <div>
+        <div class="tag"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg> Proof Mesh — внешний наблюдатель</div>
+        <h1>Hash-chain доказательств <em>в реальном времени</em></h1>
+        <p class="sub">Каждое событие роя запечатывается в звено цепочки (<span class="mono">prev_hash → block_hash</span>), корень публикуется в Nostr как kind 30000, сертификаты честности — kind 8010 (NIP-80). Клик по звену — детали блока.</p>
       </div>
-      <div class="big" id="height">—</div>
-      <div class="stat-row"><span class="k">Событий в журнале</span><span class="v" id="events">—</span></div>
+      <div class="chain-viz reveal">
+        <div class="viz-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v6H4zM4 14h16v6H4z"/><path d="M8 7h1M8 17h1M12 4v6M12 14v6"/></svg>последние звенья · клик для деталей</div>
+        <div class="viz-scroll" id="chainViz"><div style="color:var(--muted);font-size:.72rem">загрузка…</div></div>
+      </div>
     </div>
 
-    <div class="card reveal">
-      <div class="card-label">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Последний корень
+    <div class="kpi-grid">
+      <div class="card card-link reveal" data-goto="chain" title="Аналитика цепочки">
+        <div class="card-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>Высота цепочки</div>
+        <div class="big"><span id="kpiHeight">0</span></div>
+        <div class="kpi-sub">+<b id="kpiGrow">0</b> за 24ч · событий <b id="kpiEvents">0</b></div>
+        <div class="kpi-spark" id="sparkHeight"></div>
+        <span class="card-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span>
       </div>
-      <div class="mono" id="root" style="margin-top:18px; font-size:0.86rem;">—</div>
-      <div class="stat-row"><span class="k">Подпись</span><span class="v"><span class="pill">BIP340 / nsec</span></span></div>
+      <div class="card card-link reveal" data-goto="chain" title="Непрерывность на вкладке Цепочка">
+        <div class="card-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>Непрерывность</div>
+        <div class="big"><span id="kpiUptime">—</span></div>
+        <div class="kpi-sub">без разрывов · в работе <b id="kpiDays">—</b></div>
+        <span class="card-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span>
+      </div>
+      <div class="card card-link reveal" data-goto="chain" title="Темп на вкладке Цепочка">
+        <div class="card-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>Темп записи</div>
+        <div class="big"><span id="kpiRate">0</span> <small>соб/час</small></div>
+        <div class="kpi-sub">сегодня <b id="kpiToday">—</b> · вчера <b id="kpiYesterday">—</b> · <b id="kpiDelta" style="color:var(--muted)"></b></div>
+        <div class="kpi-spark" id="sparkRate"></div>
+        <span class="card-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span>
+      </div>
+      <div class="card card-link reveal" data-goto="journal" title="Живой журнал событий">
+        <div class="card-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Сертификат честности</div>
+        <div class="big" id="kpiCert" style="font-size:clamp(1.05rem,2.1vw,1.45rem)">—</div>
+        <div class="kpi-sub">kind 8010 · NIP-80 · каждые <b id="kpiCertInt">—</b> мин · <b id="kpiCertTime">—</b></div>
+        <span class="card-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span>
+      </div>
     </div>
 
-    <div class="card reveal">
-      <div class="card-label">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-4z"/><path d="m9 12 2 2 4-4"/></svg>
-        Сертификат честности
+    <div class="section">
+      <div class="card reveal" style="padding:18px 18px 8px">
+        <div class="sec-head">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span>
+          <h2>Рост цепочки</h2>
+          <span class="seg" id="periodSeg">
+            <button data-p="d1">24ч</button><button data-p="d7" class="on">7д</button><button data-p="d30">30д</button>
+          </span>
+          <span class="hint" id="growHint">—</span>
+        </div>
+        <div class="chart-wrap" id="growthChart"></div>
+        <div class="legend" id="growRange"></div>
       </div>
-      <div class="stat-row" style="margin-top:18px"><span class="k">NIP-80 / kind 8010</span><span class="v" id="cert_status">—</span></div>
-      <div class="stat-row"><span class="k">Высота</span><span class="v" id="cert_height">—</span></div>
-      <div class="mono" id="cert_root">—</div>
     </div>
+  </section>
 
-    <div class="card card--wide reveal">
-      <div class="card-label">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>
-        Экономика роя
+  <!-- ══ ВКЛАДКА: ЦЕПОЧКА ══ -->
+  <section class="tabpage" id="tab-chain">
+    <div class="grid2">
+      <div class="card reveal" style="padding:18px 18px 8px">
+        <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 2v4M17 2v4M3 10h18"/></svg></span>
+          <h2>Темп — 48 часов</h2><span class="hint" id="rateHint">—</span></div>
+        <div class="chart-wrap" id="rateChart"></div>
       </div>
-      <div class="stat-row"><span class="k">LN-кошельки в реестре</span><span class="v" id="wallets">—</span></div>
-      <div class="stat-row"><span class="k">Zap-и (kind 9735)</span><span class="v" id="zaps">—</span></div>
-      <div class="stat-row"><span class="k">Счета (kind 9734)</span><span class="v" id="invoices">—</span></div>
-    </div>
-
-    <div class="card card--wide reveal">
-      <div class="card-label">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-        Health агентов
+      <div class="card reveal" style="padding:18px 18px 8px">
+        <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M7 2v4M17 2v4M3 10h18"/></svg></span>
+          <h2>Активность — 30 дней</h2><span class="hint" id="dailyHint">—</span></div>
+        <div class="chart-wrap" id="dailyChart"></div>
       </div>
-      <div class="bars" id="bars"></div>
     </div>
-
-    <div class="card card--full reveal">
-      <div class="card-label">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h7"/></svg>
-        Журнал аудита — последние события
+    <div class="grid2">
+      <div class="card reveal" style="padding:18px 18px 12px">
+        <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="7"/></svg></span>
+          <h2>Непрерывность — 30 дней</h2><span class="hint" id="tlHint">—</span></div>
+        <div class="tl-wrap">
+          <div class="tl-track" id="tlTrack"><div class="tl-bg"></div><div class="tl-now" id="tlNow" style="display:none"></div></div>
+          <div class="tl-scale" id="tlScale"></div>
+        </div>
+        <div class="legend" id="tlLegend"></div>
       </div>
-      <div class="mono" id="log" style="margin-top:14px; max-height:200px; overflow-y:auto;"></div>
+      <div class="card reveal" style="padding:18px 18px 12px">
+        <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-4z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <h2>Сертификаты</h2><span class="hint">kind 8010 · NIP-80</span></div>
+        <div class="cert-list" id="certs"><div style="color:var(--muted)">загрузка…</div></div>
+      </div>
     </div>
-  </div>
+    <div class="card reveal" style="padding:18px 18px 12px">
+      <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg></span>
+        <h2>История разрывов — 30 дней</h2><span class="hint">простои &gt;3 часов</span></div>
+      <div id="gapList"></div>
+    </div>
+  </section>
 
-  <footer>SNIN Proof Mesh · корень публикуется как kind 30000, сертификаты — kind 8010 (NIP-80) · <span id="year"></span></footer>
+  <!-- ══ ВКЛАДКА: РОЙ ══ -->
+  <section class="tabpage" id="tab-agents">
+    <div class="grid2">
+      <div class="card reveal" style="padding:18px 18px 12px">
+        <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></span>
+          <h2>Агенты в цепочке</h2><span class="hint" id="agentsHint">—</span></div>
+        <div id="agentCards"><div style="color:var(--muted)">загрузка…</div></div>
+      </div>
+      <div class="card reveal" style="padding:18px 18px 12px">
+        <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></span>
+          <h2>Здоровье релеев</h2><span class="hint" id="relaysHint">—</span></div>
+        <div class="relay-grid" id="relayGrid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ВКЛАДКА: ЭКОНОМИКА ══ -->
+  <section class="tabpage" id="tab-economy">
+    <div class="grid2">
+      <div class="card reveal" style="padding:18px 18px 12px">
+        <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+          <h2>LN-реестр роя</h2><span class="hint">за 30 дней</span></div>
+        <div id="economy"><div style="color:var(--muted)">загрузка…</div></div>
+      </div>
+      <div class="card reveal" style="padding:18px 18px 8px">
+        <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span>
+          <h2>Zap-ы по дням</h2><span class="hint" id="zapsHint">—</span></div>
+        <div class="chart-wrap" id="zapsChart"></div>
+        <div class="legend"><span><i style="background:var(--warn)"></i>kind 9735 · суммы в сатоши</span></div>
+      </div>
+    </div>
+    <div class="card reveal" style="padding:18px 18px 12px">
+      <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H4M12 4v16"/></svg></span>
+        <h2>Топ получателей zap-ов — 30 дней</h2><span class="hint">по сумме</span></div>
+      <div id="payTop"><div style="color:var(--muted)">загрузка…</div></div>
+    </div>
+  </section>
+
+  <!-- ══ ВКЛАДКА: ЖУРНАЛ ══ -->
+  <section class="tabpage" id="tab-journal">
+    <div class="grid2">
+      <div class="card reveal" style="padding:18px 18px 12px">
+        <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h7"/></svg></span>
+          <h2>Журнал аудита</h2>
+          <button class="live-pause" id="btnLivePause" title="Пауза / продолжить ленту" aria-label="Пауза ленты">
+            <svg class="ipause" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+            <svg class="iplay" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>
+          </button>
+          <span class="hint"><span class="live-dot"></span>live · <b id="liveCnt">—</b> · <b id="liveAge">—</b></span></div>
+        <div class="log-list" id="journal" style="max-height:420px"><div style="color:var(--muted)">загрузка…</div></div>
+        <div class="legend" id="journalChips"></div>
+      </div>
+      <div>
+        <div class="card reveal" style="padding:18px 18px 12px">
+          <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg></span>
+            <h2>Supervisor</h2><span class="hint">:9909 · авторестарт</span></div>
+          <div id="supervisor"><div style="color:var(--muted)">загрузка…</div></div>
+        </div>
+        <div class="card reveal" style="padding:18px 18px 12px;margin-top:14px">
+          <div class="sec-head"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V7l-9-5z"/><path d="m9 12 2 2 4-4"/></svg></span>
+            <h2>Цепочка</h2><span class="hint">цепь событий</span></div>
+          <div id="superChain"><div style="color:var(--muted)">загрузка…</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>SNIN Proof Mesh · корень kind 30000 · сертификаты kind 8010 (NIP-80)</span>
+    <span class="mono" id="lastRoot">—</span>
+    <span style="margin-left:auto">обновлено <b id="genTime">—</b></span>
+  </footer>
 </div>
 
-<script>
-  const ease = "cubic-bezier(0.23,1,0.32,1)";
-  const $ = (id) => document.getElementById(id);
+<!-- модалка деталей блока -->
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-title mono" id="modalTitle">блок</div>
+      <button class="modal-x" id="modalClose" aria-label="Закрыть">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body mono" id="modalBody"></div>
+  </div>
+</div>
 
-  const fmtSats = (msat) => {
-    const s = msat / 1000;
-    return s >= 1e6 ? (s/1e6).toFixed(2) + "M sats" : s >= 1e3 ? (s/1e3).toFixed(1) + "k sats" : Math.round(s) + " sats";
-  };
-  const fmtTs = (ts) => new Date(ts * 1000).toLocaleString("ru-RU");
-
-  async function load() {
-    let data;
-    try {
-      const r = await fetch("snapshot.json", { cache: "no-store" });
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      data = await r.json();
-    } catch (e) {
-      $("height").textContent = "нет данных";
-      $("root").textContent = "snapshot.json недоступен (" + e.message + ")";
-      return;
-    }
-    $("height").textContent = (data.chain.height ?? 0).toLocaleString("ru-RU");
-    $("events").textContent = (data.chain.events_total ?? 0).toLocaleString("ru-RU");
-    $("root").textContent = data.chain.last_root || "—";
-
-    const cert = data.last_cert;
-    if (cert) {
-      $("cert_status").innerHTML = '<span class="pill">verified · ' + fmtTs(cert.ts) + '</span>';
-      $("cert_height").textContent = (cert.height ?? 0).toLocaleString("ru-RU");
-      $("cert_root").textContent = cert.root || "—";
-    } else {
-      $("cert_status").textContent = "нет сертификата";
-    }
-
-    const econ = data.economy || {};
-    $("wallets").textContent = (econ.wallets ?? 0).toLocaleString("ru-RU");
-    const zap = (econ.payments || []).find(p => p.kind === 9735);
-    const inv = (econ.payments || []).find(p => p.kind === 9734);
-    $("zaps").textContent = zap ? (zap.count + " · " + fmtSats(zap.total_msat)) : "0";
-    $("invoices").textContent = inv ? (inv.count + " · " + fmtSats(inv.total_msat)) : "0";
-
-    const agents = data.agents || [];
-    const max = Math.max(1, ...agents.map(a => a.events));
-    const bars = $("bars");
-    bars.innerHTML = "";
-    agents.forEach((a, i) => {
-      const row = document.createElement("div");
-      row.className = "bar-row";
-      row.style.opacity = "0";
-      row.style.transform = "translateY(8px)";
-      row.style.transition = "opacity 320ms " + ease + ", transform 320ms " + ease;
-      row.innerHTML = '<span class="name">' + a.agent_id + '</span>' +
-        '<span class="bar"><i></i></span><span class="val">' + a.events + '</span>';
-      bars.appendChild(row);
-      requestAnimationFrame(() => {
-        row.style.opacity = "1";
-        row.style.transform = "translateY(0)";
-        row.querySelector("i").style.width = Math.max(3, (a.events / max) * 100) + "%";
-      });
-    });
-
-    const logEl = $("log");
-    logEl.textContent = "generated_at: " + fmtTs(data.generated_at) +
-      " · last_root: " + (data.chain.last_root || "").slice(0, 24) + "…";
-  }
-
-  // reveal on scroll (stagger 60ms)
-  const obs = new IntersectionObserver((entries) => {
-    entries.forEach((e, i) => {
-      if (e.isIntersecting) {
-        setTimeout(() => e.target.classList.add("visible"), i * 60);
-        obs.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.12 });
-  document.querySelectorAll(".reveal").forEach(el => obs.observe(el));
-
-  document.getElementById("year").textContent = new Date().getFullYear();
-  load();
-  setInterval(load, 60000);
-</script>
+<script src="js/charts.js"></script>
+<script src="js/views.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
