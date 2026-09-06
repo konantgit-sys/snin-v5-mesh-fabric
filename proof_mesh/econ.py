@@ -314,6 +314,8 @@ def fmt_msat(msat: int) -> str:
 # Публичные ключи роя (hex). Кому мы хотим видеть входящие zap-ы.
 OUR_PUBKEYS = [
     "8ae7965af1b61347bb9900b91cfa9487e4da2400bdb063521ad0850706ff5f96",  # Cryter
+    "8d468694fe3b294afa71271ed409fbfe061caedebe307992a1308696ef7fa9f4",  # Remora
+    "39c15ed9502a781fa15abc132d39044c1df2a2262bdf86c7ac1d1f9d52baf2f4",  # v2bot-агент
 ]
 
 # Расширенный список для #p-скана: квитанции публикуются на релеи,
