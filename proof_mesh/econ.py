@@ -316,6 +316,8 @@ OUR_PUBKEYS = [
     "8ae7965af1b61347bb9900b91cfa9487e4da2400bdb063521ad0850706ff5f96",  # Cryter
     "8d468694fe3b294afa71271ed409fbfe061caedebe307992a1308696ef7fa9f4",  # Remora
     "39c15ed9502a781fa15abc132d39044c1df2a2262bdf86c7ac1d1f9d52baf2f4",  # v2bot-агент
+    "b659b2d0b13da2e00c104b38fe936fa27ec3cee9a59378075c21ee2045616377",  # botperevod
+    "2bb1a9f5bdbd7bab31a7e7069d5f406ee3edfc338c4e1e6b395d57bce95267e7",  # Urantia Daily
 ]
 
 # Расширенный список для #p-скана: квитанции публикуются на релеи,
