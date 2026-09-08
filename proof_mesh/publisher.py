@@ -31,6 +31,12 @@ sys.path.insert(0, "/home/agent/data/agents/core/cryter")
 from proof_mesh import chain, db  # noqa: E402
 
 CRYTER_PUB = "8ae7965af1b61347bb9900b91cfa9487e4da2400bdb063521ad0850706ff5f96"
+# Наши кошельки (только они показываются в экономике дашборда):
+OUR_PUBKEYS = [
+    "8ae7965af1b61347bb9900b91cfa9487e4da2400bdb063521ad0850706ff5f96",  # Cryter
+    "8d468694fe3b294afa71271ed409fbfe061caedebe307992a1308696ef7fa9f4",  # Remora
+    "39c15ed9502a781fa15abc132d39044c1df2a2262bdf86c7ac1d1f9d52baf2f4",  # v2bot
+]
 CERT_KIND = 8010
 ROOT_KIND = 30000
 D_TAG = "spm-chain-root"
@@ -182,11 +188,19 @@ def build_snapshot(audit_db: str, out_path: str) -> dict:
         agents = c.execute(
             "SELECT agent_id, COUNT(*) FROM audit_events GROUP BY agent_id "
             "ORDER BY 2 DESC LIMIT 8").fetchall()
-        payments = c.execute(
-            "SELECT kind, COUNT(*), SUM(amount_msat) FROM payment_events "
-            "GROUP BY kind").fetchall()
-        wallets = c.execute(
-            "SELECT COUNT(*) FROM wallet_profiles").fetchone()[0]
+        # Экономика — ТОЛЬКО наши кошельки (входящие zap-ы на наши pubkeys).
+        # Глобальный скан сети (payment_events/wallet_profiles целиком) на
+        # дашборд не выводится — там чужие кошельки и чужие трансферы.
+        ph = ",".join("?" * len(OUR_PUBKEYS))
+        our_wallets = c.execute(
+            f"SELECT COUNT(DISTINCT receiver_pub) FROM zaps_incoming "
+            f"WHERE receiver_pub IN ({ph})", OUR_PUBKEYS).fetchone()[0]
+        our_senders = c.execute(
+            f"SELECT COUNT(DISTINCT sender_pub) FROM zaps_incoming "
+            f"WHERE receiver_pub IN ({ph})", OUR_PUBKEYS).fetchone()[0]
+        zap_our = c.execute(
+            f"SELECT COUNT(*), COALESCE(SUM(amount_msat),0) FROM zaps_incoming "
+            f"WHERE receiver_pub IN ({ph})", OUR_PUBKEYS).fetchone()
         certs = c.execute(
             "SELECT root, height, ts FROM cert_state ORDER BY id DESC LIMIT 1"
         ).fetchone() if db._conn(audit_db).execute(
@@ -201,9 +215,10 @@ def build_snapshot(audit_db: str, out_path: str) -> dict:
             "events_total": events,
         },
         "economy": {
-            "wallets": wallets,
-            "payments": [{"kind": k, "count": n, "total_msat": s or 0}
-                         for k, n, s in payments],
+            "wallets": our_wallets,
+            "senders": our_senders,
+            "payments": [{"kind": 9735, "count": zap_our[0] or 0,
+                          "total_msat": zap_our[1] or 0}],
         },
         "agents": [{"agent_id": a, "events": n} for a, n in agents],
         "last_cert": {"root": certs[0], "height": certs[1], "ts": certs[2]}

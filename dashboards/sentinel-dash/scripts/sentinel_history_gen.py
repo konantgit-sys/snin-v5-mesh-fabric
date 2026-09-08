@@ -199,22 +199,23 @@ def main():
         for c in reversed(last_certs)
     ]
 
-    # ── Экономика: топ получателей (по сумме, kind 9735) ──
+    # ── Экономика: наши входящие zap-ы (zaps_incoming уже фильтрован по
+    #    OUR_PUBKEYS при сборе; глобальный скан payment_events не показываем) ──
     top_pay = db.execute(
-        """SELECT receiver_pub, ln_address, sum(amount_msat) s, count(*) n
-           FROM payment_events WHERE ts > ? GROUP BY receiver_pub, ln_address
+        """SELECT sender_pub, count(*) n, sum(amount_msat) s
+           FROM zaps_incoming WHERE ts > ? GROUP BY sender_pub
            ORDER BY s DESC LIMIT 6""",
         (NOW - 30 * D,),
     ).fetchall()
     pay_top = [
-        {"who": (r["ln_address"] or r["receiver_pub"][:14]), "sats": round(r["s"] / 1000),
+        {"who": (r["sender_pub"] or "")[:14], "sats": round(r["s"] / 1000),
          "n": r["n"]}
         for r in top_pay
     ]
 
-    # ── Zap-ы по дням (30д) + счета ──
+    # ── Zap-ы по дням (30д) + счета — только наши ──
     zaps_30 = db.execute(
-        "SELECT ts, amount_msat FROM payment_events WHERE kind=9735 AND ts > ?",
+        "SELECT ts, amount_msat FROM zaps_incoming WHERE ts > ?",
         (NOW - 30 * D,),
     ).fetchall()
     zday = defaultdict(lambda: [0, 0])  # ts -> [count, msat]
@@ -226,12 +227,9 @@ def main():
         {"t": t, "n": zday.get(t, [0, 0])[0], "sats": round(zday.get(t, [0, 0])[1] / 1000)}
         for t in range(z_t0, z_t0 + 30 * D, D)
     ]
-    invoices_30 = db.execute(
-        "SELECT count(*), coalesce(sum(amount_msat),0) FROM payment_events WHERE kind=9734 AND ts > ?",
-        (NOW - 30 * D,),
-    ).fetchone()
+    invoices_30 = (0, 0)  # счета (kind 9734) на наши ключи не ведутся — 0
     econ_last = db.execute(
-        "SELECT max(ts) FROM payment_events WHERE kind=9735"
+        "SELECT max(ts) FROM zaps_incoming"
     ).fetchone()[0]
 
     # ── Сводка ──
