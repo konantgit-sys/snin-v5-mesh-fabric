@@ -21,6 +21,7 @@ import json
 import os
 import sqlite3
 import subprocess
+import sys
 import time
 import urllib.request
 
@@ -106,6 +107,33 @@ def chain_freshness() -> dict:
         return {"event_age_min": None, "cert_age_min": None, "ok": False, "error": str(e)}
 
 
+def external_publish_check() -> dict:
+    """Внешняя проверка: публичный сертификат (kind 8010) виден на релеях и сходится с цепью.
+
+    Возвращает {"ok": True|False|None}. None — проверку выполнить не удалось
+    (нет сети/библиотек): это не тревога о цепочке, а недоступность проверки.
+
+    Критерий внутри — сверка root сертификата с block_hash цепи на ЕГО высоте
+    плюс непрерывность до текущего хвоста (см. proof_mesh.publisher).
+    Раньше сравнивался живой хвост, поэтому проверка не могла сойтись никогда.
+    """
+    try:
+        if MESH_DIR not in sys.path:
+            sys.path.insert(0, MESH_DIR)
+        from proof_mesh import publisher
+        r = publisher.verify_cert_on_relays(AUDIT_DB)
+        best = (r.get("matching_certs") or [{}])[0]
+        return {
+            "ok": bool(r.get("verified")),
+            "local_height": r.get("local_height"),
+            "found": r.get("found_on_relays"),
+            "relays_checked": r.get("relays_checked"),
+            "best": best,
+        }
+    except Exception as e:
+        return {"ok": None, "error": f"{type(e).__name__}: {e}"[:150]}
+
+
 def send_tg(text: str) -> bool:
     try:
         token = open(TOKEN_FILE).read().strip()
@@ -134,10 +162,43 @@ def main():
         if st.get("bad_since"):
             log("✅ Цепочка восстановлена")
             send_tg("✅ Sentinel: цепочка Proof Mesh восстановлена, контроль снова полный.")
-            st = {"bad_since": None, "last_alert": 0}
+            st = {"bad_since": None, "last_alert": 0,
+                  "warn_since": st.get("warn_since"), "warn_alert": st.get("warn_alert", 0)}
             save_state(st)
         else:
             log(f"OK: audit жив, события {fr.get('event_age_min')} мин, сертификат {fr.get('cert_age_min')} мин")
+
+        ext = external_publish_check()
+        if ext.get("ok") is True:
+            b = ext.get("best") or {}
+            log(f"OK: внешняя публикация подтверждена (сертификат h={b.get('height')}, "
+                f"релеев {b.get('relays')}, возраст {b.get('age_min')} мин, цепь до хвоста сходится)")
+            if st.get("warn_since"):
+                st["warn_since"] = None
+                st["warn_alert"] = 0
+                save_state(st)
+                log("✅ Внешняя проверка восстановлена")
+        elif ext.get("ok") is False:
+            detail = (f"найдено сертификатов {ext.get('found')} из {ext.get('relays_checked')} релеев, "
+                      f"ни один не сходится с цепью на своей высоте")
+            if not st.get("warn_since"):
+                st["warn_since"] = time.time()
+                st["warn_alert"] = time.time()
+                save_state(st)
+                log(f"⚠️ WARN: внешняя публикация не подтверждена ({detail})")
+                send_tg(f"⚠️ Sentinel: цепочка растёт, но публичный сертификат не подтверждается с релеев "
+                        f"({detail}). Локальный контроль полный, внешний — нет.")
+            elif time.time() - st.get("warn_alert", 0) > REALERT_SEC:
+                st["warn_alert"] = time.time()
+                save_state(st)
+                mins = int((time.time() - st["warn_since"]) / 60)
+                log(f"🔁 WARN повтор ({mins} мин): внешняя публикация не подтверждена")
+                send_tg(f"🔁 Sentinel: публичный сертификат не подтверждается с релеев уже {mins} мин "
+                        f"({detail}).")
+            else:
+                log(f"WARN (дедуп): внешняя публикация не подтверждена ({detail})")
+        else:
+            log(f"WARN: внешняя проверка недоступна: {ext.get('error')}")
         return
 
     # Проблема

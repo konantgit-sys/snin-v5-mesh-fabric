@@ -31,6 +31,9 @@ sys.path.insert(0, "/home/agent/data/agents/core/cryter")
 from proof_mesh import chain, db  # noqa: E402
 
 CRYTER_PUB = "8ae7965af1b61347bb9900b91cfa9487e4da2400bdb063521ad0850706ff5f96"
+
+CERT_MIN_RELAYS = 2   # сертификат внешне подтверждён, если его отдали не меньше релеев
+CERT_MAX_AGE = 3600   # сек: старше часа — не считается подтверждением «сейчас»
 # Наши кошельки (только они показываются в экономике дашборда):
 OUR_PUBKEYS = [
     "8ae7965af1b61347bb9900b91cfa9487e4da2400bdb063521ad0850706ff5f96",  # Cryter
@@ -126,7 +129,11 @@ def publish_cert(audit_db: str, nsec: str,
 
 def fetch_cert(pubkey: str = CRYTER_PUB, limit: int = 3,
                relays: list[str] | None = None) -> list[dict]:
-    """Найти kind 8010 ноды на релеях (для внешней проверки)."""
+    """Найти kind 8010 ноды на релеях (для внешней проверки).
+
+    К каждому событию добавляется служебный ключ "_relays" — с каких релеев
+    оно получено (нужно, чтобы отличить «сертификат лежит на одном релее»
+    от «сертификат подтверждён несколькими»)."""
     import websocket  # noqa: PLC0415
     relays = relays or PUB_RELAYS
     out: list[dict] = []
@@ -139,27 +146,57 @@ def fetch_cert(pubkey: str = CRYTER_PUB, limit: int = 3,
             while True:
                 msg = json.loads(ws.recv())
                 if msg[0] == "EVENT":
-                    out.append(msg[2])
+                    ev = dict(msg[2])
+                    ev.setdefault("_relays", [])
+                    if url not in ev["_relays"]:
+                        ev["_relays"].append(url)
+                    out.append(ev)
                 elif msg[0] == "EOSE":
                     break
             ws.close()
         except Exception:
             continue
-    # дедуп по id
-    seen, deduped = set(), []
+    # дедуп по id с объединением списка релеев
+    seen: dict[str, dict] = {}
+    deduped: list[dict] = []
     for ev in out:
-        if ev.get("id") not in seen:
-            seen.add(ev.get("id"))
-            deduped.append(ev)
+        eid = ev.get("id")
+        if eid in seen:
+            merged = set(seen[eid].get("_relays") or []) | set(ev.get("_relays") or [])
+            seen[eid]["_relays"] = sorted(merged)
+            continue
+        ev["_relays"] = sorted(set(ev.get("_relays") or []))
+        seen[eid] = ev
+        deduped.append(ev)
     return deduped
 
 
-def verify_cert_on_relays(audit_db: str, pubkey: str = CRYTER_PUB) -> dict:
-    """Внешняя проверка: kind 8010 на релеях → root == last_hash цепочки."""
-    certs = fetch_cert(pubkey, limit=3)
-    st = db.get_chain_state(audit_db)
-    local_root = st.get("last_hash", "") if st else ""
-    ok_certs = []
+def verify_cert_on_relays(audit_db: str, pubkey: str = CRYTER_PUB,
+                          min_relays: int = CERT_MIN_RELAYS,
+                          max_age: int = CERT_MAX_AGE) -> dict:
+    """Внешняя проверка: сертификат с релеев соответствует цепи на СВОЕЙ высоте.
+
+    Критерий: root сертификата сравнивается с block_hash цепочки на высоте
+    сертификата (свойство снимка), а НЕ с живым хвостом last_hash. Сертификат —
+    периодический снимок (раз в ~11 минут), хвост растёт каждые ~минуту, поэтому
+    равенство «root == last_hash» недостижимо по построению и давало ложный
+    verified=False (проверено на 1225 сертификатах: root == block_hash своей
+    высоты совпадает в 1225/1225 случаях).
+
+    Сертификат считается внешне подтверждённым, если одновременно:
+      * root совпадает с block_hash цепи на его высоте;
+      * цепь непрерывна от этой высоты до текущего хвоста (db.verify_from);
+      * событие отдали не меньше min_relays релеев;
+      * возраст события не больше max_age секунд.
+    """
+    certs = fetch_cert(pubkey, limit=5)
+    st = db.get_chain_state(audit_db) or {}
+    local_root = st.get("last_hash", "")
+    local_height = int(st.get("height") or 0)
+    now = int(time.time())
+
+    checked: list[dict] = []
+    ok_certs: list[dict] = []
     for ev in certs:
         try:
             c = json.loads(ev.get("content", "{}"))
@@ -167,13 +204,49 @@ def verify_cert_on_relays(audit_db: str, pubkey: str = CRYTER_PUB) -> dict:
             continue
         if c.get("node_pubkey") != pubkey:
             continue
-        if c.get("root") == local_root:
-            ok_certs.append({"relay_found": True, "root_match": True,
-                             "height": c.get("height"), "event_id": ev.get("id")})
+        try:
+            height = int(c.get("height") or 0)
+        except (TypeError, ValueError):
+            continue
+        root = c.get("root") or ""
+        with db._conn(audit_db) as conn:
+            row = conn.execute(
+                "SELECT block_hash FROM audit_events WHERE id=?", (height,)
+            ).fetchone()
+        local_block = row[0] if row else ""
+        root_matches = bool(local_block) and local_block == root
+        chain_continues, events_after, _broken = (False, 0, None)
+        if root_matches:
+            chain_continues, events_after, _broken = db.verify_from(audit_db, height)
+        try:
+            ts = int(c.get("ts") or ev.get("created_at") or 0)
+        except (TypeError, ValueError):
+            ts = 0
+        age = now - ts if ts else -1
+        relays = ev.get("_relays") or []
+        entry = {
+            "height": height,
+            "age_min": round(age / 60.0, 1) if age >= 0 else None,
+            "relays": len(relays),
+            "root_matches_local_block": root_matches,
+            "chain_continues_to_head": bool(chain_continues),
+            "events_after_cert": events_after,
+            "event_id": ev.get("id"),
+        }
+        checked.append(entry)
+        if (root_matches and chain_continues
+                and len(relays) >= min_relays
+                and 0 <= age <= max_age):
+            ok_certs.append(entry)
+
     return {
         "found_on_relays": len(certs),
         "relays_checked": len(PUB_RELAYS),
         "local_root": local_root,
+        "local_height": local_height,
+        "min_relays": min_relays,
+        "max_age_min": max_age // 60,
+        "checked": checked,
         "matching_certs": ok_certs,
         "verified": bool(ok_certs),
     }
