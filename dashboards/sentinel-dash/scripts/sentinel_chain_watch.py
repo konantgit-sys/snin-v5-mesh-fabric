@@ -38,6 +38,16 @@ REALERT_SEC = 3600
 EVENT_MAX_AGE = 12
 CERT_MAX_AGE = 16
 
+# Публикация кода: (имя, каталог, ветка). Коммиты, не ушедшие на GitHub
+# дольше UNPUSHED_MAX_HOURS, — сигнал: работа есть, а снаружи её нет.
+GIT_REPOS = (
+    ("relay-mesh", "/home/agent/data/sites/relay-mesh", "master"),
+    ("snin-v5-mesh-fabric", "/home/agent/data/projects/snin-v5-mesh-fabric", "main"),
+    ("snin-mail-nostr", "/home/agent/data/projects/cryter-mail-release", "main"),
+)
+GIT_FETCH_INTERVAL = 21600   # обновлять remote-ссылки раз в 6 часов
+UNPUSHED_MAX_HOURS = 24      # дольше суток без публикации — сигнал
+
 
 def log(msg: str):
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
@@ -134,6 +144,57 @@ def external_publish_check() -> dict:
         return {"ok": None, "error": f"{type(e).__name__}: {e}"[:150]}
 
 
+def _git(path: str, *args: str, timeout: int = 60) -> subprocess.CompletedProcess:
+    """git в каталоге репозитория без риска dubious-ownership."""
+    return subprocess.run(
+        ["git", "-c", f"safe.directory={path}", "-C", path, *args],
+        capture_output=True, text=True, timeout=timeout,
+    )
+
+
+def unpushed_check(st: dict) -> dict:
+    """Коммиты, которые лежат локально и не ушли на GitHub дольше UNPUSHED_MAX_HOURS.
+
+    Раз в GIT_FETCH_INTERVAL обновляет remote-ссылки (git fetch), затем сравнивает
+    ветку с origin/<branch> и считает возраст САМОГО СТАРОГО неотправленного
+    коммита. До суток расхождение — норма (правим и публикуем), дольше — сигнал.
+    Ровно этот случай 10.09 стоил времени: фикс был готов и закоммичен, но наружу
+    не ушёл, и заметили это только руками.
+
+    Возвращает {"ok": bool, "items": [...], "problems": [...], "errors": [...]}.
+    """
+    now = time.time()
+    do_fetch = now - float(st.get("git_fetch_at") or 0) > GIT_FETCH_INTERVAL
+    items, problems, errors = [], [], []
+    for name, path, branch in GIT_REPOS:
+        if not os.path.isdir(os.path.join(path, ".git")):
+            continue
+        try:
+            if do_fetch:
+                _git(path, "fetch", "--quiet", "origin", timeout=90)
+            ref = f"origin/{branch}"
+            cnt = _git(path, "rev-list", "--count", f"{ref}..{branch}")
+            if cnt.returncode != 0:
+                errors.append(f"{name}: нет {ref}")
+                continue
+            n = int((cnt.stdout or "0").strip() or 0)
+            if n == 0:
+                items.append({"repo": name, "unpushed": 0})
+                continue
+            ages = _git(path, "log", "--format=%ct", f"{ref}..{branch}")
+            ts = [int(x) for x in (ages.stdout or "").split() if x.isdigit()]
+            hours = round((now - min(ts)) / 3600.0, 1) if ts else None
+            item = {"repo": name, "unpushed": n, "oldest_hours": hours}
+            items.append(item)
+            if hours is not None and hours > UNPUSHED_MAX_HOURS:
+                problems.append(item)
+        except Exception as e:
+            errors.append(f"{name}: {type(e).__name__}")
+    if do_fetch:
+        st["git_fetch_at"] = now
+    return {"ok": not problems, "items": items, "problems": problems, "errors": errors}
+
+
 def send_tg(text: str) -> bool:
     try:
         token = open(TOKEN_FILE).read().strip()
@@ -199,6 +260,38 @@ def main():
                 log(f"WARN (дедуп): внешняя публикация не подтверждена ({detail})")
         else:
             log(f"WARN: внешняя проверка недоступна: {ext.get('error')}")
+
+        up = unpushed_check(st)
+        save_state(st)
+        if up.get("problems"):
+            desc = "; ".join(
+                f"{p['repo']}: {p['unpushed']} коммитов, старший {p['oldest_hours']} ч"
+                for p in up["problems"])
+            if not st.get("push_since"):
+                st["push_since"] = time.time()
+                st["push_alert"] = time.time()
+                save_state(st)
+                log(f"⚠️ WARN: работа не опубликована — {desc}")
+                send_tg(f"⚠️ Sentinel: коммиты старше {UNPUSHED_MAX_HOURS} ч не уходят "
+                        f"на GitHub — {desc}. Локально всё цело, снаружи этой работы нет.")
+            elif time.time() - st.get("push_alert", 0) > REALERT_SEC:
+                st["push_alert"] = time.time()
+                save_state(st)
+                mins = int((time.time() - st["push_since"]) / 60)
+                log(f"🔁 WARN повтор ({mins} мин): работа не опубликована — {desc}")
+                send_tg(f"🔁 Sentinel: работа не опубликована уже {mins} мин — {desc}")
+            else:
+                log(f"WARN (дедуп): работа не опубликована — {desc}")
+        else:
+            if st.get("push_since"):
+                st["push_since"] = None
+                st["push_alert"] = 0
+                save_state(st)
+                log("✅ Публикация кода восстановлена")
+            pending = ", ".join(f"{i['repo']} {i['unpushed']}" for i in up["items"] if i.get("unpushed"))
+            log("OK: публикация кода в порядке" + (f" (в работе: {pending})" if pending else ""))
+            if up.get("errors"):
+                log(f"   не проверено: {', '.join(up['errors'])}")
         return
 
     # Проблема
