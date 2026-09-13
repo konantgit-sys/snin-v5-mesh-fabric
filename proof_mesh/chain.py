@@ -98,18 +98,28 @@ def append_signed(
     Keys, _ = _sdk()
     keys = Keys.parse(nsec)
     signer_pub = keys.public_key().to_hex()
-    with sqlite3.connect(db_path) as c:
-        row = c.execute(
+    content_hash = db._sha256(payload)
+
+    # ФИКС 2026-09-13 (форк id 14920, 2026-09-12 15:35:02 UTC).
+    # Было: хвост читался в одной транзакции, подпись считалась МЕЖДУ
+    # транзакциями, INSERT шёл во второй. Два писателя (audit_daemon и мост
+    # agent_bridge) читали один и тот же хвост и строили два блока от одного
+    # родителя — цепочка ветвилась, 2 блока ушли в сироты.
+    # Стало: чтение хвоста, подпись и вставка — в ОДНОЙ транзакции
+    # BEGIN IMMEDIATE. SQLite берёт лок записи, второй писатель ждёт своей
+    # очереди (busy_timeout 30 с) и читает уже обновлённый хвост.
+    con = sqlite3.connect(db_path, timeout=30.0, isolation_level=None)
+    try:
+        con.execute("PRAGMA busy_timeout=30000")
+        con.execute("BEGIN IMMEDIATE")
+        row = con.execute(
             "SELECT block_hash FROM audit_events ORDER BY id DESC LIMIT 1"
         ).fetchone()
         prev = row[0] if row else "0" * 64
-        content_hash = db._sha256(payload)
         unsigned = db._sha256(f"{prev}|{content_hash}|{ts}")
-    sig = sign_block(nsec, unsigned)
-    block_hash = db._sha256(f"{unsigned}|{sig}")
-
-    with sqlite3.connect(db_path) as c:
-        c.execute(
+        sig = sign_block(nsec, unsigned)
+        block_hash = db._sha256(f"{unsigned}|{sig}")
+        con.execute(
             """INSERT INTO audit_events
                (ts, agent_id, instance_id, action, payload, payload_hash,
                 prev_hash, block_hash, signature, signer_pub, attribution, evidence_code)
@@ -117,7 +127,7 @@ def append_signed(
             (ts, agent_id, instance_id, action, payload, content_hash,
              prev, block_hash, sig, signer_pub, attribution, evidence_code),
         )
-        c.execute(
+        con.execute(
             """INSERT INTO chain_state (chain_id, last_hash, height, updated_at)
                VALUES ('main', ?, 1, datetime('now'))
                ON CONFLICT(chain_id) DO UPDATE SET
@@ -126,6 +136,15 @@ def append_signed(
                  updated_at=datetime('now')""",
             (block_hash,),
         )
+        con.execute("COMMIT")
+    except BaseException:
+        try:
+            con.execute("ROLLBACK")
+        except sqlite3.Error:
+            pass
+        raise
+    finally:
+        con.close()
     _maybe_root(db_path, signer_pub, sig, proof_registry)
     return block_hash, unsigned, sig
 
