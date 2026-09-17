@@ -279,6 +279,65 @@ def unpushed_check(st: dict) -> dict:
     return {"ok": not problems, "items": items, "problems": problems, "errors": errors}
 
 
+WITNESS_CMD = ["/usr/bin/python3", "-m", "proof_mesh.witness", "health"]
+
+
+def _witness_health_raw() -> dict:
+    """Здоровье свидетелей — отдельным процессом: сторож не зависит от кода меша.
+
+    Чекпоинт (опубликованный сертификат) должен быть подтверждён минимум двумя
+    подписями свидетелей, из них минимум одна — с независимым путём чтения
+    (сертификат, прочитанный с релеев, а не из нашей базы).
+    """
+    try:
+        out = subprocess.run(WITNESS_CMD, cwd=MESH_DIR, capture_output=True,
+                             text=True, timeout=90)
+        return json.loads(out.stdout or "{}")
+    except Exception as e:
+        return {"ok": None, "error": f"{type(e).__name__}: {e}"[:200]}
+
+
+def witness_report(st: dict, health: dict | None = None) -> dict:
+    """Фаза 4: свидетели. Алерт при потере подтверждения, БЕЗ рестарта демона:
+    свидетели живут отдельно от цепочки, перезапуск демона их не оживит."""
+    health = _witness_health_raw() if health is None else health
+    if health.get("ok") is True:
+        if st.get("witness_since"):
+            mins = int((time.time() - st["witness_since"]) / 60)
+            st["witness_since"] = None
+            st["witness_alert"] = 0
+            save_state(st)
+            log(f"✅ Свидетели подтверждают чекпоинт снова (сбой длился {mins} мин)")
+            send_tg(f"✅ Sentinel: чекпоинт снова подтверждён свидетелями (сбой {mins} мин).")
+        else:
+            log("OK: свидетели: чекпоинт %s подтверждён — подписи %s, независимых путей %s"
+                % (health.get("height"), ", ".join(health.get("signers") or []) or "—",
+                   health.get("relay_sourced")))
+        return health
+    if health.get("ok") is None:
+        st["witness_fails"] = int(st.get("witness_fails") or 0) + 1
+        save_state(st)
+        log(f"⚠️ Свидетелей проверить не удалось ({st['witness_fails']}): {health.get('error')}")
+        return health
+    reason = health.get("reason") or "причина неизвестна"
+    if not st.get("witness_since"):
+        st["witness_since"] = time.time()
+        st["witness_alert"] = time.time()
+        save_state(st)
+        log(f"🚨 Свидетели: {reason}")
+        send_tg(f"🚨 Sentinel: чекпоинт не подтверждён свидетелями — {reason}. "
+                f"Демон не трогаю: свидетели живут отдельно.")
+    elif time.time() - (st.get("witness_alert") or 0) > REALERT_SEC:
+        st["witness_alert"] = time.time()
+        save_state(st)
+        mins = int((time.time() - st["witness_since"]) / 60)
+        log(f"🔁 Свидетели (повтор, {mins} мин): {reason}")
+        send_tg(f"🔁 Sentinel: чекпоинт без подтверждения свидетелей уже {mins} мин — {reason}")
+    else:
+        log(f"🚨 (дедуп) свидетели: {reason}")
+    return health
+
+
 def send_tg(text: str) -> bool:
     try:
         token = open(TOKEN_FILE).read().strip()
@@ -364,6 +423,8 @@ def main():
         else:
             log(f"🚨 (дедуп) целостность нарушена: {detail_s}")
 
+    witness_report(st)
+
     if alive and fresh_ok:
         # Всё хорошо: если были проблемы — сообщить о восстановлении
         if st.get("bad_since"):
@@ -376,7 +437,11 @@ def main():
                   "integrity_since": st.get("integrity_since"),
                   "integrity_alert": st.get("integrity_alert", 0),
                   "git_fetch_at": st.get("git_fetch_at"),
-                  "push_since": st.get("push_since"), "push_alert": st.get("push_alert", 0)}
+                  "push_since": st.get("push_since"), "push_alert": st.get("push_alert", 0),
+                  # свидетели ведём отдельно: восстановление живости цепи не значит,
+                  # что чекпоинт снова подтверждён
+                  "witness_since": st.get("witness_since"), "witness_alert": st.get("witness_alert", 0),
+                  "witness_fails": st.get("witness_fails", 0)}
             save_state(st)
         else:
             log(f"OK: audit жив, события {fr.get('event_age_min')} мин, сертификат {fr.get('cert_age_min')} мин")
