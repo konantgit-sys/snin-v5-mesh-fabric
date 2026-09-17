@@ -44,7 +44,7 @@ REGISTRY_DB = f"{BASE}/sites/snin-hub/proof_registry.db"
 sys.path.insert(0, MESH)
 sys.path.insert(0, PROOF)
 
-from proof_mesh import chain  # noqa: E402
+from proof_mesh import chain, witness  # noqa: E402
 
 PACK_VERSION = "audit-pack/1"
 ROOTS_AND_CERTS_KINDS = (8010, 8011, 8012, 8013)
@@ -96,7 +96,37 @@ def collect(events_limit: int) -> dict:
         "SELECT * FROM cert_state WHERE height >= ? ORDER BY height",
         (max(1, min_id - 200),),
     )
-    return {"events": events, "roots": roots, "certs": certs, "min_id": min_id, "max_id": max_id}
+    # аттестации свидетелей (фаза 4). Таблицы может не быть на старом реестре —
+    # тогда пак собирается без свидетелей, и проверка честно скажет, что их нет.
+    try:
+        atts = _rows(
+            REGISTRY_DB,
+            """SELECT * FROM witness_attestations
+               WHERE chain_id='main' AND height >= ? ORDER BY height, created_at""",
+            (min_id,),
+        )
+    except sqlite3.Error:
+        atts = []
+    return {"events": events, "roots": roots, "certs": certs, "atts": atts,
+            "min_id": min_id, "max_id": max_id}
+
+
+def att_row(a: dict) -> dict:
+    """Строка аттестации для пака: тело разворачиваем в объект, чтобы проверяющий
+    сам пересчитал payload_hash и проверил подпись — без доверия к нам."""
+    payload = a.get("payload")
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except Exception:
+            payload = {}
+    return {
+        "chain_id": a.get("chain_id", "main"), "height": a.get("height"),
+        "root": a.get("root"), "witness_id": a.get("witness_id", ""),
+        "witness_pub": a.get("witness_pub", ""), "payload": payload,
+        "payload_hash": a.get("payload_hash", ""), "sig": a.get("sig", ""),
+        "source": a.get("source", ""), "created_at": a.get("created_at", 0),
+    }
 
 
 def compute_stats(events: list[dict], roots: list[dict]) -> dict:
@@ -132,6 +162,30 @@ def build(out_dir: str, events_limit: int = 400) -> dict:
     ro_path = write_jsonl("roots.jsonl", roots)
     ce_path = write_jsonl("certs.jsonl", certs)
 
+    # ── свидетели чекпоинта (фаза 4) ─────────────────────────────────────
+    atts = data.get("atts") or []
+    wit_path = write_jsonl("witnesses.jsonl", [att_row(a) for a in atts])
+    in_range = {e["id"] for e in events}
+    att_heights = sorted({int(a["height"]) for a in atts if a.get("height") in in_range})
+    cp_height = att_heights[-1] if att_heights else None
+    cp = witness.checkpoint_local(cp_height) if cp_height is not None else None
+    cp_root = (cp or {}).get("root") or ""
+    if cp_height is not None:
+        st = witness.count_witnesses(cp, [a for a in atts if int(a["height"]) == cp_height])
+        wcheck = {"свидетелей": st["witnesses"], "нужно": st["required"],
+                  "независимых_путей": st["relay_sourced"], "подписи": st["signers"],
+                  "отклонено": st["rejected"], "итог": "ok" if st["ok"] else st["reason"]}
+    else:
+        wcheck = {"свидетелей": 0, "нужно": witness.WITNESS_REQUIRED,
+                  "независимых_путей": 0, "подписи": [], "отклонено": [],
+                  "итог": "в пакете нет подтверждённых чекпоинтов"}
+
+    # негативный тест по свидетелям: тот же пакет, но подписей свидетелей нет
+    nw_dir = os.path.join(out_dir, "no-witness")
+    os.makedirs(nw_dir, exist_ok=True)
+    nw_path = os.path.join(nw_dir, "witnesses.jsonl")
+    open(nw_path, "w", encoding="utf-8").close()
+
     readme = f"""# Аудит-пак цепочки доказательств Sentinel
 
 Пакет собран {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} UTC.
@@ -142,7 +196,10 @@ def build(out_dir: str, events_limit: int = 400) -> dict:
   payload, хешами, подписью и публичным ключом подписанта;
 - `roots.jsonl` — {len(roots)} опубликованных корней (реестр snin-hub) с подписью;
 - `certs.jsonl` — внешние сертификаты Nostr (kind 8010) — то, что ушло наружу;
-- `manifest.json` — хеши этих файлов и границы пакета.
+- `witnesses.jsonl` — подписи свидетелей под чекпоинтом (фаза 4): без них проверка
+  не проходит;
+- `manifest.json` — хеши этих файлов и границы пакета; `no-witness/` — негативный
+  тест: тот же пакет без подписей свидетелей.
 
 ## Как проверить самому
 
@@ -160,6 +217,13 @@ def build(out_dir: str, events_limit: int = 400) -> dict:
    диапазон непрерывный).
 5. Возьми корень из `roots.jsonl`: его `height` — это высота блока, а `root`
    должен быть равен `block_hash` этого блока. Подпись корня — подпись того же блока.
+6. Возьми строку из `witnesses.jsonl` и посчитай `payload_hash` = sha256 от её тела
+   `payload` в канонической форме: ключи по алфавиту, без пробелов, тот же порядок
+   символов. Подпись `sig` (BIP340-schnorr) должна проверяться по `payload_hash` и
+   `witness_pub`. Чекпоинт `height`/`root` должен совпасть с блоком этой высоты, а
+   подписей РАЗНЫХ ключей должно быть не меньше двух, причём хотя бы одна — с
+   источником `source`, начинающимся на `relay:` (свидетель прочитал сертификат
+   с внешних релеев, а не из нашего же файла).
 
 Если хоть один шаг не сходится — пакет недействителен, и это видно БЕЗ нашего участия.
 
@@ -188,7 +252,7 @@ def build(out_dir: str, events_limit: int = 400) -> dict:
     shutil.copy(ro_path, os.path.join(tam_dir, "roots.jsonl"))
 
     files = {}
-    for name in ("events.jsonl", "roots.jsonl", "certs.jsonl", "README.md"):
+    for name in ("events.jsonl", "roots.jsonl", "certs.jsonl", "witnesses.jsonl", "README.md"):
         p = os.path.join(out_dir, name)
         files[name] = {
             "sha256": file_sha(p),
@@ -199,8 +263,9 @@ def build(out_dir: str, events_limit: int = 400) -> dict:
     # подменённую запись, а не отсутствующие файлы
     shutil.copy(ce_path, os.path.join(tam_dir, "certs.jsonl"))
     shutil.copy(rm_path, os.path.join(tam_dir, "README.md"))
+    shutil.copy(wit_path, os.path.join(tam_dir, "witnesses.jsonl"))
     tam_files = {}
-    for name in ("events.jsonl", "roots.jsonl", "certs.jsonl", "README.md"):
+    for name in ("events.jsonl", "roots.jsonl", "certs.jsonl", "witnesses.jsonl", "README.md"):
         p = os.path.join(tam_dir, name)
         tam_files[name] = {"sha256": file_sha(p), "bytes": os.path.getsize(p), "rows": None}
 
@@ -222,6 +287,24 @@ def build(out_dir: str, events_limit: int = 400) -> dict:
             "что_испорчено": f"payload блока id={t_events[victim]['id']} (дописано ' [ПОДМЕНА]')",
             "зачем": "негативный тест: проверка обязана сказать «НЕ СОВПАЛО», а не «ошибка»",
             "files": tam_files,
+        },
+        "witnesses": {
+            "зачем": "чекпоинт подтверждён независимыми свидетелями; без двух подписей проверка не проходит",
+            "required": witness.WITNESS_REQUIRED,
+            "required_relay": witness.WITNESS_MIN_RELAY_SOURCED,
+            "чекпоинт": {"height": cp_height, "root": cp_root},
+            "проверено_при_сборке": wcheck,
+            "файлы": {"witnesses.jsonl": files["witnesses.jsonl"]},
+            "как_проверить": ("payload_hash = sha256(канонический JSON тела payload: ключи по алфавиту, без пробелов); "
+                              "подпись BIP340-schnorr проверяется по payload_hash и witness_pub; "
+                              "нужно >=2 разных ключа, из них >=1 с источником source=relay:..."),
+            "негативный_тест": {
+                "dir": "no-witness",
+                "файл": "witnesses.jsonl",
+                "что_испорчено": "подписей свидетелей нет (пустой файл)",
+                "зачем": "проверка обязана сказать «НЕ СОВПАЛО: чекпоинт не подтверждён свидетелями», а не «ПРОВЕРЕНО»",
+                "sha256": file_sha(nw_path), "bytes": 0, "rows": 0,
+            },
         },
         "limits": {
             "событий_в_пакете": len(events),
@@ -250,10 +333,74 @@ def build(out_dir: str, events_limit: int = 400) -> dict:
 
 # ── независимая проверка пака (то же, что делает браузер) ────────────────────
 
+def count_pack_witnesses(atts: list[dict], cp_block: dict | None) -> dict:
+    """Считаем свидетелей ровно так же, как обязан считать любой проверяющий:
+    подпись + разные ключи + независимый путь чтения. Самоаттестация и дубль
+    ключа не в счёт. Возвращает {зачтено, всего, независимых_путей, отклонено}."""
+    cp_signer = cp_block["signer_pub"] if cp_block else ""
+    seen: set[str] = set()
+    rejected: list[str] = []
+    relay_n = 0
+    for a in atts:
+        ok, why = witness.verify_attestation(a)
+        tag = a.get("witness_id") or (a.get("witness_pub") or "?")[:12]
+        if not ok:
+            rejected.append(f"{tag}: {why}")
+            continue
+        if cp_signer and a.get("witness_pub") == cp_signer:
+            rejected.append(f"{tag}: самоаттестация (тот же ключ, что подписал чекпоинт)")
+            continue
+        if a.get("witness_pub") in seen:
+            rejected.append(f"{tag}: дубль ключа")
+            continue
+        if cp_block and a.get("root") != cp_block["block_hash"]:
+            rejected.append(f"{tag}: корень аттестации не совпал с блоком высоты {a.get('height')}")
+            continue
+        seen.add(a["witness_pub"])
+        if str(a.get("source", "")).startswith("relay"):
+            relay_n += 1
+    return {"зачтено": len(seen), "всего": len(atts), "независимых_путей": relay_n, "отклонено": rejected}
+
+
+def verify_witness_negative(pack_dir: str) -> dict:
+    """Приёмка фазы 4: пакет без подписей свидетелей НЕ проходит проверку.
+
+    Берём объявленный в манифесте негативный фикстур (пустой witnesses.jsonl),
+    проверяем его по хешу и убеждаемся, что требование «2 подписи, одна с релеев»
+    соблюсти нельзя. Ожидаемый итог — «НЕ СОВПАЛО» с причиной про свидетелей,
+    а не «ПРОВЕРЕНО» и не техническая ошибка чтения.
+    """
+    man = json.load(open(os.path.join(pack_dir, "manifest.json"), encoding="utf-8"))
+    block = (man.get("witnesses") or {}).get("негативный_тест") or {}
+    wit = man.get("witnesses") or {}
+    need = int(wit.get("required") or witness.WITNESS_REQUIRED)
+    need_relay = int(wit.get("required_relay") or witness.WITNESS_MIN_RELAY_SOURCED)
+    fpath = os.path.join(pack_dir, block.get("dir", "no-witness"), block.get("файл", "witnesses.jsonl"))
+    file_ok = os.path.exists(fpath) and file_sha(fpath) == block.get("sha256")
+    atts = []
+    if os.path.exists(fpath):
+        atts = [json.loads(l) for l in open(fpath, encoding="utf-8") if l.strip()]
+    events = [json.loads(l) for l in open(os.path.join(pack_dir, "events.jsonl"), encoding="utf-8")]
+    by_height = {e["id"]: e for e in events}
+    cp_height = (wit.get("чекпоинт") or {}).get("height")
+    wc = count_pack_witnesses(atts, by_height.get(cp_height) if cp_height is not None else None)
+    pass_negative = wc["зачтено"] < need
+    return {
+        "фикстур": {"файл": fpath, "по_хешу_сходится": bool(file_ok), "строк": len(atts)},
+        "свидетелей": wc["зачтено"], "нужно": need, "независимых_путей": wc["независимых_путей"],
+        "нужно_независимых": need_relay,
+        "итог": "НЕ СОВПАЛО" if pass_negative else "ПРОВЕРЕНО",
+        "причина": (f"чекпоинт не подтверждён свидетелями: {wc['зачтено']} из {need}" if pass_negative
+                    else "пакет без свидетелей прошёл проверку — это дефект проверки"),
+        "тест_пройден": bool(file_ok and pass_negative),
+    }
+
+
 def verify_pack(pack_dir: str, expect_fail: bool = False) -> dict:
     man = json.load(open(os.path.join(pack_dir, "manifest.json"), encoding="utf-8"))
     checks = {"файлы": 0, "файлов_всего": 0, "события": 0, "событий_всего": 0,
-              "подписи": 0, "связи": 0, "корни": 0, "ошибки": []}
+              "подписи": 0, "связи": 0, "корни": 0,
+              "свидетели": 0, "свидетелей_всего": 0, "независимых_путей": 0, "ошибки": []}
     for name, meta in man["files"].items():
         p = os.path.join(pack_dir, name)
         checks["файлов_всего"] += 1
@@ -300,6 +447,38 @@ def verify_pack(pack_dir: str, expect_fail: bool = False) -> dict:
         else:
             checks["ошибки"].append(f"корень высоты {r['height']}: не соответствует блоку или подпись плохая")
 
+    # ── свидетели чекпоинта ──────────────────────────────────────────────
+    wit_file = os.path.join(pack_dir, "witnesses.jsonl")
+    man_wit = man.get("witnesses") or {}
+    cp_height = (man_wit.get("чекпоинт") or {}).get("height")
+    if not os.path.exists(wit_file):
+        checks["ошибки"].append("файл witnesses.jsonl отсутствует — чекпоинт не подтверждён свидетелями")
+        atts = []
+    else:
+        atts = [json.loads(l) for l in open(wit_file, encoding="utf-8") if l.strip()]
+    cp_block = by_height.get(cp_height) if cp_height is not None else None
+    # Считаем ТОЛЬКО аттестации чекпоинта пака. В файле лежит история подписей
+    # по разным высотам; если смешать их, голоса одного свидетеля по разным
+    # чекпоинтам погасят друг друга как «дубли» (поймано проверкой в браузере).
+    atts_all = atts
+    atts = [a for a in atts_all if cp_height is not None and a.get("height") == cp_height]
+    checks["аттестаций_в_файле"] = len(atts_all)
+    checks["аттестаций_чекпоинта"] = len(atts)
+    wc = count_pack_witnesses(atts, cp_block)
+    checks["свидетелей_всего"] = wc["всего"]
+    checks["свидетели"] = wc["зачтено"]
+    checks["независимых_путей"] = wc["независимых_путей"]
+    checks["отклонённые_аттестации"] = wc["отклонено"]
+    need = int(man_wit.get("required") or witness.WITNESS_REQUIRED)
+    need_relay = int(man_wit.get("required_relay") or witness.WITNESS_MIN_RELAY_SOURCED)
+    if wc["зачтено"] < need:
+        checks["ошибки"].append(
+            f"чекпоинт не подтверждён свидетелями: {wc['зачтено']} из {need}"
+            + (f" (отклонено: {'; '.join(wc['отклонено'])})" if wc["отклонено"] else ""))
+    elif wc["независимых_путей"] < need_relay:
+        checks["ошибки"].append(
+            f"нет независимого пути чтения у свидетелей: {wc['независимых_путей']} из {need_relay}")
+
     checks["итог"] = "ПРОВЕРЕНО" if not checks["ошибки"] else "НЕ СОВПАЛО"
     if expect_fail:
         checks["ожидали_провал"] = checks["итог"] == "НЕ СОВПАЛО"
@@ -315,6 +494,8 @@ def main() -> int:
     v = sub.add_parser("verify")
     v.add_argument("dir")
     v.add_argument("--expect-fail", action="store_true")
+    n = sub.add_parser("verify-no-witness", help="негативный тест: пакет без свидетелей")
+    n.add_argument("dir")
     i = sub.add_parser("info")
     i.add_argument("dir")
     a = p.parse_args()
@@ -330,6 +511,10 @@ def main() -> int:
         if a.expect_fail:
             return 0 if r["итог"] == "НЕ СОВПАЛО" else 1
         return 0 if r["итог"] == "ПРОВЕРЕНО" else 1
+    if a.cmd == "verify-no-witness":
+        r = verify_witness_negative(a.dir)
+        print(json.dumps(r, ensure_ascii=False, indent=2))
+        return 0 if r["тест_пройден"] else 1
     m = json.load(open(os.path.join(a.dir, "manifest.json"), encoding="utf-8"))
     print(json.dumps({k: m[k] for k in ("pack_version", "generated_at_utc", "chain", "stats", "limits")},
                      ensure_ascii=False, indent=2))
