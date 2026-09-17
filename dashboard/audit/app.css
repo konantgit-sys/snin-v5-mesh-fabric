@@ -203,3 +203,13 @@ html, body {
   .metric, .card, .tbl tbody tr { opacity: 1; transform: none; }
   .hours__bar { transform: scaleY(1); }
 }
+
+/* ── свидетели чекпоинта (фаза 4) ─────────────────────────── */
+.wt__state { font-weight: 600; }
+.wt__state--ok { color: var(--ok); }
+.wt__state--fail { color: var(--fail); }
+#witness-note code { color: var(--accent); font-size: 12px; }
+#tbl-witnesses td:nth-child(2) { color: var(--muted); font-size: 12px; word-break: break-all; }
+@media (prefers-reduced-motion: reduce) {
+  .wt__state { transition: none !important; }
+}

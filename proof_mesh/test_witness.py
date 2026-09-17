@@ -174,24 +174,44 @@ except SystemExit as e:
 check("подпись не поставлена", refused)
 
 print("\n── 10. свежесть свидетельств (сигнал для сторожа) ──")
-# возвращаем корректный корень на H1 (в п.9 он был намеренно испорчен)
-seed_registry([{"height": H1, "root": roots[0]["root"], "root_ts": roots[0]["root_ts"],
-                "pubkey": roots[0]["pubkey"], "sig": ""}])
-# для произвольной высоты сертификата с релеев нет, поэтому здесь путь чтения
-# подменён на локальный чекпоинт — РЕАЛЬНОЕ чтение с релеев проверено в п.5
-_real_relay = witness.checkpoint_relay
-witness.checkpoint_relay = lambda height=None: witness.checkpoint_local(height)
+# Свой audit-DB: в нём и сертификат с нужным временем, и блок, с которым он должен
+# сходиться. Живая цепочка не участвует — иначе возраст чекпоинта не предсказуем,
+# а свежий сертификат попадает в окно оседания.
+ALT_DB = str(TMP / "alt_audit.db")
+H_ALT, ROOT_ALT, OLD_TS = 999001, "b" * 64, int(time.time()) - 3600
+with sqlite3.connect(ALT_DB) as c:
+    c.execute("""CREATE TABLE cert_state (id INTEGER PRIMARY KEY AUTOINCREMENT, kind INTEGER,
+                 root TEXT, height INTEGER, prev_cert_id TEXT, event_id TEXT, ts INTEGER)""")
+    c.execute("INSERT INTO cert_state (kind, root, height, prev_cert_id, event_id, ts) VALUES (8010,?,?,?,?,?)",
+              (ROOT_ALT, H_ALT, "", "", OLD_TS))
+    c.execute("""CREATE TABLE audit_events (id INTEGER PRIMARY KEY, ts INTEGER, payload TEXT,
+                 prev_hash TEXT, block_hash TEXT, signature TEXT, signer_pub TEXT,
+                 agent_id TEXT, payload_hash TEXT, action TEXT)""")
+    c.execute("""INSERT INTO audit_events (id, ts, payload, prev_hash, block_hash, signature,
+                 signer_pub, agent_id, payload_hash, action) VALUES (?,?,?,?,?,?,?,?,?,?)""",
+              (H_ALT, OLD_TS, "{}", "", ROOT_ALT, "", "a" * 64, "test", "", "test"))
+seed_registry([{"height": H_ALT, "root": ROOT_ALT, "root_ts": OLD_TS, "pubkey": "a" * 64, "sig": ""}])
+os.environ["SPM_WITNESS_AUDIT"] = ALT_DB
 try:
-    witness.attest("w3", "relay", H1)
+    # сертификата с этой высоты на релеях нет, поэтому путь чтения подменён на
+    # локальный чекпоинт; РЕАЛЬНОЕ чтение с релеев проверено в п.5
+    _real_relay = witness.checkpoint_relay
+    witness.checkpoint_relay = lambda height=None: witness.checkpoint_local(height)
+    try:
+        witness.attest("w1", "local", H_ALT)
+        witness.attest("w2", "relay", H_ALT)
+    finally:
+        witness.checkpoint_relay = _real_relay
+    h_ok = witness.witness_health(max_age_sec=7200, settling_sec=0)
+    check("подтверждённый чекпоинт — ok", h_ok["ok"] is True, json.dumps(h_ok, ensure_ascii=False))
+    h_age = witness.witness_health(max_age_sec=60, settling_sec=0)
+    check("старый чекпоинт — сигнал по возрасту",
+          h_age["ok"] is False and "старше" in h_age.get("reason", ""), h_age.get("reason", ""))
+    h_set = witness.witness_health(settling_sec=10 ** 9)
+    check("окно оседания гасит ложный шум",
+          h_set["ok"] is True and "штатная задержка" in h_set.get("reason", ""), h_set.get("reason", ""))
 finally:
-    witness.checkpoint_relay = _real_relay
-witness.attest("w1", "local", H1)
-witness.attest("w2", "local", H1)
-h2 = witness.witness_health()
-check("подтверждённый чекпоинт — ok", h2["ok"] is True, json.dumps(h2, ensure_ascii=False))
-h = witness.witness_health(max_age_sec=1)
-check("старый чекпоинт — сигнал по возрасту",
-      h["ok"] is False and "старше" in h.get("reason", ""), h.get("reason", ""))
+    os.environ["SPM_WITNESS_AUDIT"] = "/home/agent/data/sites/relay-mesh/proof_mesh/snin_audit.db"
 
 print("\n── 11. ключ свидетеля не из списка признанных ──")
 Keys, _ = chain._sdk()

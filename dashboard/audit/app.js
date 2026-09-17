@@ -29,6 +29,61 @@ async function fileSha256Hex(url) {
   return bytesToHex(await crypto.subtle.digest('SHA-256', await res.arrayBuffer()));
 }
 
+// Канонический JSON: ключи по алфавиту, без пробелов. Ровно так же это тело
+// сериализуется на сервере, когда считается payload_hash — иначе проверка
+// в браузере не сошлась бы на честной аттестации.
+function canonicalJson(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${canonicalJson(value[k])}`).join(',')}}`;
+}
+
+function renderWitnesses(rows, rejected, manifest, isNegative) {
+  const tbody = $('tbl-witnesses').querySelector('tbody');
+  tbody.innerHTML = '';
+  rows.slice(0, 30).forEach((r) => {
+    const tr = document.createElement('tr');
+    const tag = document.createElement('td');
+    tag.textContent = r.tag;
+    const src = document.createElement('td');
+    src.textContent = String(r.source).slice(0, 44);
+    const h = document.createElement('td');
+    h.className = 'num';
+    h.textContent = r.height === null || r.height === undefined ? '—' : String(r.height);
+    const verdict = document.createElement('td');
+    const span = document.createElement('span');
+    span.className = `wt__state wt__state--${r.state === 'ok' ? 'ok' : 'fail'}`;
+    span.textContent = r.state === 'ok' ? 'подпись верна' : 'не зачтена';
+    span.title = r.why || '';
+    verdict.appendChild(span);
+    tr.append(tag, src, h, verdict);
+    tbody.appendChild(tr);
+  });
+
+  const box = $('witness-rejected');
+  box.innerHTML = '';
+  if (rejected.length) {
+    rejected.slice(0, 10).forEach((t) => {
+      const li = document.createElement('li');
+      li.textContent = t;
+      box.appendChild(li);
+    });
+    box.hidden = false;
+  } else box.hidden = true;
+
+  const wman = manifest.witnesses || {};
+  const need = Number(wman.required || 2);
+  const needRelay = Number(wman.required_relay || 1);
+  const ok = rows.filter((r) => r.state === 'ok').length;
+  const relay = rows.filter((r) => r.state === 'ok' && String(r.source).startsWith('relay')).length;
+  $('witness-note').textContent = (isNegative ? 'Негативный тест: файл подписей свидетелей подменён на пустой. ' : '')
+    + `Чекпоинт пака — высота ${(manifest.witnesses || {}).чекпоинт ? (manifest.witnesses.чекпоинт.height ?? '—') : '—'}. `
+    + `Зачтено подписей: ${ok} из ${need}, с независимым путём чтения — ${relay} из ${needRelay}. `
+    + 'Нужны разные ключи: один ключ — один голос, и подпись, сделанная ключом самого чекпоинта, не считается. '
+    + 'Payload_hash пересчитан из тела аттестации, подпись BIP340 проверена по нему и публичному ключу свидетеля — здесь, в браузере.';
+  $('witness-card').hidden = false;
+}
+
 async function loadJson(url) {
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`не удалось прочитать ${url}: HTTP ${res.status}`);
@@ -166,6 +221,8 @@ function renderLimits(manifest) {
     'Проверка связей доказывает, что записи не переписаны после публикации корня. Она не доказывает, что в цепочку записано всё, что агент делал.',
     'Payload включён целиком: без него нельзя пересчитать хеш. Маскирование персональных данных до записи — отдельная задача.',
     'Подписантов несколько: архитектурный ключ и ключи самих агентов. Один подписант означал бы самоаттестацию — здесь её нет.',
+    'Чекпоинт подтверждают свидетели: нужны две подписи разных ключей, и хотя бы одна — с чекпоинтом, прочитанным с внешних релеев. Пока оба ключа наши, независимость техническая (разные ключи и разные пути чтения), а не организационная.',
+    'Проверка свидетелей — не про то, что работа была правильной. Она про то, что чекпоинт был именно таким и не был переписан задним числом.',
   ];
   items.forEach((t) => {
     const li = document.createElement('li');
@@ -175,15 +232,15 @@ function renderLimits(manifest) {
   $('limits-card').hidden = false;
 }
 
-async function check(packDir, label) {
+async function check(packDir, label, opts = {}) {
   if (!self.crypto || !crypto.subtle) {
     setStatus('fail', 'Проверка не выполнена', 'Браузер не дал WebCrypto: нужен https и современный браузер.');
     return;
   }
   const myToken = ++runToken;
   const isCurrent = () => myToken === runToken;
-  $('run').setAttribute('aria-busy', 'true');
-  $('run-tampered').setAttribute('aria-busy', 'true');
+  const witOverride = opts.witnessOverride || null;
+  ['run', 'run-tampered', 'run-no-witness'].forEach((id) => $(id).setAttribute('aria-busy', 'true'));
   $('errors-card').hidden = true;
   $('manifest-card').hidden = true;
   setStatus('run', `Проверяю: ${label}`, 'Хеши считает ваш браузер…');
@@ -200,8 +257,10 @@ async function check(packDir, label) {
     for (let i = 0; i < fileNames.length; i++) {
       if (!isCurrent()) return;
       const name = fileNames[i];
-      const got = await fileSha256Hex(`${packDir}/${name}`);
-      if (got === manifest.files[name].sha256) filesOk += 1;
+      const swapped = name === 'witnesses.jsonl' && witOverride;
+      const got = await fileSha256Hex(swapped ? witOverride.path : `${packDir}/${name}`);
+      const declared = swapped ? witOverride.sha : manifest.files[name].sha256;
+      if (got === declared) filesOk += 1;
       else errors.push(`файл ${name}: sha256 не совпал с манифестом`);
       setProgress(i + 1, fileNames.length + 1);
     }
@@ -242,12 +301,68 @@ async function check(packDir, label) {
       else errors.push(`корень высоты ${r.height}: не соответствует блоку или подпись корня недействительна`);
     }
 
+    // 4. свидетели чекпоинта: без двух подписей (одна с релеев) проверка не проходит
+    const wman = manifest.witnesses || {};
+    const wNeed = Number(wman.required || 2);
+    const wNeedRelay = Number(wman.required_relay || 1);
+    const cpHeight = (wman.чекпоинт || {}).height;
+    const cpBlock = byHeight.get(cpHeight);
+    const cpSigner = cpBlock ? cpBlock.signer_pub : '';
+    let atts = [];
+    try { atts = await loadJsonl(witOverride ? witOverride.path : `${packDir}/witnesses.jsonl`); }
+    catch (_) { atts = []; }
+    // В файле — история подписей по разным высотам. Считаем только те, что
+    // относятся к чекпоинту этого пака: иначе голоса одного свидетеля по
+    // разным высотам гасят друг друга как «дубли».
+    const attsInFile = atts.length;
+    atts = atts.filter((a) => cpHeight !== undefined && cpHeight !== null
+      && Number(a.height) === Number(cpHeight));
+    const seenW = new Set();
+    const wRows = [];
+    const wRejected = [];
+    let wRelay = 0;
+    for (const a of atts) {
+      if (!isCurrent()) return;
+      const tag = a.witness_id || String(a.witness_pub || '?').slice(0, 12);
+      const body = a.payload || {};
+      const ph = await sha256Hex(canonicalJson(body));
+      let state = 'ok';
+      let why = 'подпись верна';
+      if (ph !== a.payload_hash) { state = 'fail'; why = 'payload_hash не совпал с телом'; }
+      else if (body.witness_pub !== a.witness_pub || body.root !== a.root
+               || Number(body.height) !== Number(a.height)) { state = 'fail'; why = 'поля не совпали с телом'; }
+      else {
+        let sig = false;
+        try { sig = schnorr.verify(hexToBytes(a.sig), hexToBytes(ph), hexToBytes(a.witness_pub)); } catch (_) { sig = false; }
+        if (!sig) { state = 'fail'; why = 'подпись BIP340 недействительна'; }
+        else if (cpSigner && a.witness_pub === cpSigner) { state = 'fail'; why = 'самоаттестация: тот же ключ, что подписал чекпоинт'; }
+        else if (seenW.has(a.witness_pub)) { state = 'fail'; why = 'дубль ключа: один ключ — один голос'; }
+        else if (cpBlock && Number(a.height) === cpBlock.id && a.root !== cpBlock.block_hash) {
+          state = 'fail'; why = `корень не совпал с блоком высоты ${a.height}`;
+        }
+      }
+      if (state === 'ok') {
+        seenW.add(a.witness_pub);
+        if (String(a.source || '').startsWith('relay')) wRelay += 1;
+      } else wRejected.push(`${tag}: ${why}`);
+      wRows.push({ tag, source: a.source || '—', height: a.height, state, why });
+      setProgress(events.length * 3 + wRows.length, events.length * 3 + atts.length + 1);
+    }
+    if (seenW.size < wNeed) {
+      errors.push(`чекпоинт не подтверждён свидетелями: ${seenW.size} из ${wNeed}`
+        + (wRejected.length ? ` (отклонено: ${wRejected.join('; ')})` : ''));
+    } else if (wRelay < wNeedRelay) {
+      errors.push(`нет независимого пути чтения у свидетелей: ${wRelay} из ${wNeedRelay}`);
+    }
+
     metric('m-files', `${filesOk} / ${fileNames.length}`);
     metric('m-events', `${hashOk.toLocaleString('ru-RU')} / ${events.length.toLocaleString('ru-RU')}`);
     metric('m-signs', `${sigOk.toLocaleString('ru-RU')} / ${events.length.toLocaleString('ru-RU')}`);
     metric('m-links', `${linksOk.toLocaleString('ru-RU')} / ${events.length.toLocaleString('ru-RU')}`);
     metric('m-roots', `${rootsOk} / ${roots.length}`);
+    metric('m-witnesses', `${seenW.size} / ${wNeed}`);
     renderErrors(errors);
+    renderWitnesses(wRows, wRejected, manifest, Boolean(witOverride));
     renderLimits(manifest);
     renderActivity(events, false);
 
@@ -257,7 +372,8 @@ async function check(packDir, label) {
 
     setProgress(1, 1);
     if (errors.length === 0) {
-      setStatus('ok', `ПРОВЕРЕНО · ${label}`, `Сошлось: ${events.length.toLocaleString('ru-RU')} блоков (хеши, подписи, связи) и ${rootsOk} корней. `
+      setStatus('ok', `ПРОВЕРЕНО · ${label}`, `Сошлось: ${events.length.toLocaleString('ru-RU')} блоков (хеши, подписи, связи), ${rootsOk} корней `
+        + `и подписи свидетелей чекпоинта — ${seenW.size} из ${wNeed}, независимых путей чтения ${wRelay}. `
         + 'Расхождений нет — выгрузка не переписана после публикации корней.');
     } else {
       setStatus('fail', `НЕ СОВПАЛО · ${label}`, `Найдено расхождений: ${errors.length}. Первое: ${errors[0]}`
@@ -270,14 +386,28 @@ async function check(packDir, label) {
     showVerdict();
   } finally {
     if (isCurrent()) {
-      $('run').removeAttribute('aria-busy');
-      $('run-tampered').removeAttribute('aria-busy');
+      ['run', 'run-tampered', 'run-no-witness'].forEach((id) => $(id).removeAttribute('aria-busy'));
     }
   }
 }
 
 $('run').addEventListener('click', () => check('./pack', 'рабочий пакет'));
 $('run-tampered').addEventListener('click', () => check('./pack/tampered', 'подменённый пакет'));
+$('run-no-witness').addEventListener('click', async () => {
+  try {
+    const man = await loadJson('./pack/manifest.json');
+    const fx = (man.witnesses || {}).негативный_тест || {};
+    const dir = String(fx.dir || 'no-witness');
+    const file = String(fx.файл || 'witnesses.jsonl');
+    check('./pack', 'пакет без свидетелей', {
+      witnessOverride: { path: `./pack/${dir}/${file}`, sha: fx.sha256 || '' },
+    });
+  } catch (e) {
+    setStatus('fail', 'Проверка не выполнена · пакет без свидетелей',
+      `${e.message} — это сбой чтения, а не вердикт. Повторите.`);
+    showVerdict();
+  }
+});
 $('toggle-manifest').addEventListener('click', async () => {
   const card = $('manifest-card');
   card.hidden = !card.hidden;
