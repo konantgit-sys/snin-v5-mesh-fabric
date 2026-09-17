@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Аудит-пак цепочки доказательств — Sentinel</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main class="wrap">
+
+  <header class="hero">
+    <div class="hero__badge">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M12 3l7 3v6c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V6l7-3z"/>
+        <path d="M9 12.5l2 2 4-4.5"/>
+      </svg>
+      <span>Проверка без доверия к нам</span>
+    </div>
+    <h1>Аудит-пак цепочки доказательств</h1>
+    <p class="hero__sub">
+      Здесь лежит выгрузка из журнала агентов: записи, их подписи и опубликованные корни.
+      Проверка целиком выполняется <strong>в вашем браузере</strong> — хеши считает WebCrypto,
+      подписи BIP340 — локальная копия библиотеки. Серверу верить не нужно: подделать ответ он не может,
+      потому что математика считается у вас.
+    </p>
+  </header>
+
+  <section class="controls" aria-label="Управление проверкой">
+    <button id="run" class="btn btn--primary" type="button">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+        <path d="M5 12.5l4 4 10-10"/>
+      </svg>
+      Проверить пакет
+    </button>
+    <button id="run-tampered" class="btn btn--ghost" type="button">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+        <path d="M12 4l9 16H3l9-16z"/><path d="M12 10v5"/><circle cx="12" cy="17.6" r="0.9" fill="currentColor" stroke="none"/>
+      </svg>
+      Проверить подменённый пакет
+    </button>
+    <button id="toggle-manifest" class="btn btn--ghost" type="button">Манифест</button>
+  </section>
+
+  <section id="status" class="status status--idle" aria-live="polite">
+    <div class="status__icon" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><circle cx="12" cy="16" r="0.9" fill="currentColor" stroke="none"/>
+      </svg>
+    </div>
+    <div class="status__text">
+      <strong id="status-title">Проверка не запускалась</strong>
+      <span id="status-note">Нажмите «Проверить пакет» — все вычисления пойдут в браузере.</span>
+    </div>
+  </section>
+
+  <div id="progress" class="progress" hidden><div id="progress-bar" class="progress__bar"></div></div>
+
+  <section class="metrics" id="metrics" hidden>
+    <div class="metric"><span class="metric__label">Файлы пакета</span><span class="metric__value" id="m-files">—</span></div>
+    <div class="metric"><span class="metric__label">Блоки: хеши сошлись</span><span class="metric__value" id="m-events">—</span></div>
+    <div class="metric"><span class="metric__label">Подписи BIP340</span><span class="metric__value" id="m-signs">—</span></div>
+    <div class="metric"><span class="metric__label">Связи prev → hash</span><span class="metric__value" id="m-links">—</span></div>
+    <div class="metric"><span class="metric__label">Корни реестра</span><span class="metric__value" id="m-roots">—</span></div>
+    <div class="metric"><span class="metric__label">Подписантов</span><span class="metric__value" id="m-signers">—</span></div>
+  </section>
+
+  <section class="card" id="errors-card" hidden>
+    <h2 class="card__title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M12 4l9 16H3l9-16z"/><path d="M12 11v4"/></svg>
+      Расхождения
+    </h2>
+    <ul id="errors" class="errors"></ul>
+  </section>
+
+  <section class="card" id="activity-card" hidden>
+    <h2 class="card__title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 19v-6"/><path d="M13 19v-10"/><path d="M18 19v-4"/></svg>
+      Что делали агенты
+    </h2>
+    <p class="card__note">Считается по блокам, которые браузер только что проверил. Это не обещание, а содержимое проверенной выгрузки.</p>
+    <div class="grid-2">
+      <div>
+        <h3 class="sub">По агентам и действиям</h3>
+        <table class="tbl" id="tbl-agents"><thead><tr><th>Агент</th><th>Действие</th><th class="num">Блоков</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div>
+        <h3 class="sub">Активность по часам (UTC)</h3>
+        <div id="hours" class="hours"></div>
+        <h3 class="sub" style="margin-top:18px">Подписанты</h3>
+        <table class="tbl" id="tbl-signers"><thead><tr><th>Публичный ключ</th><th class="num">Блоков</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <h3 class="sub" style="margin-top:18px">Свежие записи</h3>
+    <ul id="recent" class="recent"></ul>
+  </section>
+
+  <section class="card" id="limits-card" hidden>
+    <h2 class="card__title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v.01M11 12h1v4h1"/></svg>
+      Границы: что пакет доказывает, а что нет
+    </h2>
+    <ul class="limits" id="limits"></ul>
+  </section>
+
+  <section class="card" id="manifest-card" hidden>
+    <h2 class="card__title">Манифест пакета</h2>
+    <pre id="manifest-json" class="code"></pre>
+  </section>
+
+  <footer class="foot">
+    <span id="foot-meta">—</span>
+    <a class="link" href="pack/README.md" target="_blank" rel="noopener">Как проверить руками (README)</a>
+  </footer>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
