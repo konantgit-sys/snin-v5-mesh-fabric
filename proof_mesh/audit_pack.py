@@ -47,7 +47,7 @@ sys.path.insert(0, PROOF)
 from proof_mesh import chain, witness  # noqa: E402
 
 PACK_VERSION = "audit-pack/1"
-ROOTS_AND_CERTS_KINDS = (8010, 8011, 8012, 8013)
+ROOTS_AND_CERTS_KINDS = (10110, 8010, 8011, 8012, 8013)
 
 
 def sha(s: str | bytes) -> str:

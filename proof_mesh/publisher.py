@@ -5,8 +5,18 @@ SNIN PROOF MESH — Фаза 5: публичные сертификаты чес
 Nostr:
   - kind 30000 (параметризованный replaceable, d-tag "spm"):
     {root, height, ts} — корень hash-chain
-  - kind 8010-8017 (NIP-80): сертификат честности
+  - kind 10110: сертификат честности
     {node_pubkey, root, height, prev_cert_id, ts} — подпись ноды
+
+Почему 10110, а не 8010: диапазон 8010-8017 занят агентским протоколом
+(паспорт агента, заявка на задачу, ответ, инвойс и прочее), и складывать туда
+сертификат цепочки — та самая перегрузка кинда, за которую ревьюер критикует
+набор в PR. 10110 — replaceable-диапазон, где живёт последнее состояние ноды.
+
+Переходный период: сертификат дополнительно пишется под старым киндом 8010,
+чтобы внешняя проверка (fetch 8010 → root == last_hash) продолжала сходиться
+до тех пор, пока все читатели не переключены. После переключения зеркало
+выключается флагом MIRROR_LEGACY_KIND = False.
   - fanout на проверенные релеи (primal, damus, nos.lol + CURATED_RELAYS
     через MeshAdapter — тот же путь, которым cryter публикует посты)
 
@@ -42,7 +52,9 @@ OUR_PUBKEYS = [
     "b659b2d0b13da2e00c104b38fe936fa27ec3cee9a59378075c21ee2045616377",  # botperevod
     "2bb1a9f5bdbd7bab31a7e7069d5f406ee3edfc338c4e1e6b395d57bce95267e7",  # Urantia Daily
 ]
-CERT_KIND = 8010
+CERT_KIND = 10110          # сертификат честности: свой кинд, вне протокольных 8010-8017
+CERT_KIND_LEGACY = 8010    # зеркало на переходный период (см. шапку файла)
+MIRROR_LEGACY_KIND = True  # False — зеркало выключается, читатели уже переключены
 ROOT_KIND = 30000
 D_TAG = "spm-chain-root"
 
@@ -97,9 +109,11 @@ def _make_adapter(nsec: str):
 
 def publish_cert(audit_db: str, nsec: str,
                  fanout: list[str] | None = None) -> dict:
-    """Опубликовать kind 8010 + kind 30000 (root). Возвращает event_id.
-    Fanout идёт через RelayOrchestrator адаптера (CURATED_RELAYS);
-    параметр fanout зарезервирован на будущее."""
+    """Опубликовать сертификат (kind 10110) + зеркало 8010 + корень (kind 30000).
+
+    Возвращает event_id основного сертификата. Fanout идёт через
+    RelayOrchestrator адаптера (CURATED_RELAYS); параметр fanout зарезервирован
+    на будущее."""
     _cert_table(audit_db)
     cert = build_cert(audit_db)
     adapter = _make_adapter(nsec)
@@ -108,6 +122,9 @@ def publish_cert(audit_db: str, nsec: str,
     tags = [["root", cert["root"]], ["height", str(cert["height"])],
             ["prev", cert["prev_cert_id"]]]
     ev_id = adapter.publish_event(cert_json, tags=tags, kind=CERT_KIND)
+    legacy_id = None
+    if ev_id and MIRROR_LEGACY_KIND:
+        legacy_id = adapter.publish_event(cert_json, tags=tags, kind=CERT_KIND_LEGACY)
     root_id = None
     if ev_id:
         root_payload = json.dumps(
@@ -118,18 +135,24 @@ def publish_cert(audit_db: str, nsec: str,
             kind=ROOT_KIND)
 
     with db._conn(audit_db) as c:
-        c.execute(
-            """INSERT INTO cert_state (kind, root, height, prev_cert_id, event_id, ts)
-               VALUES (?,?,?,?,?,?)""",
-            (CERT_KIND, cert["root"], cert["height"],
-             cert["prev_cert_id"], ev_id or "", cert["ts"]),
-        )
-    return {"cert": cert, "cert_event_id": ev_id, "root_event_id": root_id}
+        # обе записи в cert_state: иначе читатель, фильтрующий по своему кинду,
+        # решит, что сертификат не публиковался
+        for kind, event_id in ((CERT_KIND, ev_id or ""), (CERT_KIND_LEGACY, legacy_id or "")):
+            if kind == CERT_KIND_LEGACY and not MIRROR_LEGACY_KIND:
+                continue
+            c.execute(
+                """INSERT INTO cert_state (kind, root, height, prev_cert_id, event_id, ts)
+                   VALUES (?,?,?,?,?,?)""",
+                (kind, cert["root"], cert["height"],
+                 cert["prev_cert_id"], event_id, cert["ts"]),
+            )
+    return {"cert": cert, "cert_event_id": ev_id, "legacy_event_id": legacy_id,
+            "root_event_id": root_id}
 
 
 def fetch_cert(pubkey: str = CRYTER_PUB, limit: int = 3,
                relays: list[str] | None = None) -> list[dict]:
-    """Найти kind 8010 ноды на релеях (для внешней проверки).
+    """Найти сертификат ноды на релеях (kind 10110, а на переходном периоде — 8010).
 
     К каждому событию добавляется служебный ключ "_relays" — с каких релеев
     оно получено (нужно, чтобы отличить «сертификат лежит на одном релее»
@@ -140,7 +163,7 @@ def fetch_cert(pubkey: str = CRYTER_PUB, limit: int = 3,
     for url in relays:
         try:
             ws = websocket.create_connection(url, timeout=8)
-            ws.send(json.dumps(["REQ", "spm-cert", {"kinds": [CERT_KIND],
+            ws.send(json.dumps(["REQ", "spm-cert", {"kinds": [CERT_KIND, CERT_KIND_LEGACY],
                                                     "authors": [pubkey],
                                                     "limit": limit}]))
             while True:

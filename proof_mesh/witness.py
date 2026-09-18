@@ -179,7 +179,11 @@ def attestations(height: int, chain_id: str = CHAIN_ID) -> list[dict]:
 
 # ── чекпоинт: два пути чтения ───────────────────────────────────────────────
 
-CERT_KIND = 8010  # NIP-80: сертификат честности — то, что реально уходит наружу
+# Сертификат честности: 10110 — свой кинд (см. publisher.py), 8010 — зеркало
+# переходного периода. Свидетель читает оба, иначе на время переключения
+# локальный и внешний свидетель подпишут разные чекпоинты.
+CERT_KINDS = (10110, 8010)
+CERT_KIND = CERT_KINDS[0]
 
 
 def _signer_at(height: int) -> str:
@@ -208,13 +212,13 @@ def checkpoint_local(height: int | None = None) -> dict | None:
         try:
             if height is None:
                 r = c.execute(
-                    "SELECT root, height, ts FROM cert_state WHERE kind=? ORDER BY id DESC LIMIT 1",
-                    (CERT_KIND,),
+                    "SELECT root, height, ts FROM cert_state WHERE kind IN (10110, 8010) "
+                    "ORDER BY id DESC LIMIT 1",
                 ).fetchone()
             else:
                 r = c.execute(
-                    "SELECT root, height, ts FROM cert_state WHERE kind=? AND height=? LIMIT 1",
-                    (CERT_KIND, height),
+                    "SELECT root, height, ts FROM cert_state WHERE kind IN (10110, 8010) AND height=? LIMIT 1",
+                    (height,),
                 ).fetchone()
         except sqlite3.Error:
             r = None
@@ -257,8 +261,8 @@ def newest_settled(lag_sec: int = 90) -> dict | None:
         c.row_factory = sqlite3.Row
         try:
             r = c.execute(
-                "SELECT root, height, ts FROM cert_state WHERE kind=? AND ts <= ? ORDER BY id DESC LIMIT 1",
-                (CERT_KIND, cutoff),
+                "SELECT root, height, ts FROM cert_state WHERE kind IN (10110, 8010) AND ts <= ? ORDER BY id DESC LIMIT 1",
+                (cutoff,),
             ).fetchone()
         except sqlite3.Error:
             return None
