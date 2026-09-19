@@ -57,7 +57,7 @@ SERVICES = {
         "type": "port", "port": 9932,
         "cmd": ["python3", "-u", f"{MESH_DIR}/smart_router.py"],
         "log": f"{LOG_DIR}/smart_router.log",
-        "env": {"SNIN_USE_ZMQ": "1"},
+        "env": {"SNIN_USE_ZMQ": "0"},  # ZMQ выключен: pyzmq нет, порты 9960-9965 заняты релеями шардов (ZMQ, если включать, идёт в блок 9260-9269)
     },
     "external_gateway": {
         "type": "port", "port": 9931,

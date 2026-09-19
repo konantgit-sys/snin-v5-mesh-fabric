@@ -33,7 +33,10 @@ if port_up 9910; then echo "[mesh] RouteEngine уже жив :9910"; else
 # 4. SmartRouter :9932 (сердце)
 sleep 1
 if port_up 9932; then echo "[mesh] SmartRouter уже жив :9932"; else
-  export SNIN_USE_ZMQ=1
+  # ZMQ выключен осознанно (2026-09-19): pyzmq не установлен, а порты 9960-9965
+# фактически заняты локальными релеями шардов. Если включать ZMQ — ему отведён
+# отдельный блок 9260-9269, НЕ 9960-9965.
+export SNIN_USE_ZMQ=0
   nohup python3 smart_router.py >> "$LOG_DIR/smart_router.log" 2>&1 &
   echo "[mesh] SmartRouter PID=$!"; fi
 
